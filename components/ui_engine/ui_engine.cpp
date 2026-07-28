@@ -15,37 +15,35 @@ void UiEngineComponent::setup() {
   this->registry_.register_template("cover", []() { return std::make_unique<CoverPage>(); });
   this->last_activity_ms_ = millis();
   this->flash_storage_.begin();
-  auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(std::move(this->initial_config_));
-  auto flash_provider = std::make_unique<FlashConfigProvider>(&this->flash_storage_);
-  auto local_fallback =
-      std::make_unique<FallbackConfigProvider>(std::move(flash_provider), std::move(embedded_provider));
+  auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(this->initial_config_);
   if (this->http_client_ != nullptr && !this->config_url_.empty()) {
-    auto http_provider = std::make_unique<HttpConfigProvider>(this->http_client_, this->config_url_);
-    this->config_provider_ =
-        std::make_unique<FallbackConfigProvider>(std::move(http_provider), std::move(local_fallback));
+    this->config_provider_ = std::make_unique<HttpConfigProvider>(this->http_client_, this->config_url_);
   } else {
-    this->config_provider_ = std::move(local_fallback);
+    this->config_provider_ = std::make_unique<EmbeddedConfigProvider>(this->initial_config_);
   }
 
   std::string raw_json;
   std::string error;
-  if (!this->config_provider_->fetch(&raw_json, &error)) {
-    ESP_LOGE(TAG, "No se pudo obtener configuracion: %s", error.c_str());
-    this->mark_failed();
-    return;
-  }
-  if (!this->try_apply_config(raw_json)) {
-    this->mark_failed();
-    return;
-  }
-  if (this->config_provider_->fetched_from_remote()) {
-    if (this->flash_storage_.save(raw_json, &error)) {
-      ESP_LOGI(TAG, "Configuracion HTTP guardada en cache flash");
-    } else {
-      ESP_LOGW(TAG, "No se pudo guardar cache flash: %s", error.c_str());
+  bool applied = false;
+  FlashConfigProvider flash_provider(&this->flash_storage_);
+  if (flash_provider.fetch(&raw_json, &error)) {
+    applied = this->try_apply_config(raw_json);
+    if (!applied) {
+      ESP_LOGW(TAG, "Cache flash invalida; se usara la configuracion embebida");
     }
+  } else {
+    ESP_LOGW(TAG, "Cache flash no disponible: %s", error.c_str());
   }
-  ESP_LOGI(TAG, "UI Engine inicializado con ButtonGrid de 6 controles");
+
+  if (!applied) {
+    if (!embedded_provider->fetch(&raw_json, &error) || !this->try_apply_config(raw_json)) {
+      ESP_LOGE(TAG, "No se pudo aplicar la configuracion embebida: %s", error.c_str());
+      this->mark_failed();
+      return;
+    }
+    ESP_LOGI(TAG, "Configuracion embebida aplicada como respaldo seguro");
+  }
+  ESP_LOGI(TAG, "UI Engine inicializado");
 }
 
 void UiEngineComponent::loop() {
