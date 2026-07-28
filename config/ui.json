@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "pages": [
+    {
+      "template": "button_grid",
+      "variant": "six_buttons",
+      "title": "Reload MQTT OK",
+      "controls": [
+        {"type": "button", "id": "living", "caption": "Living", "color": "#1976D2", "meta": {}},
+        {"type": "button", "id": "kitchen", "caption": "Cocina", "color": "#F9A825", "meta": {}},
+        {"type": "button", "id": "garage", "caption": "Garaje", "color": "#455A64", "meta": {}},
+        {"type": "button", "id": "night", "caption": "Noche", "color": "#6A1B9A", "meta": {}},
+        {"type": "button", "id": "heater", "caption": "Estufa", "color": "#D84315", "meta": {}},
+        {"type": "button", "id": "garden", "caption": "Jardin", "color": "#2E7D32", "meta": {}}
+      ]
+    },
+    {
+      "template": "button_grid",
+      "variant": "four_buttons",
+      "title": "Pagina 2",
+      "controls": [
+        {"type": "button", "id": "scene_day", "caption": "Dia", "color": "#F9A825", "meta": {}},
+        {"type": "button", "id": "scene_night", "caption": "Noche", "color": "#512DA8", "meta": {}},
+        {"type": "button", "id": "outside", "caption": "Exterior", "color": "#00897B", "meta": {}},
+        {"type": "button", "id": "pump", "caption": "Bomba", "color": "#0277BD", "meta": {}}
+      ]
+    },
+    {
+      "template": "button_grid",
+      "variant": "two_buttons",
+      "title": "Pagina 3",
+      "controls": [
+        {"type": "button", "id": "all_on", "caption": "Todo ON", "color": "#2E7D32", "meta": {}},
+        {"type": "button", "id": "all_off", "caption": "Todo OFF", "color": "#C62828", "meta": {}}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "controls": {
+    "living": {
+      "entity_id": "switch.sonoff_1001327309_2",
+      "domain": "switch",
+      "action": "toggle"
+    }
+  }
+}
