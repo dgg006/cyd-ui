@@ -2,3 +2,5 @@
 secrets.yaml
 *.bin
 mqtt/passwd
+__pycache__/
+*.pyc
