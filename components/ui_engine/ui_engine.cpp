@@ -9,6 +9,9 @@ static const char *const TAG = "ui_engine";
 
 void UiEngineComponent::setup() {
   this->registry_.register_template("button_grid", []() { return std::make_unique<ButtonGrid>(); });
+  this->registry_.register_template("climate", []() { return std::make_unique<ClimatePage>(); });
+  this->registry_.register_template("clock_weather", [this]() { return std::make_unique<ClockWeatherPage>(this->clock_); });
+  this->last_activity_ms_ = millis();
   this->flash_storage_.begin();
   auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(std::move(this->initial_config_));
   auto flash_provider = std::make_unique<FlashConfigProvider>(&this->flash_storage_);
@@ -44,11 +47,35 @@ void UiEngineComponent::setup() {
 }
 
 void UiEngineComponent::loop() {
+  if (this->active_page_ != nullptr) {
+    this->active_page_->loop();
+  }
+
+  if (this->wake_pending_) {
+    this->wake_pending_ = false;
+    this->screensaver_active_ = false;
+    this->show_page(this->page_before_screensaver_);
+  }
+
+  if (!this->screensaver_active_ && this->screensaver_page_index_ >= 0 && this->screensaver_timeout_ms_ > 0 &&
+      this->active_page_index_ != static_cast<size_t>(this->screensaver_page_index_) &&
+      millis() - this->last_activity_ms_ >= this->screensaver_timeout_ms_) {
+    this->page_before_screensaver_ = this->active_page_index_;
+    this->screensaver_active_ = true;
+    this->show_page(static_cast<size_t>(this->screensaver_page_index_));
+  }
+
   if (this->page_delta_pending_ != 0 && !this->active_config_.pages.empty()) {
     const int page_count = static_cast<int>(this->active_config_.pages.size());
-    const int next = (static_cast<int>(this->active_page_index_) + this->page_delta_pending_ + page_count) % page_count;
+    int next = static_cast<int>(this->active_page_index_);
+    for (int attempt = 0; attempt < page_count; attempt++) {
+      next = (next + this->page_delta_pending_ + page_count) % page_count;
+      if (!this->active_config_.pages[static_cast<size_t>(next)].screensaver) break;
+    }
     this->page_delta_pending_ = 0;
-    this->show_page(static_cast<size_t>(next));
+    if (this->show_page(static_cast<size_t>(next))) {
+      this->navigation_trigger_.trigger(next);
+    }
   }
 
   if (!this->reload_pending_) {
@@ -96,7 +123,21 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
     }
   }
 
+  int screensaver_index = -1;
+  for (size_t index = 0; index < candidate.pages.size(); index++) {
+    if (!candidate.pages[index].screensaver) continue;
+    if (screensaver_index >= 0) {
+      ESP_LOGE(TAG, "Solo puede existir una pagina screensaver");
+      return false;
+    }
+    screensaver_index = static_cast<int>(index);
+  }
+
   this->active_config_ = std::move(candidate);
+  this->screensaver_page_index_ = screensaver_index;
+  this->screensaver_active_ = false;
+  this->wake_pending_ = false;
+  this->last_activity_ms_ = millis();
   if (!this->show_page(0)) {
     return false;
   }
@@ -116,6 +157,7 @@ bool UiEngineComponent::show_page(size_t index) {
       return false;
     }
     page->set_action_callback([this](const std::string &control_id, const std::string &action) {
+      this->notify_activity();
       ESP_LOGI(TAG, "action: control_id=%s action=%s", control_id.c_str(), action.c_str());
       this->action_trigger_.trigger(control_id, action);
     });
@@ -126,11 +168,12 @@ bool UiEngineComponent::show_page(size_t index) {
   }
 
   this->active_page_->apply(page_config);
-  this->active_page_->set_navigation_enabled(this->active_config_.pages.size() > 1);
+  this->active_page_->set_navigation_enabled(this->active_config_.pages.size() > 1 && !page_config.screensaver);
   for (const auto &control : page_config.controls) {
     const auto state = this->control_states_.find(control.id);
     if (state != this->control_states_.end()) {
-      this->active_page_->update_control(control.id, state->second.active, state->second.reliability);
+      this->active_page_->update_control(control.id, state->second.active, state->second.value,
+                                         state->second.reliability);
     }
   }
   this->active_page_index_ = index;
@@ -139,7 +182,22 @@ bool UiEngineComponent::show_page(size_t index) {
   return true;
 }
 
-bool UiEngineComponent::update_control(const std::string &id, bool active, const std::string &reliability) {
+void UiEngineComponent::notify_activity() {
+  this->last_activity_ms_ = millis();
+  if (this->screensaver_active_) {
+    this->wake_pending_ = true;
+  }
+}
+
+void UiEngineComponent::request_page_delta(int delta) {
+  this->notify_activity();
+  if (!this->screensaver_active_) {
+    this->page_delta_pending_ = delta;
+  }
+}
+
+bool UiEngineComponent::update_control(const std::string &id, bool active, const std::string &value,
+                                       const std::string &reliability) {
   if (this->active_page_ == nullptr) {
     ESP_LOGW(TAG, "Actualizacion ignorada: no hay pagina activa");
     return false;
@@ -155,9 +213,10 @@ bool UiEngineComponent::update_control(const std::string &id, bool active, const
     return false;
   }
 
-  this->control_states_[id] = RuntimeControlState{active, state};
-  this->active_page_->update_control(id, active, state);
-  ESP_LOGI(TAG, "control_changed: id=%s active=%s reliability=%s", id.c_str(), YESNO(active), reliability.c_str());
+  this->control_states_[id] = RuntimeControlState{active, value, state};
+  this->active_page_->update_control(id, active, value, state);
+  ESP_LOGI(TAG, "control_changed: id=%s active=%s value=%s reliability=%s", id.c_str(), YESNO(active),
+           value.c_str(), reliability.c_str());
   return true;
 }
 

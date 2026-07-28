@@ -33,6 +33,29 @@
         {"type": "button", "id": "all_on", "caption": "Todo ON", "color": "#2E7D32", "meta": {}},
         {"type": "button", "id": "all_off", "caption": "Todo OFF", "color": "#C62828", "meta": {}}
       ]
+    },
+    {
+      "template": "climate",
+      "variant": "thermostat",
+      "title": "Clima Living",
+      "controls": [
+        {"type": "value", "role": "current_temperature", "id": "climate_living_current", "caption": "Actual", "color": "#FFFFFF", "meta": {}},
+        {"type": "value", "role": "target_temperature", "id": "climate_living_target", "caption": "Objetivo", "color": "#90CAF9", "meta": {}},
+        {"type": "button", "role": "decrease", "id": "climate_living_down", "caption": "-", "action": "decrement", "color": "#455A64", "meta": {}},
+        {"type": "button", "role": "power", "id": "climate_living_power", "caption": "Simulado", "action": "toggle", "color": "#D84315", "meta": {}},
+        {"type": "button", "role": "increase", "id": "climate_living_up", "caption": "+", "action": "increment", "color": "#455A64", "meta": {}}
+      ]
+    },
+    {
+      "template": "clock_weather",
+      "variant": "screensaver",
+      "title": "Casa",
+      "screensaver": true,
+      "controls": [
+        {"type": "value", "role": "condition", "id": "weather_condition", "caption": "Estado", "color": "#90CAF9", "meta": {}},
+        {"type": "value", "role": "outside_temperature", "id": "weather_temperature", "caption": "Exterior", "color": "#FFFFFF", "meta": {}},
+        {"type": "value", "role": "humidity", "id": "weather_humidity", "caption": "Humedad", "color": "#80CBC4", "meta": {}}
+      ]
     }
   ]
 }

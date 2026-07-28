@@ -41,6 +41,7 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
     page.template_name = page_json["template"] | "";
     page.variant = page_json["variant"] | "";
     page.title = page_json["title"] | "";
+    page.screensaver = page_json["screensaver"] | false;
     if (page.template_name.empty() || page.variant.empty() || page.title.empty()) {
       *error = "template, variant y title son obligatorios";
       return false;
@@ -57,10 +58,12 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       control.type = control_json["type"] | "";
       control.id = control_json["id"] | "";
       control.caption = control_json["caption"] | "";
+      control.role = control_json["role"] | "";
+      control.action = control_json["action"] | "";
       const char *color_text = control_json["color"] | "";
 
-      if (control.type != "button" || control.id.empty() || control.caption.empty()) {
-        *error = "cada control requiere type=button, id y caption";
+      if ((control.type != "button" && control.type != "value") || control.id.empty() || control.caption.empty()) {
+        *error = "cada control requiere type=button/value, id y caption";
         return false;
       }
       if (!ids.insert(control.id).second) {

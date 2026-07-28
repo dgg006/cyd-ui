@@ -5,6 +5,8 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "button_grid.h"
+#include "climate_page.h"
+#include "clock_weather_page.h"
 #include "config_parser.h"
 #include "config_provider.h"
 #include "flash_storage.h"
@@ -26,17 +28,22 @@ class UiEngineComponent : public Component {
     this->config_url_ = url;
   }
   Trigger<std::string, std::string> *get_action_trigger() { return &this->action_trigger_; }
+  Trigger<int> *get_navigation_trigger() { return &this->navigation_trigger_; }
   void request_reload() { this->reload_pending_ = true; }
-  bool update_control(const std::string &id, bool active, const std::string &reliability);
+  void notify_activity();
+  void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
+  void set_screensaver_timeout(uint32_t timeout_ms) { this->screensaver_timeout_ms_ = timeout_ms; }
+  bool update_control(const std::string &id, bool active, const std::string &value, const std::string &reliability);
   void set_backend_connected(bool connected);
 
  private:
   bool try_apply_config(const std::string &raw_json);
   bool show_page(size_t index);
-  void request_page_delta(int delta) { this->page_delta_pending_ = delta; }
+  void request_page_delta(int delta);
 
   struct RuntimeControlState {
     bool active{false};
+    std::string value;
     ControlState reliability{ControlState::UNKNOWN};
   };
 
@@ -51,10 +58,18 @@ class UiEngineComponent : public Component {
   size_t active_page_index_{0};
   std::map<std::string, RuntimeControlState> control_states_;
   Trigger<std::string, std::string> action_trigger_;
+  Trigger<int> navigation_trigger_;
   bool reload_pending_{false};
   int page_delta_pending_{0};
   http_request::HttpRequestComponent *http_client_{nullptr};
   std::string config_url_;
+  time::RealTimeClock *clock_{nullptr};
+  uint32_t screensaver_timeout_ms_{0};
+  uint32_t last_activity_ms_{0};
+  int screensaver_page_index_{-1};
+  size_t page_before_screensaver_{0};
+  bool screensaver_active_{false};
+  bool wake_pending_{false};
 };
 
 template<typename... Ts> class ReloadAction final : public Action<Ts...>, public Parented<UiEngineComponent> {

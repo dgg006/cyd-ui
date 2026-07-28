@@ -68,6 +68,7 @@ void ButtonGrid::apply(const PageConfig &config) {
     const auto &control = config.controls[index];
     lv_obj_remove_flag(this->buttons_[index], LV_OBJ_FLAG_HIDDEN);
     this->ids_[index] = control.id;
+    this->actions_[index] = control.action.empty() ? "toggle" : control.action;
     this->colors_[index] = control.color;
     this->states_[index] = ControlState::UNKNOWN;
     this->active_[index] = false;
@@ -95,6 +96,12 @@ bool ButtonGrid::validate(const PageConfig &config, std::string *error) const {
   if (config.controls.empty() || config.controls.size() > maximum) {
     *error = "La cantidad de controles supera la capacidad de la variante";
     return false;
+  }
+  for (const auto &control : config.controls) {
+    if (control.type != "button") {
+      *error = "ButtonGrid solo admite controles type=button";
+      return false;
+    }
   }
   return true;
 }
@@ -126,7 +133,7 @@ void ButtonGrid::apply_layout(const std::string &variant) {
   }
 }
 
-bool ButtonGrid::update_control(const std::string &id, bool active, ControlState state) {
+bool ButtonGrid::update_control(const std::string &id, bool active, const std::string &value, ControlState state) {
   for (size_t index = 0; index < this->ids_.size(); index++) {
     if (this->ids_[index] == id) {
       this->active_[index] = active;
@@ -184,7 +191,7 @@ void ButtonGrid::handle_click(size_t index) {
     return;
   }
   if (this->action_callback_) {
-    this->action_callback_(this->ids_[index], "toggle");
+    this->action_callback_(this->ids_[index], this->actions_[index]);
   }
 }
 

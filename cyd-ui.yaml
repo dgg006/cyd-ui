@@ -9,6 +9,11 @@ esp32:
 
 logger:
 
+time:
+  - platform: sntp
+    id: system_time
+    timezone: America/Montevideo
+
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
@@ -45,9 +50,23 @@ mqtt:
             } else if (type == "control_changed") {
               const std::string control_id = x["id"] | "";
               const bool active = x["active"] | false;
+              const std::string value = x["value"] | "";
               const std::string reliability = x["reliability"] | "valid";
               if (!control_id.empty()) {
-                id(ui_engine_main).update_control(control_id, active, reliability);
+                id(ui_engine_main).update_control(control_id, active, value, reliability);
+              }
+            } else if (type == "sound") {
+              const std::string sound = x["sound"] | "";
+              if (sound == "attention") {
+                id(ui_sound).play("attention:d=32,o=6,b=220:g,p,g");
+              } else if (sound == "notification") {
+                id(ui_sound).play("notification:d=32,o=6,b=180:c,e");
+              } else if (sound == "success") {
+                id(ui_sound).play("success:d=32,o=6,b=180:c,e,g");
+              } else if (sound == "warning") {
+                id(ui_sound).play("warning:d=16,o=5,b=180:a,p,a");
+              } else if (sound == "error") {
+                id(ui_sound).play("error:d=16,o=4,b=160:g");
               }
             }
 
@@ -77,6 +96,32 @@ output:
   - platform: gpio
     id: backlight_output
     pin: GPIO21
+  - platform: ledc
+    id: ui_speaker_output
+    pin: GPIO26
+
+rtttl:
+  id: ui_sound
+  output: ui_speaker_output
+  gain: 18%
+
+script:
+  - id: ui_sound_tap
+    mode: restart
+    then:
+      - rtttl.play: "tap:d=32,o=6,b=180:c"
+  - id: ui_sound_navigation
+    mode: restart
+    then:
+      - rtttl.play: "nav:d=32,o=6,b=200:g"
+  - id: ui_sound_success
+    mode: restart
+    then:
+      - rtttl.play: "ok:d=32,o=6,b=180:c,e"
+  - id: ui_sound_error
+    mode: restart
+    then:
+      - rtttl.play: "err:d=16,o=4,b=160:g"
 
 light:
   - platform: binary
@@ -107,6 +152,8 @@ touchscreen:
       y_max: 3800
     transform:
       mirror_x: true
+    on_touch:
+      - lambda: id(ui_engine_main).notify_activity();
 
 lvgl:
   id: cyd_lvgl
@@ -130,7 +177,10 @@ ui_engine:
   config_file: config/ui.json
   http_request_id: ui_http
   config_url: http://192.168.31.240:8124/ui.json
+  time_id: system_time
+  screensaver_timeout: 30s
   on_action:
+    - script.execute: ui_sound_tap
     - logger.log:
         format: "UI action: control_id=%s action=%s"
         args:
@@ -144,3 +194,5 @@ ui_engine:
           root["type"] = "action";
           root["id"] = control_id;
           root["action"] = action;
+  on_navigation:
+    - script.execute: ui_sound_navigation

@@ -3,7 +3,54 @@
     "living": {
       "entity_id": "switch.sonoff_1001327309_2",
       "domain": "switch",
-      "action": "toggle"
+      "action": "toggle",
+      "allow_control": true
+    },
+    "climate_living_current": {
+      "entity_id": "climate.calefactor_a_pellet",
+      "attribute": "current_temperature",
+      "decimals": 1
+    },
+    "climate_living_target": {
+      "entity_id": "climate.calefactor_a_pellet",
+      "attribute": "temperature",
+      "decimals": 1
+    },
+    "climate_living_power": {
+      "entity_id": "climate.calefactor_a_pellet",
+      "state_active": true
+    },
+    "climate_living_down": {
+      "entity_id": "climate.calefactor_a_pellet",
+      "domain": "climate",
+      "service": "set_temperature",
+      "action": "decrement",
+      "temperature_delta": -1.0,
+      "allow_control": true,
+      "publish_state": false
+    },
+    "climate_living_up": {
+      "entity_id": "climate.calefactor_a_pellet",
+      "domain": "climate",
+      "service": "set_temperature",
+      "action": "increment",
+      "temperature_delta": 1.0,
+      "allow_control": true,
+      "publish_state": false
+    },
+    "weather_condition": {
+      "entity_id": "weather.forecast_casa",
+      "value_only": true
+    },
+    "weather_temperature": {
+      "entity_id": "weather.forecast_casa",
+      "attribute": "temperature",
+      "decimals": 1
+    },
+    "weather_humidity": {
+      "entity_id": "weather.forecast_casa",
+      "attribute": "humidity",
+      "decimals": 0
     }
   }
 }

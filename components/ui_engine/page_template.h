@@ -15,9 +15,10 @@ using NavigationCallback = std::function<void(int delta)>;
 class PageTemplate {
  public:
   virtual ~PageTemplate() = default;
+  virtual void loop() {}
   virtual void create(lv_obj_t *parent) = 0;
   virtual void apply(const PageConfig &config) = 0;
-  virtual bool update_control(const std::string &id, bool active, ControlState state) = 0;
+  virtual bool update_control(const std::string &id, bool active, const std::string &value, ControlState state) = 0;
   virtual void set_all_states(ControlState state) = 0;
   virtual bool validate(const PageConfig &config, std::string *error) const = 0;
   virtual void set_action_callback(ActionCallback callback) = 0;

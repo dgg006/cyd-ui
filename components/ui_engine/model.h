@@ -16,6 +16,8 @@ struct ControlConfig {
   std::string type;
   std::string id;
   std::string caption;
+  std::string role;
+  std::string action;
   uint32_t color{0};
   std::string meta_raw;
 };
@@ -24,6 +26,7 @@ struct PageConfig {
   std::string template_name;
   std::string variant;
   std::string title;
+  bool screensaver{false};
   std::vector<ControlConfig> controls;
 };
 

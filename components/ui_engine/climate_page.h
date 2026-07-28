@@ -1,17 +1,14 @@
 #pragma once
 
-#include <array>
-#include <cstddef>
 #include <string>
 
 #include "lvgl.h"
-#include "model.h"
 #include "page_template.h"
 
 namespace esphome {
 namespace ui_engine {
 
-class ButtonGrid : public PageTemplate {
+class ClimatePage : public PageTemplate {
  public:
   void create(lv_obj_t *parent) override;
   void apply(const PageConfig &config) override;
@@ -23,29 +20,37 @@ class ButtonGrid : public PageTemplate {
   void set_navigation_enabled(bool enabled) override;
 
  private:
-  struct EventBinding {
-    ButtonGrid *grid;
-    size_t index;
-  };
-
-  static void event_callback(lv_event_t *event);
   static void previous_callback(lv_event_t *event);
   static void next_callback(lv_event_t *event);
-  void handle_click(size_t index);
-  void apply_state(size_t index);
-  void apply_layout(const std::string &variant);
+  static void decrease_callback(lv_event_t *event);
+  static void power_callback(lv_event_t *event);
+  static void increase_callback(lv_event_t *event);
+  void emit_action(const std::string &id, const std::string &action);
+  void apply_power_state();
 
   lv_obj_t *title_{nullptr};
   lv_obj_t *previous_button_{nullptr};
   lv_obj_t *next_button_{nullptr};
-  std::array<lv_obj_t *, 6> buttons_{};
-  std::array<lv_obj_t *, 6> labels_{};
-  std::array<EventBinding, 6> bindings_{};
-  std::array<std::string, 6> ids_{};
-  std::array<std::string, 6> actions_{};
-  std::array<uint32_t, 6> colors_{};
-  std::array<ControlState, 6> states_{};
-  std::array<bool, 6> active_{};
+  lv_obj_t *current_label_{nullptr};
+  lv_obj_t *target_label_{nullptr};
+  lv_obj_t *decrease_button_{nullptr};
+  lv_obj_t *power_button_{nullptr};
+  lv_obj_t *increase_button_{nullptr};
+  lv_obj_t *decrease_label_{nullptr};
+  lv_obj_t *power_label_{nullptr};
+  lv_obj_t *increase_label_{nullptr};
+
+  std::string current_id_;
+  std::string target_id_;
+  std::string decrease_id_;
+  std::string power_id_;
+  std::string increase_id_;
+  std::string decrease_action_{"decrement"};
+  std::string power_action_{"toggle"};
+  std::string increase_action_{"increment"};
+  uint32_t power_color_{0xD84315};
+  bool power_active_{false};
+  ControlState power_state_{ControlState::UNKNOWN};
   ActionCallback action_callback_;
   NavigationCallback navigation_callback_;
 };
