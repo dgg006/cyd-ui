@@ -18,6 +18,7 @@ COMMAND_TOPIC = "esphome_ui/cyd-ui/cmd"
 EVENT_TOPIC = "esphome_ui/cyd-ui/event"
 POLL_SECONDS = 15.0
 _FETCH_ENTITY = object()
+ALLOWED_SOUNDS = {"attention", "notification", "success", "warning", "error"}
 
 
 def read_mqtt_secrets():
@@ -72,6 +73,9 @@ def main():
     def format_value(mapping, value):
         if value is None:
             return ""
+        value_map = mapping.get("value_map", {})
+        if str(value) in value_map:
+            return str(value_map[str(value)])
         if "decimals" in mapping:
             return f"{float(value):.{int(mapping['decimals'])}f}"
         return str(value)
@@ -173,6 +177,8 @@ def main():
                 ws.recv()  # result de la suscripcion
                 ws.send(json.dumps({"id": 2, "type": "subscribe_events", "event_type": "call_service"}))
                 ws.recv()  # result de la suscripcion
+                ws.send(json.dumps({"id": 3, "type": "subscribe_events", "event_type": "cyd_ui_sound"}))
+                ws.recv()  # result de la suscripcion
                 print("Eventos de Home Assistant en tiempo real conectados", flush=True)
 
                 while True:
@@ -199,6 +205,17 @@ def main():
                         if temperature is not None:
                             for entity_id in entity_ids:
                                 publish_attribute_value(entity_id, "temperature", temperature)
+                    elif event.get("event_type") == "cyd_ui_sound":
+                        sound = data.get("sound", "notification")
+                        if sound in ALLOWED_SOUNDS:
+                            client.publish(
+                                EVENT_TOPIC,
+                                json.dumps({"type": "sound", "sound": sound}, separators=(",", ":")),
+                                qos=1,
+                            )
+                            print(f"sonido solicitado por Home Assistant: {sound}", flush=True)
+                        else:
+                            print(f"sonido de Home Assistant ignorado: {sound}", flush=True)
             except Exception as error:
                 print(f"Canal en tiempo real desconectado; reintento en 3 s: {error}", flush=True)
                 time.sleep(3)
@@ -238,7 +255,8 @@ def main():
                     if (mapping and mapping.get("allow_control") is True
                             and mapping.get("entity_id")
                             and command.get("action") == mapping.get("action")):
-                        if mapping.get("service") == "set_temperature":
+                        requested_service = mapping.get("service", mapping["action"])
+                        if requested_service == "set_temperature":
                             entity = latest_entities.get(mapping["entity_id"])
                             if entity is None:
                                 entity = ha_request(ha_base_url, ha_token, f"/api/states/{mapping['entity_id']}")
@@ -248,12 +266,22 @@ def main():
                             new_target = max(float(attributes.get("min_temp", new_target)), new_target)
                             new_target = min(float(attributes.get("max_temp", new_target)), new_target)
                             payload = {"entity_id": mapping["entity_id"], "temperature": new_target}
-                            service = mapping["service"]
+                            service = requested_service
+                        elif requested_service == "set_cover_position":
+                            entity = latest_entities.get(mapping["entity_id"])
+                            if entity is None:
+                                entity = ha_request(ha_base_url, ha_token, f"/api/states/{mapping['entity_id']}")
+                            current_position = float(entity.get("attributes", {}).get("current_position", 0))
+                            new_position = max(0.0, min(100.0, current_position + float(mapping["position_delta"])))
+                            payload = {"entity_id": mapping["entity_id"], "position": round(new_position)}
+                            service = requested_service
                         else:
                             payload = {"entity_id": mapping["entity_id"]}
-                            service = mapping["action"]
+                            service = requested_service
                         if service == "set_temperature":
                             publish_attribute_value(mapping["entity_id"], "temperature", new_target)
+                        elif service == "set_cover_position":
+                            publish_attribute_value(mapping["entity_id"], "current_position", round(new_position))
                         ha_request(ha_base_url, ha_token,
                                    f"/api/services/{mapping['domain']}/{service}",
                                    method="POST", payload=payload)

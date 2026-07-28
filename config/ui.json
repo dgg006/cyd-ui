@@ -67,6 +67,19 @@
         {"type": "value", "id": "sensor_garage_temp", "caption": "Cochera", "unit": "C", "color": "#FFB74D", "meta": {}},
         {"type": "value", "id": "sensor_bedroom_humidity", "caption": "Hum. dormitorio", "unit": "%", "color": "#81D4FA", "meta": {}}
       ]
+    },
+    {
+      "template": "cover",
+      "variant": "position_controls",
+      "title": "Cortina ServiCell",
+      "controls": [
+        {"type": "value", "role": "position", "id": "cover_servicell_position", "caption": "Posicion", "color": "#90CAF9", "meta": {}},
+        {"type": "value", "role": "state", "id": "cover_servicell_state", "caption": "Estado", "color": "#FFFFFF", "meta": {}},
+        {"type": "button", "role": "open", "id": "cover_servicell_open", "caption": "Abrir todo", "action": "open", "color": "#2E7D32", "meta": {}},
+        {"type": "button", "role": "close", "id": "cover_servicell_close", "caption": "Cerrar todo", "action": "close", "color": "#C62828", "meta": {}},
+        {"type": "button", "role": "close_step", "id": "cover_servicell_close_step", "caption": "Cerrar 10%", "action": "close_step", "color": "#8E3B35", "meta": {}},
+        {"type": "button", "role": "open_step", "id": "cover_servicell_open_step", "caption": "Abrir 10%", "action": "open_step", "color": "#356E3D", "meta": {}}
+      ]
     }
   ]
 }

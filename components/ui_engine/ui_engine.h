@@ -7,6 +7,7 @@
 #include "button_grid.h"
 #include "climate_page.h"
 #include "clock_weather_page.h"
+#include "cover_page.h"
 #include "sensor_grid.h"
 #include "config_parser.h"
 #include "config_provider.h"

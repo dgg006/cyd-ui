@@ -71,6 +71,55 @@
       "entity_id": "sensor.sensor_dormitorio_humedad",
       "value_only": true,
       "decimals": 0
+    },
+    "cover_servicell_position": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "attribute": "current_position",
+      "decimals": 0
+    },
+    "cover_servicell_state": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "value_only": true,
+      "value_map": {
+        "open": "Abierta",
+        "closed": "Cerrada",
+        "opening": "Abriendo",
+        "closing": "Cerrando"
+      }
+    },
+    "cover_servicell_open": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "domain": "cover",
+      "action": "open",
+      "service": "open_cover",
+      "allow_control": true,
+      "publish_state": false
+    },
+    "cover_servicell_close_step": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "domain": "cover",
+      "action": "close_step",
+      "service": "set_cover_position",
+      "position_delta": -10,
+      "allow_control": true,
+      "publish_state": false
+    },
+    "cover_servicell_open_step": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "domain": "cover",
+      "action": "open_step",
+      "service": "set_cover_position",
+      "position_delta": 10,
+      "allow_control": true,
+      "publish_state": false
+    },
+    "cover_servicell_close": {
+      "entity_id": "cover.cortina_servicell_corregida",
+      "domain": "cover",
+      "action": "close",
+      "service": "close_cover",
+      "allow_control": true,
+      "publish_state": false
     }
   }
 }

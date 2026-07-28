@@ -41,7 +41,7 @@ def validate_ui_document(document):
         if not isinstance(page, dict):
             raise cv.Invalid(f"{page_prefix} debe ser un objeto")
         template = page.get("template")
-        if template not in ("button_grid", "climate", "clock_weather", "sensor_grid"):
+        if template not in ("button_grid", "climate", "clock_weather", "sensor_grid", "cover"):
             raise cv.Invalid(f"{page_prefix}.template no esta registrado")
         variant = page.get("variant")
         capacities = {"two_buttons": 2, "four_buttons": 4, "six_buttons": 6}
@@ -53,6 +53,8 @@ def validate_ui_document(document):
             raise cv.Invalid(f"{page_prefix}.variant debe ser screensaver")
         if template == "sensor_grid" and variant != "four_values":
             raise cv.Invalid(f"{page_prefix}.variant debe ser four_values")
+        if template == "cover" and variant != "position_controls":
+            raise cv.Invalid(f"{page_prefix}.variant debe ser position_controls")
         is_screensaver = page.get("screensaver", False)
         if not isinstance(is_screensaver, bool):
             raise cv.Invalid(f"{page_prefix}.screensaver debe ser booleano")
@@ -65,7 +67,9 @@ def validate_ui_document(document):
 
         controls = page.get("controls")
         maximum = capacities[variant] if template == "button_grid" else (
-            5 if template == "climate" else (3 if template == "clock_weather" else 4)
+            (6 if template == "cover" else 5) if template in ("climate", "cover") else (
+                3 if template == "clock_weather" else 4
+            )
         )
         if not isinstance(controls, list) or not 1 <= len(controls) <= maximum:
             raise cv.Invalid(f"{page_prefix}.controls no es valido para {variant}")
@@ -85,6 +89,8 @@ def validate_ui_document(document):
                 raise cv.Invalid(f"{prefix}.type debe ser value")
             if template == "sensor_grid" and control_type != "value":
                 raise cv.Invalid(f"{prefix}.type debe ser value")
+            if template == "cover" and control_type not in ("button", "value"):
+                raise cv.Invalid(f"{prefix}.type debe ser button o value")
             control_id = control.get("id")
             if not isinstance(control_id, str) or not control_id.strip():
                 raise cv.Invalid(f"{prefix}.id es obligatorio")
@@ -109,6 +115,11 @@ def validate_ui_document(document):
                 if role not in ("condition", "outside_temperature", "humidity"):
                     raise cv.Invalid(f"{prefix}.role no es valido para clock_weather")
                 roles.add(role)
+            elif template == "cover":
+                role = control.get("role")
+                if role not in ("position", "state", "open", "close", "close_step", "open_step"):
+                    raise cv.Invalid(f"{prefix}.role no es valido para cover")
+                roles.add(role)
 
         if template == "climate" and roles != {
             "current_temperature", "target_temperature", "decrease", "power", "increase"
@@ -116,6 +127,8 @@ def validate_ui_document(document):
             raise cv.Invalid(f"{page_prefix} requiere los cinco roles de climate")
         if template == "clock_weather" and roles != {"condition", "outside_temperature", "humidity"}:
             raise cv.Invalid(f"{page_prefix} requiere los tres roles de clock_weather")
+        if template == "cover" and roles != {"position", "state", "open", "close", "close_step", "open_step"}:
+            raise cv.Invalid(f"{page_prefix} requiere los seis roles de cover")
 
     if screensaver_count > 1:
         raise cv.Invalid("solo puede existir una pagina screensaver")
