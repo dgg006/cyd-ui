@@ -60,6 +60,7 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       control.caption = control_json["caption"] | "";
       control.role = control_json["role"] | "";
       control.action = control_json["action"] | "";
+      control.unit = control_json["unit"] | "";
       const char *color_text = control_json["color"] | "";
 
       if ((control.type != "button" && control.type != "value") || control.id.empty() || control.caption.empty()) {

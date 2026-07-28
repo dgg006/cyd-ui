@@ -18,6 +18,7 @@ struct ControlConfig {
   std::string caption;
   std::string role;
   std::string action;
+  std::string unit;
   uint32_t color{0};
   std::string meta_raw;
 };

@@ -11,6 +11,7 @@ void UiEngineComponent::setup() {
   this->registry_.register_template("button_grid", []() { return std::make_unique<ButtonGrid>(); });
   this->registry_.register_template("climate", []() { return std::make_unique<ClimatePage>(); });
   this->registry_.register_template("clock_weather", [this]() { return std::make_unique<ClockWeatherPage>(this->clock_); });
+  this->registry_.register_template("sensor_grid", []() { return std::make_unique<SensorGrid>(); });
   this->last_activity_ms_ = millis();
   this->flash_storage_.begin();
   auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(std::move(this->initial_config_));

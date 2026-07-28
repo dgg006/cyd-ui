@@ -56,6 +56,17 @@
         {"type": "value", "role": "outside_temperature", "id": "weather_temperature", "caption": "Exterior", "color": "#FFFFFF", "meta": {}},
         {"type": "value", "role": "humidity", "id": "weather_humidity", "caption": "Humedad", "color": "#80CBC4", "meta": {}}
       ]
+    },
+    {
+      "template": "sensor_grid",
+      "variant": "four_values",
+      "title": "Sensores",
+      "controls": [
+        {"type": "value", "id": "sensor_living_temp", "caption": "Living", "unit": "C", "color": "#FFB74D", "meta": {}},
+        {"type": "value", "id": "sensor_bedroom_temp", "caption": "Dormitorio", "unit": "C", "color": "#FFB74D", "meta": {}},
+        {"type": "value", "id": "sensor_garage_temp", "caption": "Cochera", "unit": "C", "color": "#FFB74D", "meta": {}},
+        {"type": "value", "id": "sensor_bedroom_humidity", "caption": "Hum. dormitorio", "unit": "%", "color": "#81D4FA", "meta": {}}
+      ]
     }
   ]
 }

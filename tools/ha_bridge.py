@@ -101,7 +101,7 @@ def main():
                     unavailable = unavailable or attribute_value is None
                     active = False
                 else:
-                    value = state if mapping.get("value_only") else ""
+                    value = format_value(mapping, state) if mapping.get("value_only") else ""
                     active = state not in ("off", "unknown", "unavailable") if mapping.get("state_active") else state == "on"
                 event = {
                     "type": "control_changed",

@@ -51,6 +51,26 @@
       "entity_id": "weather.forecast_casa",
       "attribute": "humidity",
       "decimals": 0
+    },
+    "sensor_living_temp": {
+      "entity_id": "sensor.sonoff_100148a02f_temperature",
+      "value_only": true,
+      "decimals": 1
+    },
+    "sensor_bedroom_temp": {
+      "entity_id": "sensor.sensor_dormitorio_temperatura",
+      "value_only": true,
+      "decimals": 1
+    },
+    "sensor_garage_temp": {
+      "entity_id": "sensor.cochera_temperatura_dht22",
+      "value_only": true,
+      "decimals": 1
+    },
+    "sensor_bedroom_humidity": {
+      "entity_id": "sensor.sensor_dormitorio_humedad",
+      "value_only": true,
+      "decimals": 0
     }
   }
 }
