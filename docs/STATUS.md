@@ -39,8 +39,8 @@ Actualizado: 2026-07-29
 
 ## Memoria de referencia
 
-- DRAM estática: 51.516 bytes (28,5 %).
-- Firmware con catálogo MDI y telemetría LDR: 1.352.751 bytes (73,7 % de la partición de aplicación).
+- DRAM estática: 51.564 bytes (28,5 %).
+- Firmware con catálogo MDI y telemetría de estado: 1.353.659 bytes (73,8 % de la partición de aplicación).
 
 ## Próximo hito
 
@@ -74,4 +74,5 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Volumen de 0 a 10 y activación independiente de toques, navegación y notificaciones.
 - Editor visual con apartado fijo `Configuración` y prueba sonora.
 - Lectura LDR actualizada cada segundo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
+- Telemetría visible del porcentaje de brillo realmente aplicado y del modo activo (`normal`, noche, protector, apagado o tenue).
 - microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.

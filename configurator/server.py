@@ -34,7 +34,8 @@ MQTT_BROKER = "192.168.31.240"
 MQTT_PORT = 1883
 EVENT_TOPIC = "esphome_ui/cyd-ui/event"
 LDR_TOPIC = "esphome_ui/cyd-ui/telemetry/ldr_voltage"
-DEVICE_STATUS: dict[str, float | None] = {"ldr_voltage": None}
+STATUS_TOPIC = "esphome_ui/cyd-ui/telemetry/status"
+DEVICE_STATUS: dict[str, Any] = {"ldr_voltage": None, "brightness_percent": None, "mode": None, "night": None}
 DEVICE_STATUS_LOCK = threading.Lock()
 MAX_BODY_BYTES = 512 * 1024
 MAX_PAGES = 8
@@ -329,15 +330,25 @@ def start_device_status_monitor() -> mqtt_client.Client:
 
     def on_connect(active_client: mqtt_client.Client, _userdata: Any, _flags: Any, return_code: int) -> None:
         if return_code == 0:
-            active_client.subscribe(LDR_TOPIC, qos=0)
+            active_client.subscribe([(LDR_TOPIC, 0), (STATUS_TOPIC, 0)])
 
     def on_message(_client: mqtt_client.Client, _userdata: Any, message: Any) -> None:
         try:
-            value = float(message.payload.decode("utf-8"))
-        except (TypeError, ValueError, UnicodeDecodeError):
+            payload = message.payload.decode("utf-8")
+            if message.topic == STATUS_TOPIC:
+                status = json.loads(payload)
+                update = {
+                    "ldr_voltage": float(status["ldr_voltage"]),
+                    "brightness_percent": float(status["brightness_percent"]),
+                    "mode": str(status["mode"]),
+                    "night": bool(status["night"]),
+                }
+            else:
+                update = {"ldr_voltage": float(payload)}
+        except (KeyError, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError):
             return
         with DEVICE_STATUS_LOCK:
-            DEVICE_STATUS["ldr_voltage"] = value
+            DEVICE_STATUS.update(update)
 
     client.on_connect = on_connect
     client.on_message = on_message
@@ -347,7 +358,7 @@ def start_device_status_monitor() -> mqtt_client.Client:
     return client
 
 
-def current_device_status() -> dict[str, float | None]:
+def current_device_status() -> dict[str, Any]:
     with DEVICE_STATUS_LOCK:
         return dict(DEVICE_STATUS)
 

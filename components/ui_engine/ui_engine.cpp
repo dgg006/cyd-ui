@@ -273,6 +273,24 @@ void UiEngineComponent::apply_backlight() {
   this->applied_backlight_level_ = level;
 }
 
+float UiEngineComponent::applied_brightness_percent() const {
+  return std::max(0.0f, this->applied_backlight_level_) * 100.0f;
+}
+
+std::string UiEngineComponent::runtime_mode() const {
+  if (!this->idle_active_) return this->is_night() ? "night" : "normal";
+  switch (this->active_idle_mode_) {
+    case IdleMode::CLOCK_WEATHER:
+      return "clock_weather";
+    case IdleMode::SCREEN_OFF:
+      return "screen_off";
+    case IdleMode::DIM:
+      return "dim";
+    default:
+      return "idle";
+  }
+}
+
 bool UiEngineComponent::is_night() const {
   const auto &night = this->active_config_.settings.night;
   if (!night.enabled || this->clock_ == nullptr) return false;

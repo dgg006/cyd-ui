@@ -123,6 +123,15 @@ sensor:
           retain: true
           payload: !lambda |-
             return str_sprintf("%.3f", x);
+      - mqtt.publish_json:
+          topic: esphome_ui/cyd-ui/telemetry/status
+          qos: 0
+          retain: true
+          payload: !lambda |-
+            root["ldr_voltage"] = x;
+            root["brightness_percent"] = id(ui_engine_main).applied_brightness_percent();
+            root["mode"] = id(ui_engine_main).runtime_mode();
+            root["night"] = id(ui_engine_main).night_active();
 
 rtttl:
   id: ui_sound

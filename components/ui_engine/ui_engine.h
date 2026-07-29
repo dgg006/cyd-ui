@@ -44,6 +44,9 @@ class UiEngineComponent : public Component {
   bool touch_sound_enabled() const;
   bool navigation_sound_enabled() const;
   bool notification_sound_enabled() const;
+  float applied_brightness_percent() const;
+  bool night_active() const { return this->is_night(); }
+  std::string runtime_mode() const;
   void set_screensaver_timeout(uint32_t timeout_ms) {
     this->default_screensaver_timeout_ms_ = timeout_ms;
     this->screensaver_timeout_ms_ = timeout_ms;
