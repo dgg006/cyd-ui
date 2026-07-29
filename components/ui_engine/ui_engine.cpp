@@ -135,6 +135,21 @@ void UiEngineComponent::loop() {
   ESP_LOGI(TAG, "Configuracion recargada");
 }
 
+bool UiEngineComponent::apply_config(const std::string &raw_json) {
+  if (!this->try_apply_config(raw_json)) {
+    ESP_LOGE(TAG, "Configuracion recibida por API rechazada; se conserva la UI activa");
+    return false;
+  }
+
+  std::string error;
+  if (!this->flash_storage_.save(raw_json, &error)) {
+    ESP_LOGW(TAG, "Configuracion aplicada, pero no se pudo guardar en flash: %s", error.c_str());
+  } else {
+    ESP_LOGI(TAG, "Configuracion recibida por API aplicada y guardada en flash");
+  }
+  return true;
+}
+
 bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   UiConfig candidate;
   std::string error;
