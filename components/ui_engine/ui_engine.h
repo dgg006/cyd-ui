@@ -50,7 +50,9 @@ class UiEngineComponent : public Component {
   bool prepare_touch_sound();
   bool prepare_navigation_sound();
   bool prepare_notification_sound();
+  bool play_notification_sound(const std::string &sound);
   void preview_notification_sound(uint8_t volume);
+  float ambient_light_percent() const;
   void start_touch_calibration();
   bool handle_calibration_touch(const touchscreen::TouchPoint &touch);
   bool handle_calibration_update(const touchscreen::TouchPoints_t &touches);

@@ -17,6 +17,38 @@ time:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  ap:
+    ssid: "CYD UI Setup"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_encryption_key
+  actions:
+    - action: play_sound
+      variables:
+        sound: string
+      then:
+        - lambda: id(ui_engine_main).play_notification_sound(sound);
+    - action: update_control
+      variables:
+        control_id: string
+        active: bool
+        value: string
+        reliability: string
+      then:
+        - lambda: |-
+            id(ui_engine_main).update_control(control_id, active, value, reliability);
+    - action: reload_ui
+      then:
+        - lambda: id(ui_engine_main).request_reload();
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
 
 mqtt:
   broker: 192.168.31.240
@@ -24,6 +56,7 @@ mqtt:
   username: !secret mqtt_username
   password: !secret mqtt_password
   discovery: false
+  reboot_timeout: 0s
   topic_prefix: cyd-ui
   on_connect:
     - lambda: |-
@@ -63,19 +96,8 @@ mqtt:
               if (volume > 10) volume = 10;
               id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
             } else if (type == "sound") {
-              if (!id(ui_engine_main).prepare_notification_sound()) return;
               const std::string sound = x["sound"] | "";
-              if (sound == "attention") {
-                id(ui_sound).play("attention:d=32,o=6,b=220:g,p,g");
-              } else if (sound == "notification") {
-                id(ui_sound).play("notification:d=32,o=6,b=180:c,e");
-              } else if (sound == "success") {
-                id(ui_sound).play("success:d=32,o=6,b=180:c,e,g");
-              } else if (sound == "warning") {
-                id(ui_sound).play("warning:d=16,o=5,b=180:a,p,a");
-              } else if (sound == "error") {
-                id(ui_sound).play("error:d=16,o=4,b=160:g");
-              }
+              id(ui_engine_main).play_notification_sound(sound);
             }
 
 http_request:
@@ -139,6 +161,15 @@ sensor:
             root["brightness_percent"] = id(ui_engine_main).applied_brightness_percent();
             root["mode"] = id(ui_engine_main).runtime_mode();
             root["night"] = id(ui_engine_main).night_active();
+  - platform: template
+    name: "Luz ambiental"
+    id: ambient_light_percent
+    icon: mdi:brightness-percent
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    update_interval: 5s
+    lambda: return id(ui_engine_main).ambient_light_percent();
 
 rtttl:
   id: ui_sound
@@ -162,6 +193,33 @@ script:
     mode: restart
     then:
       - rtttl.play: "err:d=16,o=4,b=160:g"
+
+button:
+  - platform: template
+    name: "Sonido de atención"
+    icon: mdi:bell-ring
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("attention");
+  - platform: template
+    name: "Sonido de notificación"
+    icon: mdi:bell
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("notification");
+  - platform: template
+    name: "Sonido de éxito"
+    icon: mdi:check-circle
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("success");
+  - platform: template
+    name: "Sonido de advertencia"
+    icon: mdi:alert
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("warning");
+  - platform: template
+    name: "Sonido de error"
+    icon: mdi:close-circle
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("error");
 
 light:
   - platform: monochromatic
@@ -302,6 +360,11 @@ ui_engine:
         args:
           - control_id.c_str()
           - action.c_str()
+    - homeassistant.event:
+        event: esphome.cyd_ui_action
+        data:
+          control_id: !lambda return control_id;
+          action: !lambda return action;
     - mqtt.publish_json:
         topic: esphome_ui/cyd-ui/cmd
         qos: 1

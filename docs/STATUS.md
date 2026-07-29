@@ -7,7 +7,7 @@ Actualizado: 2026-07-29
 - ESP32-2432S028R CYD por COM57.
 - ESPHome 2026.7.3 sobre ESP-IDF 5.5.5.
 - Pantalla ILI9341 y táctil XPT2046 en buses SPI separados.
-- Wi-Fi, HTTP, MQTT, caché flash, reloj SNTP y parlante verificados.
+- Wi-Fi, HTTP, MQTT, API nativa cifrada, caché flash, reloj SNTP y parlante verificados.
 
 ## Runtime implementado
 
@@ -35,16 +35,23 @@ Actualizado: 2026-07-29
 - Cambios externos reflejados en tiempo real.
 - Sonidos `attention`, `notification`, `success`, `warning` y `error`.
 - Evento de Home Assistant `cyd_ui_sound` validado de extremo a extremo.
+- API nativa validada desde un cliente real: descubrimiento de entidades, lectura del LDR y ejecución de sonidos.
+- Entidades nativas para Home Assistant: retroiluminación, luz ambiental y cinco botones de sonido.
+- Acciones nativas `play_sound`, `update_control` y `reload_ui` disponibles para automatizaciones.
+- Las pulsaciones del panel emiten también el evento `esphome.cyd_ui_action` cuando Home Assistant está conectado.
 - El encendido del calefactor permanece bloqueado; solo se permite leer y cambiar su objetivo.
 
 ## Memoria de referencia
 
-- DRAM estática: 51.596 bytes (28,5 %).
-- Firmware con catálogo MDI y telemetría de estado: 1.354.531 bytes (73,8 % de la partición de aplicación).
+- DRAM estática: 53.284 bytes (29,5 %).
+- Firmware con API cifrada, portal cautivo, OTA, MDI y telemetría: 1.549.891 bytes (84,5 % de la partición de aplicación).
+- Margen de firmware restante: 16 %. Antes de sumar dependencias grandes debe revisarse nuevamente el tamaño.
 
 ## Próximo hito
 
 Validar en uso real el configurador visual v0.1, completar los campos avanzados por dominio y agregar restauración desde el historial.
+
+En paralelo: validar la incorporación del dispositivo a Home Assistant en su red definitiva y decidir cómo alojar allí el configurador y el backend dinámico.
 
 ## Configurador visual v0.1
 
@@ -81,3 +88,14 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - El primer toque tras apagar o atenuar la pantalla se consume exclusivamente para despertarla y no activa el control situado debajo.
 - Los cambios de horario nocturno reevalúan inmediatamente el modo de reposo activo, incluso si el panel ya estaba mostrando el protector.
 - microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.
+
+# Actualización 2026-07-29 — traslado e integración nativa
+
+- La red `CYD UI Setup` aparece automáticamente si el Wi-Fi guardado no está disponible; permite cargar nuevas credenciales sin recompilar.
+- `api.reboot_timeout` y `mqtt.reboot_timeout` están desactivados para que la interfaz cacheada siga operativa aunque Home Assistant o el broker no estén presentes.
+- El parlante está expuesto mediante cinco botones simples y una acción parametrizada para automatizaciones.
+- El LDR se publica como `Luz ambiental` en porcentaje, usando los extremos de calibración guardados en la configuración del dispositivo.
+- La retroiluminación aparece como una entidad `light` controlable desde Home Assistant.
+- La configuración dinámica de páginas continúa dependiendo, por ahora, del servidor HTTP y del backend MQTT; el firmware conserva en flash la última interfaz válida cuando esos servicios no están disponibles.
+- El Home Assistant de destino fue comprobado en modo lectura: versión 2026.7.4, integración ESPHome cargada y Mosquitto broker cargado. No es necesario instalar esas dos piezas para la prueba doméstica.
+- Prueba de aislamiento realizada: con servidor JSON, puente y broker LAN detenidos, la API del dispositivo continuó accesible; al restaurar los servicios, todos los canales volvieron a estar disponibles.

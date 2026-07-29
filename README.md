@@ -12,7 +12,7 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 
 ## Estado actual
 
-- Pantalla, touch, Wi-Fi y MQTT verificados en hardware.
+- Pantalla, touch, Wi-Fi, MQTT y API nativa cifrada verificados en hardware.
 - `button_grid` con seis botones configurable mediante JSON.
 - Configuración remota por HTTP con caché flash y respaldo embebido.
 - Acciones y estados en tiempo real mediante MQTT.
@@ -21,6 +21,8 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 - Configurador visual local v0.1 para páginas, controles y asociaciones con Home Assistant.
 - Catálogo compacto de iconos MDI configurable sin recompilar mientras el icono ya esté incluido.
 - Configuración general desde el editor: brillo PWM, LDR, reposo, horario nocturno y volumen/sonidos.
+- Integración directa con Home Assistant para brillo, LDR y sonidos, sin depender del puente MQTT.
+- Portal Wi-Fi de emergencia y OTA preparados para trasladar el panel entre redes.
 
 ## Configurador visual
 
@@ -39,8 +41,10 @@ powershell -ExecutionPolicy Bypass -File tools\start_development.ps1
 ## Comandos locales
 
 ```powershell
-$env:ESPHOME_ESP_IDF_PREFIX='C:\ESPHomeCache\idf'
-py -3.13 -m esphome config cyd-ui.yaml
-py -3.13 -m esphome compile cyd-ui.yaml
-py -3.13 -m esphome upload cyd-ui.yaml --device COM57
+esphome config cyd-ui.yaml
+esphome compile cyd-ui.yaml
+esphome upload cyd-ui.yaml --device COM57
 ```
+
+La instalación en Home Assistant y el traslado entre redes están explicados en
+[`docs/HOME_ASSISTANT_SETUP.md`](docs/HOME_ASSISTANT_SETUP.md).

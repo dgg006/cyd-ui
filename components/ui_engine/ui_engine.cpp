@@ -496,6 +496,35 @@ void UiEngineComponent::preview_notification_sound(uint8_t volume) {
   this->sound_preview_restore_at_ms_ = millis() + 500U;
 }
 
+bool UiEngineComponent::play_notification_sound(const std::string &sound) {
+  if (this->sound_player_ == nullptr || !this->prepare_notification_sound()) return false;
+  if (sound == "attention") {
+    this->sound_player_->play("attention:d=32,o=6,b=220:g,p,g");
+  } else if (sound == "notification") {
+    this->sound_player_->play("notification:d=32,o=6,b=180:c,e");
+  } else if (sound == "success") {
+    this->sound_player_->play("success:d=32,o=6,b=180:c,e,g");
+  } else if (sound == "warning") {
+    this->sound_player_->play("warning:d=16,o=5,b=180:a,p,a");
+  } else if (sound == "error") {
+    this->sound_player_->play("error:d=16,o=4,b=160:g");
+  } else {
+    ESP_LOGW(TAG, "Sonido desconocido: %s", sound.c_str());
+    return false;
+  }
+  return true;
+}
+
+float UiEngineComponent::ambient_light_percent() const {
+  if (std::isnan(this->ambient_light_voltage_)) return NAN;
+  const auto &display = this->active_config_.settings.display;
+  const float span = display.ldr_bright_voltage - display.ldr_dark_voltage;
+  if (std::fabs(span) < 0.001f) return NAN;
+  float ratio = (this->ambient_light_voltage_ - display.ldr_dark_voltage) / span;
+  ratio = std::max(0.0f, std::min(1.0f, ratio));
+  return ratio * 100.0f;
+}
+
 float UiEngineComponent::base_brightness_percent() const {
   const auto &display = this->active_config_.settings.display;
   float brightness = static_cast<float>(display.brightness);

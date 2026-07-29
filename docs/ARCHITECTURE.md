@@ -15,13 +15,13 @@
  ╚═════╝ ╚═╝    ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚══════╝
 ```
 
-**Versión de la documentación:** 1.0
+**Versión de la documentación:** 1.1
 **Versión del protocolo/schema descripto:** schema_version 1
-**Estado del proyecto:** Implementación funcional validada en hardware — configurador visual pendiente
+**Estado del proyecto:** Implementación funcional validada en hardware — configurador visual v0.1 y API nativa operativos
 **Plataforma de referencia inicial:** ESP32-2432S028R ("Cheap Yellow Display", CYD) + ESPHome + LVGL v9
 **Licencia propuesta:** A definir (candidatos: MIT, Apache 2.0 — ver §27)
 **Autores del diseño:** Delmo (autor y mantenedor del proyecto), con arquitectura co-diseñada mediante discusión técnica entre dos asistentes de IA (Claude, de Anthropic, y un asistente de OpenAI/ChatGPT) actuando como pares de revisión de arquitectura.
-**Fecha de este documento:** 28 de julio de 2026
+**Fecha de este documento:** 29 de julio de 2026
 **Idioma:** Español (términos técnicos y nombres de símbolos en inglés, como es convención en la industria del firmware/embedded)
 
 ---
@@ -40,6 +40,7 @@ Esto se menciona explícitamente porque es relevante para cualquiera que lea est
 |---------|-------------|--------------------------------------------------------------------------|-----------|
 | 0.1     | 2026-07-24  | Primera versión oficial. Consolida toda la discusión de diseño previa al Sprint 1. Ningún código fue escrito todavía; este documento describe una arquitectura *aprobada pero no implementada*. | Delmo, Claude, ChatGPT (co-diseño) |
 | 1.0     | 2026-07-28  | Actualización posterior a la validación en hardware. Documenta el runtime real, cinco familias de templates, configuración dinámica, integración con Home Assistant, caché flash, pantalla de reposo, sonido, pruebas y lecciones de implementación. | Delmo y OpenAI/Codex |
+| 1.1     | 2026-07-29  | Documenta el configurador visual, ajustes del dispositivo, calibración táctil, API nativa cifrada, LDR y parlante como entidades, portal Wi-Fi y preparación del traslado a la red doméstica. | Delmo y OpenAI/Codex |
 
 **Convención de versionado de este documento:** se usará versionado semántico informal, distinto del `schema_version` del protocolo JSON (que es un entero simple, ver §17). `0.x` indica que el proyecto todavía no tiene una primera implementación funcional (vertical slice). Se pasará a `1.0` cuando el Sprint 1 esté completo, funcionando en hardware real, y este documento haya sido actualizado para reflejar la implementación real (no solo el diseño).
 
@@ -68,7 +69,7 @@ Capacidades verificadas físicamente:
 
 Pendientes principales:
 
-- Configurador visual para crear, ordenar y editar páginas sin tocar JSON.
+- Terminar de pulir y empaquetar el configurador visual ya operativo.
 - Empaquetado definitivo del backend de laboratorio.
 - Sistema `Theme` centralizado; hoy varios estilos siguen definidos por template.
 - Pruebas automatizadas del parser y de migraciones de schema.
@@ -783,7 +784,30 @@ La CYD reproduce secuencias cortas RTTTL con ganancia moderada. Sonidos registra
 
 El backend escucha el evento `cyd_ui_sound` de Home Assistant. Una automatización puede dispararlo con un campo `sound`, y el puente publica el evento MQTT correspondiente. Esto fue validado de extremo a extremo desde Home Assistant remoto hasta el parlante físico.
 
+Desde la versión de firmware del 29 de julio de 2026, el mismo subsistema está expuesto además por la API nativa de ESPHome. Home Assistant descubre cinco botones de sonido y la acción parametrizada `play_sound`. Esta ruta directa no reemplaza el bus genérico: resuelve una capacidad fija del hardware (el parlante) y permite notificaciones aunque el puente MQTT no esté desplegado.
+
 Los sonidos deben ser breves, sutiles y no bloquear el loop principal. No se pretende reproducir voz ni audio continuo en esta placa.
+
+## API nativa y portabilidad de red
+
+La API nativa de ESPHome se incorporó para capacidades fijas de la placa, sin romper la frontera que mantiene a los controles dinámicos separados de Home Assistant. Expone retroiluminación, porcentaje de luz ambiental, botones de sonido y tres acciones genéricas (`play_sound`, `update_control`, `reload_ui`). Una pulsación también puede emitir `esphome.cyd_ui_action`; el payload sigue usando `control_id` opaco y `action`, nunca `entity_id`.
+
+La coexistencia de MQTT y API es deliberada:
+
+- API nativa: descubrimiento, diagnóstico y capacidades fijas del dispositivo.
+- MQTT/backend: entidades dinámicas elegidas en tiempo de ejecución.
+- HTTP: documento completo de configuración.
+- Flash: último documento válido para funcionamiento autónomo.
+
+El firmware configura `reboot_timeout: 0s` tanto para API como para MQTT. Si el panel se traslada a una red sin backend, continúa mostrando la configuración cacheada. Si tampoco reconoce el Wi-Fi, después de 90 segundos inicia el portal cautivo `CYD UI Setup`, que permite cargar credenciales nuevas sin compilar ni conectar un cable USB.
+
+### ADR-022: API nativa para hardware fijo; bus genérico para contenido dinámico
+
+**Estado:** Aceptada e implementada.
+
+**Decisión:** No forzar un único transporte para dos problemas distintos. Las entidades cuyo número y tipo se conocen al compilar (LDR, backlight y parlante) se publican mediante la API nativa de ESPHome. Los controles definidos por `ui.json`, cuyo significado solo se conoce en ejecución, conservan IDs opacos y el backend genérico.
+
+**Consecuencias:** Home Assistant puede descubrir y usar inmediatamente el hardware del panel, incluso antes de instalar el backend dinámico. La API no introduce nombres de entidades en C++ ni convierte al motor en un firmware específico de Home Assistant. El costo medido es un aumento del firmware hasta 1.549.891 bytes (84,5 % de la partición), por lo que cualquier dependencia grande futura deberá justificar y medir su impacto.
 
 ## Protector de pantalla
 
@@ -941,6 +965,7 @@ Queda para la siguiente iteración la confirmación explícita de aceptación de
 - Sonido y protector de pantalla.
 - Recuperación segura ante configuración incompatible.
 - Configurador visual local v0.1 con selección de entidades, vista previa, validación, historial y recarga.
+- API nativa cifrada para hardware fijo, portal Wi-Fi de emergencia y actualización OTA.
 
 ### Siguiente
 
@@ -948,10 +973,12 @@ Queda para la siguiente iteración la confirmación explícita de aceptación de
 - Confirmación de aceptación o rechazo enviada por la CYD.
 - Restauración desde el historial.
 - Formularios de backend específicos para climate, cover y otros dominios.
+- Validación de la incorporación del panel a Home Assistant en su red definitiva.
 
 ### Posterior
 
 - Empaquetar el backend para despliegue estable.
+- Convertir configurador, servidor JSON y puente en una instalación mantenible junto a Home Assistant.
 - Theme centralizado y configurable.
 - Nuevos templates: multimedia, ventilación, robot aspirador, seguridad e información.
 - Pruebas automatizadas y simulador LVGL de escritorio.
@@ -963,4 +990,4 @@ A partir de esta versión, cada commit que agregue un template, cambie el schema
 
 ---
 
-**Fin de la Documentación Oficial 1.0 — 28 de julio de 2026.**
+**Fin de la Documentación Oficial 1.1 — 29 de julio de 2026.**
