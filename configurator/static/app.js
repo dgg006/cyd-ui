@@ -15,10 +15,11 @@ function setControlAction(control,mapping,action){control.action=action;mapping.
 function ensureSettings(){
   const legacy=state.ui.screensaver_timeout??30;
   state.ui.settings||={};
-  state.ui.settings.display={brightness:100,auto_brightness:false,minimum_brightness:15,maximum_brightness:100,ldr_dark_voltage:3,ldr_bright_voltage:.2,...(state.ui.settings.display||{})};
-  state.ui.settings.inactivity={timeout:legacy,mode:"clock_weather",dim_brightness:10,...(state.ui.settings.inactivity||{})};
-  state.ui.settings.night={enabled:false,start:"23:00",end:"07:00",brightness:15,mode:"screen_off",...(state.ui.settings.night||{})};
-  state.ui.settings.sound={enabled:true,volume:5,touch:true,navigation:true,notifications:true,...(state.ui.settings.sound||{})};
+  const fill=(target,defaults)=>{for(const[key,value]of Object.entries(defaults))if(target[key]===undefined)target[key]=value};
+  state.ui.settings.display||={};fill(state.ui.settings.display,{brightness:100,auto_brightness:false,minimum_brightness:15,maximum_brightness:100,ldr_dark_voltage:3,ldr_bright_voltage:.2});
+  state.ui.settings.inactivity||={};fill(state.ui.settings.inactivity,{timeout:legacy,mode:"clock_weather",dim_brightness:10});
+  state.ui.settings.night||={};fill(state.ui.settings.night,{enabled:false,start:"23:00",end:"07:00",brightness:15,mode:"screen_off"});
+  state.ui.settings.sound||={};fill(state.ui.settings.sound,{enabled:true,volume:5,touch:true,navigation:true,notifications:true});
   state.ui.screensaver_timeout=state.ui.settings.inactivity.timeout;
 }
 
@@ -54,7 +55,7 @@ function inputField(label,value,onChange,options={}){const field=document.create
 function renderPages(){pageList.replaceChildren();state.ui.pages.forEach((page,index)=>{const card=document.createElement("div");card.className=`page-card${!state.editingSettings&&index===state.selectedPage?" active":""}`;card.draggable=true;card.dataset.index=index;card.innerHTML=`<span class="page-number">${page.screensaver?"◐":index+1}</span><div class="page-name"><strong></strong><span></span></div>`;card.querySelector("strong").textContent=page.title||(page.screensaver?"Protector de pantalla":"Sin título");card.querySelector(".page-name span").textContent=state.catalog[page.template]?.label||page.template;card.onclick=()=>{state.editingSettings=false;state.selectedPage=index;renderAll()};card.ondragstart=()=>card.classList.add("dragging");card.ondragend=()=>card.classList.remove("dragging");card.ondragover=e=>e.preventDefault();card.ondrop=e=>{e.preventDefault();const from=Number(pageList.querySelector(".dragging")?.dataset.index);if(!Number.isInteger(from)||from===index)return;const[moved]=state.ui.pages.splice(from,1);state.ui.pages.splice(index,0,moved);state.selectedPage=index;renderAll()};pageList.append(card)});$("#deviceSettingsButton").classList.toggle("active",state.editingSettings)}
 function renderPageForm(){const page=state.ui.pages[state.selectedPage],screensaver=page.template==="clock_weather"&&page.variant==="screensaver";$("#editorTitle").textContent=screensaver?"Protector de pantalla":page.title;pageForm.replaceChildren();const fields=[];if(!screensaver)fields.push(inputField("Título",page.title,v=>{page.title=v;renderPages();renderPreview();validate()},{wide:true}));fields.push(inputField("Template",page.template,v=>{resetControlsForTemplate(page,v);renderAll()},{choices:Object.entries(state.catalog).map(([value,item])=>({value,label:item.label})),event:"change"}),inputField("Variante",page.variant,v=>{page.variant=v;resizeRepeatedControls(page);renderAll()},{choices:Object.keys(state.catalog[page.template].variants).map(value=>({value,label:value.replaceAll("_"," ")})),event:"change"}));if(screensaver)fields.push(inputField("Activar protector después de",state.ui.settings.inactivity.timeout,v=>{state.ui.settings.inactivity.timeout=v;state.ui.screensaver_timeout=v;validate()},{choices:timeoutChoices,event:"change",type:"number",wide:true}));pageForm.append(...fields);$("#addControlButton").classList.toggle("hidden",state.catalog[page.template].controls.kind!=="variable"||page.controls.length>=4)}
 
-const yesNoChoices=[{value:true,label:"Sí"},{value:false,label:"No"}];
+const yesNoChoices=[{value:"yes",label:"Sí"},{value:"no",label:"No"}];
 const idleModeChoices=[{value:"clock_weather",label:"Mostrar reloj y clima"},{value:"screen_off",label:"Apagar pantalla"},{value:"dim",label:"Bajar el brillo"},{value:"none",label:"No hacer nada"}];
 function settingsGroup(title,description,fields){const group=document.createElement("section");group.className="settings-section";const header=document.createElement("div");header.className="settings-section-heading";header.innerHTML="<h3></h3><p></p>";header.querySelector("h3").textContent=title;header.querySelector("p").textContent=description;const grid=document.createElement("div");grid.className="settings-grid";grid.append(...fields);group.append(header,grid);return group}
 function renderSettings(){
@@ -67,7 +68,7 @@ function renderSettings(){
   pageForm.append(
     settingsGroup("Pantalla","Brillo normal y adaptación al ambiente con el LDR frontal.",[
       inputField("Brillo manual",display.brightness,v=>{display.brightness=v;renderPreview();validate()},{type:"number",min:0,max:100}),
-      inputField("Brillo automático",display.auto_brightness,v=>{display.auto_brightness=v==="true";renderSettings();renderPreview();validate()},{choices:yesNoChoices,event:"change"}),
+      inputField("Brillo automático",display.auto_brightness?"yes":"no",v=>{display.auto_brightness=v==="yes";renderSettings();renderPreview();validate()},{choices:yesNoChoices,event:"change"}),
       inputField("Brillo mínimo automático",display.minimum_brightness,v=>{display.minimum_brightness=v;validate()},{type:"number",min:0,max:100}),
       inputField("Brillo máximo automático",display.maximum_brightness,v=>{display.maximum_brightness=v;validate()},{type:"number",min:0,max:100}),
       inputField("LDR en oscuridad (V)",display.ldr_dark_voltage,v=>{display.ldr_dark_voltage=v;validate()},{type:"number",min:0,max:3.3,step:.01}),
@@ -79,23 +80,23 @@ function renderSettings(){
       inputField("Brillo tenue",inactivity.dim_brightness,v=>{inactivity.dim_brightness=v;validate()},{type:"number",min:0,max:100,disabled:inactivity.mode!=="dim"})
     ]),
     settingsGroup("Horario nocturno","Ajustes especiales que se aplican según la hora del panel.",[
-      inputField("Activar horario",night.enabled,v=>{night.enabled=v==="true";renderSettings();renderPreview();validate()},{choices:yesNoChoices,event:"change"}),
+      inputField("Activar horario",night.enabled?"yes":"no",v=>{night.enabled=v==="yes";renderSettings();renderPreview();validate()},{choices:yesNoChoices,event:"change"}),
       inputField("Desde",night.start,v=>{night.start=v;validate()},{type:"time",disabled:!night.enabled}),
       inputField("Hasta",night.end,v=>{night.end=v;validate()},{type:"time",disabled:!night.enabled}),
       inputField("Brillo nocturno",night.brightness,v=>{night.brightness=v;validate()},{type:"number",min:0,max:100,disabled:!night.enabled}),
       inputField("Al quedar inactiva de noche",night.mode,v=>{night.mode=v;validate()},{choices:idleModeChoices,event:"change",disabled:!night.enabled})
     ]),
     settingsGroup("Sonidos","Volumen y clases de avisos del parlante integrado.",[
-      inputField("Sonido activado",sound.enabled,v=>{sound.enabled=v==="true";renderSettings();validate()},{choices:yesNoChoices,event:"change"}),
+      inputField("Sonido activado",sound.enabled?"yes":"no",v=>{sound.enabled=v==="yes";renderSettings();validate()},{choices:yesNoChoices,event:"change"}),
       inputField("Volumen (0 a 10)",sound.volume,v=>{sound.volume=v;validate()},{type:"number",min:0,max:10,disabled:!sound.enabled}),
-      inputField("Al tocar controles",sound.touch,v=>{sound.touch=v==="true";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled}),
-      inputField("Al cambiar página",sound.navigation,v=>{sound.navigation=v==="true";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled}),
-      inputField("Notificaciones",sound.notifications,v=>{sound.notifications=v==="true";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled})
+      inputField("Al tocar controles",sound.touch?"yes":"no",v=>{sound.touch=v==="yes";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled}),
+      inputField("Al cambiar página",sound.navigation?"yes":"no",v=>{sound.navigation=v==="yes";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled}),
+      inputField("Notificaciones",sound.notifications?"yes":"no",v=>{sound.notifications=v==="yes";validate()},{choices:yesNoChoices,event:"change",disabled:!sound.enabled})
     ])
   );
   const test=document.createElement("button");test.className="button secondary settings-test";test.textContent="Probar sonido";test.disabled=!sound.enabled||!sound.notifications||sound.volume===0;test.onclick=async()=>{try{await api("/api/test-sound",{method:"POST",body:"{}"});showToast("Sonido de prueba enviado.")}catch(error){showToast(error.message,true)}};pageForm.lastElementChild.querySelector(".settings-grid").append(test);
 }
-function syncSettingsForm(){if(!state.editingSettings)return;const fields=[...pageForm.querySelectorAll("input,select")],{display,inactivity,night,sound}=state.ui.settings;if(fields.length<19)return;display.brightness=Number(fields[0].value);display.auto_brightness=fields[1].value==="true";display.minimum_brightness=Number(fields[2].value);display.maximum_brightness=Number(fields[3].value);display.ldr_dark_voltage=Number(fields[4].value);display.ldr_bright_voltage=Number(fields[5].value);inactivity.timeout=Number(fields[6].value);state.ui.screensaver_timeout=inactivity.timeout;inactivity.mode=fields[7].value;inactivity.dim_brightness=Number(fields[8].value);night.enabled=fields[9].value==="true";night.start=fields[10].value;night.end=fields[11].value;night.brightness=Number(fields[12].value);night.mode=fields[13].value;sound.enabled=fields[14].value==="true";sound.volume=Number(fields[15].value);sound.touch=fields[16].value==="true";sound.navigation=fields[17].value==="true";sound.notifications=fields[18].value==="true"}
+function syncSettingsForm(){if(!state.editingSettings)return;const fields=[...pageForm.querySelectorAll("input,select")],{display,inactivity,night,sound}=state.ui.settings;if(fields.length<19)return;display.brightness=Number(fields[0].value);display.auto_brightness=fields[1].value==="yes";display.minimum_brightness=Number(fields[2].value);display.maximum_brightness=Number(fields[3].value);display.ldr_dark_voltage=Number(fields[4].value);display.ldr_bright_voltage=Number(fields[5].value);inactivity.timeout=Number(fields[6].value);state.ui.screensaver_timeout=inactivity.timeout;inactivity.mode=fields[7].value;inactivity.dim_brightness=Number(fields[8].value);night.enabled=fields[9].value==="yes";night.start=fields[10].value;night.end=fields[11].value;night.brightness=Number(fields[12].value);night.mode=fields[13].value;sound.enabled=fields[14].value==="yes";sound.volume=Number(fields[15].value);sound.touch=fields[16].value==="yes";sound.navigation=fields[17].value==="yes";sound.notifications=fields[18].value==="yes"}
 function entityChoices(current,control,page){
   const allowed=page.template==="climate"?["climate"]:page.template==="cover"?["cover"]:page.template==="clock_weather"?["weather","sensor"]:page.template==="sensor_grid"?["sensor","binary_sensor"]:["light","switch","scene","script","input_boolean","button","fan"];
   const choices=[{value:"",label:"Sin asociar"}],seen=new Set();state.entities.filter(e=>allowed.includes(e.domain)).forEach(e=>{seen.add(e.entity_id);choices.push({value:e.entity_id,label:`${e.name}  ·  ${e.entity_id}`})});if(current&&!seen.has(current))choices.splice(1,0,{value:current,label:`${current} (actual)`});return choices;
