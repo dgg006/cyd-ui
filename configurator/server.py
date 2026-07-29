@@ -34,6 +34,8 @@ MQTT_BROKER = "192.168.31.240"
 MQTT_PORT = 1883
 EVENT_TOPIC = "esphome_ui/cyd-ui/event"
 LDR_TOPIC = "esphome_ui/cyd-ui/telemetry/ldr_voltage"
+DEVICE_STATUS: dict[str, float | None] = {"ldr_voltage": None}
+DEVICE_STATUS_LOCK = threading.Lock()
 MAX_BODY_BYTES = 512 * 1024
 MAX_PAGES = 8
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -320,37 +322,34 @@ def publish_reload() -> None:
     publish_event({"type": "reload"})
 
 
-def read_ldr_voltage(timeout: float = 2.0) -> float | None:
-    """Read the retained LDR telemetry without ever blocking the editor indefinitely."""
-    result: dict[str, float] = {}
-    received = threading.Event()
-    client = mqtt_client.Client()
+def start_device_status_monitor() -> mqtt_client.Client:
+    """Keep the latest device telemetry cached for fast, continuous UI updates."""
+    client = mqtt_client.Client(client_id="cyd-ui-configurator-status", clean_session=True)
     client.username_pw_set(yaml_secret("mqtt_username"), yaml_secret("mqtt_password"))
 
     def on_connect(active_client: mqtt_client.Client, _userdata: Any, _flags: Any, return_code: int) -> None:
         if return_code == 0:
             active_client.subscribe(LDR_TOPIC, qos=0)
-        else:
-            received.set()
 
     def on_message(_client: mqtt_client.Client, _userdata: Any, message: Any) -> None:
         try:
-            result["value"] = float(message.payload.decode("utf-8"))
+            value = float(message.payload.decode("utf-8"))
         except (TypeError, ValueError, UnicodeDecodeError):
-            pass
-        finally:
-            received.set()
+            return
+        with DEVICE_STATUS_LOCK:
+            DEVICE_STATUS["ldr_voltage"] = value
 
     client.on_connect = on_connect
     client.on_message = on_message
+    client.reconnect_delay_set(min_delay=1, max_delay=10)
     client.connect_async(MQTT_BROKER, MQTT_PORT, keepalive=10)
     client.loop_start()
-    try:
-        received.wait(timeout)
-    finally:
-        client.loop_stop()
-        client.disconnect()
-    return result.get("value")
+    return client
+
+
+def current_device_status() -> dict[str, float | None]:
+    with DEVICE_STATUS_LOCK:
+        return dict(DEVICE_STATUS)
 
 
 class ConfiguratorHandler(SimpleHTTPRequestHandler):
@@ -404,10 +403,7 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
                 self.json_response({"error": f"No se pudo consultar Home Assistant: {error}"}, HTTPStatus.BAD_GATEWAY)
             return
         if parsed.path == "/api/device-status":
-            try:
-                self.json_response({"ldr_voltage": read_ldr_voltage()})
-            except Exception as error:
-                self.json_response({"ldr_voltage": None, "error": str(error)})
+            self.json_response(current_device_status())
             return
         if parsed.path == "/config/ui.json":
             self.json_response(read_json(CONFIG_PATH))
@@ -458,12 +454,15 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8125)
     args = parser.parse_args()
     server = ThreadingHTTPServer((args.host, args.port), ConfiguratorHandler)
+    status_monitor = start_device_status_monitor()
     print(f"Configurador disponible en http://{args.host}:{args.port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        status_monitor.loop_stop()
+        status_monitor.disconnect()
         server.server_close()
 
 

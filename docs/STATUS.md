@@ -73,5 +73,5 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Horario nocturno con brillo y comportamiento de reposo propios.
 - Volumen de 0 a 10 y activación independiente de toques, navegación y notificaciones.
 - Editor visual con apartado fijo `Configuración` y prueba sonora.
-- Lectura LDR en vivo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
+- Lectura LDR actualizada cada segundo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
 - microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.
