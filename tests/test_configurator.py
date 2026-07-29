@@ -67,6 +67,7 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.ui["settings"]["sound"]["navigation_volume"] = 4
         self.ui["settings"]["sound"]["notification_volume"] = 8
         self.ui["settings"]["sound"]["mute_at_night"] = True
+        self.ui["settings"]["touchscreen"] = {"x_min": 220, "x_max": 3770, "y_min": 260, "y_max": 3810}
         self.assertEqual([], SERVER.validate_project(self.ui, self.backend_map))
 
     def test_invalid_device_settings_are_rejected(self):
@@ -75,11 +76,13 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.ui["settings"]["night"]["start"] = "25:00"
         self.ui["settings"]["sound"]["volume"] = 11
         self.ui["settings"]["sound"]["touch_volume"] = -1
+        self.ui["settings"]["touchscreen"] = {"x_min": 3900, "x_max": 200, "y_min": 240, "y_max": 3800}
         errors = SERVER.validate_project(self.ui, self.backend_map)
         self.assertTrue(any("mínimo" in error for error in errors))
         self.assertTrue(any("HH:MM" in error for error in errors))
         self.assertTrue(any("volumen" in error for error in errors))
         self.assertTrue(any("touch_volume" in error for error in errors))
+        self.assertTrue(any("minimos" in error for error in errors))
 
     def test_regular_page_still_requires_title(self):
         self.ui["pages"][0]["title"] = ""

@@ -21,6 +21,8 @@ El editor obtiene la lectura actual del LDR mediante telemetría MQTT retenida y
 
 `settings.sound` define `enabled`, los interruptores `touch`, `navigation` y `notifications`, sus volúmenes independientes `touch_volume`, `navigation_volume` y `notification_volume` (0 a 10), y `mute_at_night`. La escala es perceptual, no lineal. `volume` se conserva como respaldo compatible para configuraciones anteriores.
 
+`settings.touchscreen` guarda la calibración individual del panel resistivo mediante `x_min`, `x_max`, `y_min` y `y_max` (valores crudos de 0 a 4095). El asistente del configurador calcula estos límites con cuatro puntos, los aplica inmediatamente y solo reemplaza la configuración persistente cuando el usuario guarda.
+
 Durante la transición, el editor mantiene sincronizado el antiguo `screensaver_timeout` con `settings.inactivity.timeout`.
 
 ## Campos de página

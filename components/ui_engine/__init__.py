@@ -4,13 +4,14 @@ from pathlib import Path
 
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components import font, http_request, output, rtttl, time
+from esphome.components import font, http_request, output, rtttl, time, touchscreen
+from esphome.components.touchscreen import CONF_TOUCHSCREEN_ID
 import esphome.config_validation as cv
 from esphome.components.lvgl import defines as lvgl_defines
 from esphome.core import CORE
 from esphome.const import CONF_ID, CONF_TIME_ID
 
-DEPENDENCIES = ["lvgl", "http_request", "font", "output", "rtttl"]
+DEPENDENCIES = ["lvgl", "http_request", "font", "output", "rtttl", "touchscreen"]
 AUTO_LOAD = ["json"]
 
 ui_engine_ns = cg.esphome_ns.namespace("ui_engine")
@@ -19,6 +20,7 @@ ReloadAction = ui_engine_ns.class_("ReloadAction", automation.Action)
 CONF_CONFIG_FILE = "config_file"
 CONF_ON_ACTION = "on_action"
 CONF_ON_NAVIGATION = "on_navigation"
+CONF_ON_CALIBRATION = "on_calibration"
 CONF_CONFIG_URL = "config_url"
 CONF_HTTP_REQUEST_ID = "http_request_id"
 CONF_SCREENSAVER_TIMEOUT = "screensaver_timeout"
@@ -91,12 +93,28 @@ def validate_device_settings(document):
     sound = settings.get("sound", {})
     if not isinstance(sound, dict):
         raise cv.Invalid("settings.sound debe ser un objeto")
-    for key in ("enabled", "touch", "navigation", "notifications"):
+    for key in ("enabled", "touch", "navigation", "notifications", "mute_at_night"):
         if key in sound and not isinstance(sound[key], bool):
             raise cv.Invalid(f"settings.sound.{key} debe ser booleano")
     volume = sound.get("volume", 5)
     if not isinstance(volume, int) or isinstance(volume, bool) or not 0 <= volume <= 10:
         raise cv.Invalid("settings.sound.volume debe estar entre 0 y 10")
+    for key in ("touch_volume", "navigation_volume", "notification_volume"):
+        event_volume = sound.get(key, volume)
+        if not isinstance(event_volume, int) or isinstance(event_volume, bool) or not 0 <= event_volume <= 10:
+            raise cv.Invalid(f"settings.sound.{key} debe estar entre 0 y 10")
+
+    touch = settings.get("touchscreen", {})
+    if not isinstance(touch, dict):
+        raise cv.Invalid("settings.touchscreen debe ser un objeto")
+    values = {key: touch.get(key, default) for key, default in (
+        ("x_min", 200), ("x_max", 3700), ("y_min", 240), ("y_max", 3800)
+    )}
+    for key, value in values.items():
+        if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 4095:
+            raise cv.Invalid(f"settings.touchscreen.{key} debe estar entre 0 y 4095")
+    if values["x_min"] >= values["x_max"] or values["y_min"] >= values["y_max"]:
+        raise cv.Invalid("settings.touchscreen requiere minimos menores que maximos")
 
 
 def validate_icon_font(value):
@@ -251,9 +269,11 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_ICON_FONT_ID): validate_icon_font,
         cv.Required(CONF_BACKLIGHT_OUTPUT_ID): cv.use_id(output.FloatOutput),
         cv.Required(CONF_SOUND_ID): cv.use_id(rtttl.Rtttl),
+        cv.Required(CONF_TOUCHSCREEN_ID): cv.use_id(touchscreen.Touchscreen),
         cv.Optional(CONF_SCREENSAVER_TIMEOUT, default="2min"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_ON_ACTION): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_NAVIGATION): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_CALIBRATION): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -278,10 +298,12 @@ async def to_code(config):
     icon_font = await cg.get_variable(config[CONF_ICON_FONT_ID])
     backlight_output = await cg.get_variable(config[CONF_BACKLIGHT_OUTPUT_ID])
     sound_player = await cg.get_variable(config[CONF_SOUND_ID])
+    touchscreen_component = await cg.get_variable(config[CONF_TOUCHSCREEN_ID])
     cg.add(var.set_clock(clock))
     cg.add(var.set_icon_font(icon_font))
     cg.add(var.set_backlight_output(backlight_output))
     cg.add(var.set_sound_player(sound_player))
+    cg.add(var.set_touchscreen(touchscreen_component))
     cg.add(var.set_screensaver_timeout(config[CONF_SCREENSAVER_TIMEOUT].total_milliseconds))
     config_path = CORE.relative_config_path(config[CONF_CONFIG_FILE])
     cg.add(var.set_initial_config(config_path.read_text(encoding="utf-8")))
@@ -299,6 +321,13 @@ async def to_code(config):
             var.get_navigation_trigger(),
             [(cg.int_, "page_index")],
             on_navigation_config,
+        )
+    if on_calibration_config := config.get(CONF_ON_CALIBRATION):
+        await automation.build_automation(
+            var.get_calibration_trigger(),
+            [(cg.bool_, "success"), (cg.int_, "x_min"), (cg.int_, "x_max"),
+             (cg.int_, "y_min"), (cg.int_, "y_max")],
+            on_calibration_config,
         )
 
 

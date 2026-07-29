@@ -35,7 +35,11 @@ MQTT_PORT = 1883
 EVENT_TOPIC = "esphome_ui/cyd-ui/event"
 LDR_TOPIC = "esphome_ui/cyd-ui/telemetry/ldr_voltage"
 STATUS_TOPIC = "esphome_ui/cyd-ui/telemetry/status"
-DEVICE_STATUS: dict[str, Any] = {"ldr_voltage": None, "brightness_percent": None, "mode": None, "night": None}
+TOUCH_CALIBRATION_TOPIC = "esphome_ui/cyd-ui/telemetry/touch_calibration"
+DEVICE_STATUS: dict[str, Any] = {
+    "ldr_voltage": None, "brightness_percent": None, "mode": None, "night": None,
+    "touch_calibration": None,
+}
 DEVICE_STATUS_LOCK = threading.Lock()
 MAX_BODY_BYTES = 512 * 1024
 MAX_PAGES = 8
@@ -201,6 +205,19 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
             event_volume = sound.get(key, volume)
             if not isinstance(event_volume, int) or isinstance(event_volume, bool) or not 0 <= event_volume <= 10:
                 errors.append(f"Sonido: {key} debe estar entre 0 y 10.")
+        touch = settings.get("touchscreen", {})
+        if not isinstance(touch, dict):
+            errors.append("Pantalla tactil: la calibracion debe ser un objeto.")
+        else:
+            values = {key: touch.get(key, default) for key, default in (
+                ("x_min", 200), ("x_max", 3700), ("y_min", 240), ("y_max", 3800)
+            )}
+            for key, value in values.items():
+                if not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 4095:
+                    errors.append(f"Pantalla tactil: {key} debe estar entre 0 y 4095.")
+            if all(isinstance(value, int) and not isinstance(value, bool) for value in values.values()):
+                if values["x_min"] >= values["x_max"] or values["y_min"] >= values["y_max"]:
+                    errors.append("Pantalla tactil: los minimos deben ser menores que los maximos.")
     pages = ui.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= MAX_PAGES:
         return errors + [f"Debe haber entre 1 y {MAX_PAGES} páginas."]
@@ -334,12 +351,22 @@ def start_device_status_monitor() -> mqtt_client.Client:
 
     def on_connect(active_client: mqtt_client.Client, _userdata: Any, _flags: Any, return_code: int) -> None:
         if return_code == 0:
-            active_client.subscribe([(LDR_TOPIC, 0), (STATUS_TOPIC, 0)])
+            active_client.subscribe([(LDR_TOPIC, 0), (STATUS_TOPIC, 0), (TOUCH_CALIBRATION_TOPIC, 1)])
 
     def on_message(_client: mqtt_client.Client, _userdata: Any, message: Any) -> None:
         try:
             payload = message.payload.decode("utf-8")
-            if message.topic == STATUS_TOPIC:
+            if message.topic == TOUCH_CALIBRATION_TOPIC:
+                calibration = json.loads(payload)
+                update = {"touch_calibration": {
+                    "success": bool(calibration["success"]),
+                    "x_min": int(calibration["x_min"]),
+                    "x_max": int(calibration["x_max"]),
+                    "y_min": int(calibration["y_min"]),
+                    "y_max": int(calibration["y_max"]),
+                    "completed_at": int(calibration["completed_at"]),
+                }}
+            elif message.topic == STATUS_TOPIC:
                 status = json.loads(payload)
                 update = {
                     "ldr_voltage": float(status["ldr_voltage"]),
@@ -458,6 +485,10 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
                     raise ValueError("El volumen de prueba debe estar entre 0 y 10.")
                 publish_event({"type": "sound_preview", "sound": "notification", "volume": volume})
                 self.json_response({"played": True})
+                return
+            if self.path == "/api/touch-calibration/start":
+                publish_event({"type": "touch_calibration_start"})
+                self.json_response({"started": True})
                 return
             self.json_response({"error": "Ruta desconocida."}, HTTPStatus.NOT_FOUND)
         except (ValueError, json.JSONDecodeError) as error:

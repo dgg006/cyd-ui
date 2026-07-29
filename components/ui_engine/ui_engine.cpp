@@ -54,6 +54,20 @@ void UiEngineComponent::loop() {
     this->active_page_->loop();
   }
 
+  if (this->calibration_active_ &&
+      static_cast<int32_t>(millis() - this->calibration_timeout_at_ms_) >= 0) {
+    ESP_LOGW(TAG, "Calibracion tactil cancelada por tiempo agotado");
+    this->close_touch_calibration(false);
+  }
+  if (this->calibration_overlay_ != nullptr && !this->calibration_active_ && this->calibration_close_at_ms_ != 0 &&
+      static_cast<int32_t>(millis() - this->calibration_close_at_ms_) >= 0) {
+    lv_obj_delete(this->calibration_overlay_);
+    this->calibration_overlay_ = nullptr;
+    this->calibration_target_ = nullptr;
+    this->calibration_label_ = nullptr;
+    this->calibration_close_at_ms_ = 0;
+  }
+
   if (this->sound_preview_active_ &&
       static_cast<int32_t>(millis() - this->sound_preview_restore_at_ms_) >= 0) {
     this->sound_preview_active_ = false;
@@ -273,8 +287,192 @@ void UiEngineComponent::refresh_idle_mode() {
 
 void UiEngineComponent::apply_device_settings() {
   this->apply_sound_settings();
+  this->apply_touch_settings();
   this->applied_backlight_level_ = -1.0f;
   this->apply_backlight();
+}
+
+void UiEngineComponent::apply_touch_settings() {
+  if (this->touchscreen_ == nullptr) return;
+  const auto &touch = this->active_config_.settings.touchscreen;
+  this->touchscreen_->set_calibration(touch.x_min, touch.x_max, touch.y_min, touch.y_max);
+  ESP_LOGI(TAG, "Calibracion tactil aplicada: x=%d..%d y=%d..%d", touch.x_min, touch.x_max, touch.y_min,
+           touch.y_max);
+}
+
+void UiEngineComponent::start_touch_calibration() {
+  if (this->touchscreen_ == nullptr) {
+    ESP_LOGE(TAG, "No se puede calibrar: touchscreen no configurado");
+    this->calibration_trigger_.trigger(false, 0, 0, 0, 0);
+    return;
+  }
+  if (this->calibration_overlay_ != nullptr) {
+    lv_obj_delete(this->calibration_overlay_);
+  }
+
+  this->notify_activity();
+  this->calibration_active_ = true;
+  this->calibration_target_index_ = 0;
+  this->calibration_press_x_.clear();
+  this->calibration_press_y_.clear();
+  this->calibration_timeout_at_ms_ = millis() + 90000U;
+  this->calibration_close_at_ms_ = 0;
+
+  this->calibration_overlay_ = lv_obj_create(lv_layer_top());
+  lv_obj_set_pos(this->calibration_overlay_, 0, 0);
+  lv_obj_set_size(this->calibration_overlay_, 320, 240);
+  lv_obj_set_style_radius(this->calibration_overlay_, 0, 0);
+  lv_obj_set_style_border_width(this->calibration_overlay_, 0, 0);
+  lv_obj_set_style_pad_all(this->calibration_overlay_, 0, 0);
+  lv_obj_set_style_bg_color(this->calibration_overlay_, lv_color_hex(0x071015), 0);
+  lv_obj_set_style_bg_opa(this->calibration_overlay_, LV_OPA_COVER, 0);
+  lv_obj_add_flag(this->calibration_overlay_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(this->calibration_overlay_, LV_OBJ_FLAG_SCROLLABLE);
+
+  this->calibration_label_ = lv_label_create(this->calibration_overlay_);
+  lv_obj_set_width(this->calibration_label_, 250);
+  lv_obj_set_style_text_align(this->calibration_label_, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_text_color(this->calibration_label_, lv_color_hex(0xDDE8ED), 0);
+  lv_obj_set_pos(this->calibration_label_, 35, 96);
+
+  this->calibration_target_ = lv_obj_create(this->calibration_overlay_);
+  lv_obj_set_size(this->calibration_target_, 28, 28);
+  lv_obj_set_style_radius(this->calibration_target_, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_border_width(this->calibration_target_, 3, 0);
+  lv_obj_set_style_border_color(this->calibration_target_, lv_color_hex(0x50D5AD), 0);
+  lv_obj_set_style_bg_color(this->calibration_target_, lv_color_hex(0x50D5AD), 0);
+  lv_obj_set_style_bg_opa(this->calibration_target_, LV_OPA_40, 0);
+  lv_obj_clear_flag(this->calibration_target_, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *dot = lv_obj_create(this->calibration_target_);
+  lv_obj_set_size(dot, 6, 6);
+  lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_border_width(dot, 0, 0);
+  lv_obj_set_style_bg_color(dot, lv_color_hex(0xFFFFFF), 0);
+  lv_obj_center(dot);
+
+  this->update_calibration_target();
+  ESP_LOGI(TAG, "Calibracion tactil iniciada");
+}
+
+void UiEngineComponent::update_calibration_target() {
+  static constexpr int16_t TARGET_X[4] = {20, 299, 299, 20};
+  static constexpr int16_t TARGET_Y[4] = {20, 20, 219, 219};
+  if (this->calibration_target_ == nullptr || this->calibration_label_ == nullptr ||
+      this->calibration_target_index_ >= 4)
+    return;
+  lv_obj_set_pos(this->calibration_target_, TARGET_X[this->calibration_target_index_] - 14,
+                 TARGET_Y[this->calibration_target_index_] - 14);
+  lv_label_set_text_fmt(this->calibration_label_, "Calibracion tactil\nToca el punto %u de 4",
+                        static_cast<unsigned>(this->calibration_target_index_ + 1));
+}
+
+bool UiEngineComponent::handle_calibration_touch(const touchscreen::TouchPoint &touch) {
+  if (this->calibration_overlay_ == nullptr) return false;
+  if (!this->calibration_active_) return true;
+  this->calibration_press_x_.clear();
+  this->calibration_press_y_.clear();
+  this->calibration_press_x_.push_back(touch.x_raw);
+  this->calibration_press_y_.push_back(touch.y_raw);
+  return true;
+}
+
+bool UiEngineComponent::handle_calibration_update(const touchscreen::TouchPoints_t &touches) {
+  if (this->calibration_overlay_ == nullptr) return false;
+  if (!this->calibration_active_) return true;
+  for (const auto &touch : touches) {
+    if (touch.state == touchscreen::STATE_PRESSED || touch.state == touchscreen::STATE_UPDATED) {
+      this->calibration_press_x_.push_back(touch.x_raw);
+      this->calibration_press_y_.push_back(touch.y_raw);
+      break;
+    }
+  }
+  return true;
+}
+
+bool UiEngineComponent::handle_calibration_release() {
+  if (this->calibration_overlay_ == nullptr) return false;
+  if (!this->calibration_active_) return true;
+  if (this->calibration_press_x_.empty() || this->calibration_press_y_.empty()) return true;
+
+  auto median = [](std::vector<int16_t> values) -> int16_t {
+    std::sort(values.begin(), values.end());
+    return values[values.size() / 2];
+  };
+  this->calibration_corner_x_[this->calibration_target_index_] = median(this->calibration_press_x_);
+  this->calibration_corner_y_[this->calibration_target_index_] = median(this->calibration_press_y_);
+  this->calibration_target_index_++;
+  this->calibration_press_x_.clear();
+  this->calibration_press_y_.clear();
+  if (this->calibration_target_index_ >= 4) {
+    this->finish_touch_calibration();
+  } else {
+    this->update_calibration_target();
+  }
+  return true;
+}
+
+int16_t UiEngineComponent::extrapolate_touch_edge(float first_raw, float last_raw, int first_position,
+                                                   int last_position, int edge_position) const {
+  if (first_position == last_position) return static_cast<int16_t>(std::round(first_raw));
+  const float slope = (last_raw - first_raw) / static_cast<float>(last_position - first_position);
+  const int value = static_cast<int>(std::round(first_raw + slope * (edge_position - first_position)));
+  return static_cast<int16_t>(std::max(0, std::min(4095, value)));
+}
+
+void UiEngineComponent::finish_touch_calibration() {
+  static constexpr int H_MARGIN = 20;
+  static constexpr int V_MARGIN = 20;
+  const float x_left = (this->calibration_corner_x_[0] + this->calibration_corner_x_[3]) / 2.0f;
+  const float x_right = (this->calibration_corner_x_[1] + this->calibration_corner_x_[2]) / 2.0f;
+  const float x_top = (this->calibration_corner_x_[0] + this->calibration_corner_x_[1]) / 2.0f;
+  const float x_bottom = (this->calibration_corner_x_[3] + this->calibration_corner_x_[2]) / 2.0f;
+  const bool raw_x_is_horizontal = std::fabs(x_right - x_left) >= std::fabs(x_bottom - x_top);
+  const int16_t raw_x_first = raw_x_is_horizontal
+                                  ? this->extrapolate_touch_edge(x_left, x_right, H_MARGIN, 319 - H_MARGIN, 0)
+                                  : this->extrapolate_touch_edge(x_top, x_bottom, V_MARGIN, 239 - V_MARGIN, 0);
+  const int16_t raw_x_last = raw_x_is_horizontal
+                                 ? this->extrapolate_touch_edge(x_left, x_right, H_MARGIN, 319 - H_MARGIN, 319)
+                                 : this->extrapolate_touch_edge(x_top, x_bottom, V_MARGIN, 239 - V_MARGIN, 239);
+
+  const float y_left = (this->calibration_corner_y_[0] + this->calibration_corner_y_[3]) / 2.0f;
+  const float y_right = (this->calibration_corner_y_[1] + this->calibration_corner_y_[2]) / 2.0f;
+  const float y_top = (this->calibration_corner_y_[0] + this->calibration_corner_y_[1]) / 2.0f;
+  const float y_bottom = (this->calibration_corner_y_[3] + this->calibration_corner_y_[2]) / 2.0f;
+  const bool raw_y_is_horizontal = std::fabs(y_right - y_left) >= std::fabs(y_bottom - y_top);
+  const int16_t raw_y_first = raw_y_is_horizontal
+                                  ? this->extrapolate_touch_edge(y_left, y_right, H_MARGIN, 319 - H_MARGIN, 0)
+                                  : this->extrapolate_touch_edge(y_top, y_bottom, V_MARGIN, 239 - V_MARGIN, 0);
+  const int16_t raw_y_last = raw_y_is_horizontal
+                                 ? this->extrapolate_touch_edge(y_left, y_right, H_MARGIN, 319 - H_MARGIN, 319)
+                                 : this->extrapolate_touch_edge(y_top, y_bottom, V_MARGIN, 239 - V_MARGIN, 239);
+
+  auto &touch = this->active_config_.settings.touchscreen;
+  touch.x_min = std::min(raw_x_first, raw_x_last);
+  touch.x_max = std::max(raw_x_first, raw_x_last);
+  touch.y_min = std::min(raw_y_first, raw_y_last);
+  touch.y_max = std::max(raw_y_first, raw_y_last);
+  if (touch.x_max - touch.x_min < 1000 || touch.y_max - touch.y_min < 1000) {
+    ESP_LOGE(TAG, "Calibracion tactil rechazada: rango insuficiente");
+    this->close_touch_calibration(false);
+    return;
+  }
+
+  this->apply_touch_settings();
+  ESP_LOGI(TAG, "Calibracion tactil completada: x=%d..%d y=%d..%d", touch.x_min, touch.x_max, touch.y_min,
+           touch.y_max);
+  this->close_touch_calibration(true);
+}
+
+void UiEngineComponent::close_touch_calibration(bool success) {
+  this->calibration_active_ = false;
+  this->calibration_timeout_at_ms_ = 0;
+  this->calibration_close_at_ms_ = millis() + 1200U;
+  if (this->calibration_target_ != nullptr) lv_obj_add_flag(this->calibration_target_, LV_OBJ_FLAG_HIDDEN);
+  if (this->calibration_label_ != nullptr)
+    lv_label_set_text(this->calibration_label_, success ? "Calibracion completada" : "Calibracion cancelada");
+  const auto &touch = this->active_config_.settings.touchscreen;
+  this->calibration_trigger_.trigger(success, touch.x_min, touch.x_max, touch.y_min, touch.y_max);
 }
 
 float UiEngineComponent::sound_gain_for_volume(uint8_t volume) const {

@@ -198,6 +198,27 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
           candidate.settings.sound.notification_volume = static_cast<uint8_t>(value);
       }
     }
+
+    JsonObject touchscreen = settings["touchscreen"].as<JsonObject>();
+    if (!touchscreen.isNull()) {
+      int16_t *targets[] = {&candidate.settings.touchscreen.x_min, &candidate.settings.touchscreen.x_max,
+                            &candidate.settings.touchscreen.y_min, &candidate.settings.touchscreen.y_max};
+      const char *keys[] = {"x_min", "x_max", "y_min", "y_max"};
+      for (size_t index = 0; index < 4; index++) {
+        if (!touchscreen.containsKey(keys[index])) continue;
+        const int value = touchscreen[keys[index]].as<int>();
+        if (!touchscreen[keys[index]].is<int>() || value < 0 || value > 4095) {
+          *error = std::string("settings.touchscreen.") + keys[index] + " debe estar entre 0 y 4095";
+          return false;
+        }
+        *targets[index] = static_cast<int16_t>(value);
+      }
+      if (candidate.settings.touchscreen.x_min >= candidate.settings.touchscreen.x_max ||
+          candidate.settings.touchscreen.y_min >= candidate.settings.touchscreen.y_max) {
+        *error = "settings.touchscreen requiere minimos menores que maximos";
+        return false;
+      }
+    }
   }
   std::set<std::string> ids;
   for (JsonObject page_json : pages) {

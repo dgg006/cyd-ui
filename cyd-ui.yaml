@@ -47,6 +47,8 @@ mqtt:
             const std::string type = x["type"] | "";
             if (type == "reload") {
               id(ui_engine_main).request_reload();
+            } else if (type == "touch_calibration_start") {
+              id(ui_engine_main).start_touch_calibration();
             } else if (type == "control_changed") {
               const std::string control_id = x["id"] | "";
               const bool active = x["active"] | false;
@@ -249,9 +251,17 @@ touchscreen:
     transform:
       mirror_x: true
     on_touch:
-      - lambda: id(ui_engine_main).notify_activity();
+      - lambda: |-
+          if (!id(ui_engine_main).handle_calibration_touch(touch)) {
+            id(ui_engine_main).notify_activity();
+          }
+    on_update:
+      - lambda: id(ui_engine_main).handle_calibration_update(touches);
     on_release:
-      - lambda: id(ui_engine_main).notify_touch_released();
+      - lambda: |-
+          if (!id(ui_engine_main).handle_calibration_release()) {
+            id(ui_engine_main).notify_touch_released();
+          }
 
 lvgl:
   id: cyd_lvgl
@@ -279,6 +289,7 @@ ui_engine:
   icon_font_id: mdi_icons_28
   backlight_output_id: backlight_output
   sound_id: ui_sound
+  touchscreen_id: cyd_touch
   screensaver_timeout: 30s
   on_action:
     - if:
@@ -305,3 +316,15 @@ ui_engine:
           lambda: return id(ui_engine_main).prepare_navigation_sound();
         then:
           - script.execute: ui_sound_navigation
+  on_calibration:
+    - mqtt.publish_json:
+        topic: esphome_ui/cyd-ui/telemetry/touch_calibration
+        qos: 1
+        retain: true
+        payload: |-
+          root["success"] = success;
+          root["x_min"] = x_min;
+          root["x_max"] = x_max;
+          root["y_min"] = y_min;
+          root["y_max"] = y_max;
+          root["completed_at"] = millis();

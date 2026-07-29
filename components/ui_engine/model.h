@@ -54,11 +54,19 @@ struct SoundSettings {
   bool mute_at_night{false};
 };
 
+struct TouchSettings {
+  int16_t x_min{200};
+  int16_t x_max{3700};
+  int16_t y_min{240};
+  int16_t y_max{3800};
+};
+
 struct DeviceSettings {
   DisplaySettings display;
   InactivitySettings inactivity;
   NightSettings night;
   SoundSettings sound;
+  TouchSettings touchscreen;
 };
 
 struct ControlConfig {

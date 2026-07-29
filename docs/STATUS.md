@@ -77,6 +77,7 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Editor visual con apartado fijo `Configuración` y prueba sonora.
 - Lectura LDR actualizada cada segundo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
 - Telemetría visible del porcentaje de brillo realmente aplicado y del modo activo (`normal`, noche, protector, apagado o tenue).
+- Calibración táctil guiada de cuatro puntos, aplicada en ejecución y persistida en la configuración JSON.
 - El primer toque tras apagar o atenuar la pantalla se consume exclusivamente para despertarla y no activa el control situado debajo.
 - Los cambios de horario nocturno reevalúan inmediatamente el modo de reposo activo, incluso si el panel ya estaba mostrando el protector.
 - microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.
