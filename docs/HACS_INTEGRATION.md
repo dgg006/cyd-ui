@@ -29,7 +29,17 @@ La carpeta `custom_components/cyd_ui` contiene:
 - Comandos WebSocket administrativos para leer y guardar el proyecto completo.
 - Catálogo de entidades consultado directamente desde el estado interno de Home Assistant, sin token externo.
 - Validación estructural y límite de tamaño antes de cada guardado.
+- Editor visual reutilizado dentro del panel de Home Assistant, aislado mediante Shadow DOM para no alterar el resto de la interfaz.
+- Importación inicial de la configuración de desarrollo incluida en el paquete de prueba.
 - Limpieza del panel y del recurso al descargar la entrada.
+
+Los recursos del editor se regeneran desde el configurador local probado con:
+
+```powershell
+py -3.13 tools\build_ha_frontend.py
+```
+
+Una prueba automática comprueba que el proyecto importable y el catálogo de iconos coincidan con sus fuentes actuales.
 
 El archivo raíz `hacs.json` declara el repositorio como integración y fija Home Assistant 2026.7 como versión mínima.
 
@@ -37,9 +47,8 @@ El archivo raíz `hacs.json` declara el repositorio como integración y fija Hom
 
 - Elegir propietario y URL definitiva del repositorio; reemplazar `OWNER` en `manifest.json`.
 - Añadir iconos de marca locales.
-- Importar de forma asistida el proyecto existente del configurador local.
-- Trasladar el editor visual completo al panel registrado por la integración.
 - Conectar guardado, recarga del dispositivo y sincronización de estados sin automatizaciones generadas.
+- Sustituir el proyecto inicial personal por un asistente genérico antes de publicar el repositorio.
 - Incorporar pruebas bajo Home Assistant y ejecutar Hassfest y la validación de HACS.
 - Crear una versión y un GitHub Release.
 - Probar instalación, actualización, descarga y recuperación en una instancia separada.

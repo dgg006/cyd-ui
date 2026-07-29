@@ -55,6 +55,12 @@ La futura integración instalable mediante HACS comenzó en
 [`custom_components/cyd_ui`](custom_components/cyd_ui); su alcance y estado están
 documentados en [`docs/HACS_INTEGRATION.md`](docs/HACS_INTEGRATION.md).
 
+Para actualizar los recursos del panel de Home Assistant desde el configurador local:
+
+```powershell
+py -3.13 tools\build_ha_frontend.py
+```
+
 El puente nativo temporal se genera desde el mapa actual con:
 
 ```powershell

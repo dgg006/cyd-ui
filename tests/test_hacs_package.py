@@ -35,6 +35,12 @@ class HacsPackageTests(unittest.TestCase):
             "model.py",
             "storage.py",
             "frontend/cyd-ui-panel.js",
+            "frontend/editor-app.js",
+            "frontend/editor.css",
+            "frontend/catalog.json",
+            "frontend/icons.json",
+            "frontend/initial-project.json",
+            "frontend/materialdesignicons-webfont.ttf",
             "translations/en.json",
             "translations/es.json",
         }
@@ -44,6 +50,32 @@ class HacsPackageTests(unittest.TestCase):
             if path.is_file()
         }
         self.assertTrue(expected.issubset(present))
+
+    def test_embedded_project_matches_current_editor_files(self):
+        embedded = json.loads(
+            (INTEGRATION_ROOT / "frontend" / "initial-project.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        current_ui = json.loads(
+            (PROJECT_ROOT / "config" / "ui.json").read_text(encoding="utf-8")
+        )
+        current_backend = json.loads(
+            (PROJECT_ROOT / "config" / "backend-map.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(current_ui, embedded["ui"])
+        self.assertEqual(current_backend, embedded["backend_map"])
+
+    def test_icon_assets_match_firmware_catalog(self):
+        embedded = json.loads(
+            (INTEGRATION_ROOT / "frontend" / "icons.json").read_text(encoding="utf-8")
+        )
+        firmware = json.loads(
+            (PROJECT_ROOT / "components" / "ui_engine" / "icons.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(firmware, embedded)
 
     def test_release_urls_are_intentionally_not_published_yet(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))

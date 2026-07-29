@@ -11,6 +11,19 @@ from .const import MAX_CONFIG_BYTES, MAX_HISTORY
 
 
 CONTROL_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
+ENTITY_ID_PATTERN = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
+COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
+TEMPLATE_VARIANTS: dict[str, dict[str, tuple[int, int]]] = {
+    "button_grid": {
+        "two_buttons": (2, 2),
+        "four_buttons": (4, 4),
+        "six_buttons": (6, 6),
+    },
+    "climate": {"thermostat": (5, 5)},
+    "clock_weather": {"screensaver": (3, 3)},
+    "sensor_grid": {"four_values": (1, 4)},
+    "cover": {"position_controls": (6, 6)},
+}
 
 
 def validate_document(ui: Any, backend_map: Any) -> list[str]:
@@ -36,14 +49,26 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
         if not isinstance(page, dict):
             errors.append(f"Página {page_number}: debe ser un objeto.")
             continue
-        if not isinstance(page.get("template"), str) or not page["template"]:
+        template = page.get("template")
+        variant = page.get("variant")
+        if not isinstance(template, str) or not template:
             errors.append(f"Página {page_number}: falta template.")
-        if not isinstance(page.get("variant"), str) or not page["variant"]:
+        elif template not in TEMPLATE_VARIANTS:
+            errors.append(f"Página {page_number}: template desconocido.")
+        if not isinstance(variant, str) or not variant:
             errors.append(f"Página {page_number}: falta variant.")
+        elif template in TEMPLATE_VARIANTS and variant not in TEMPLATE_VARIANTS[template]:
+            errors.append(f"Página {page_number}: variante desconocida.")
         controls = page.get("controls")
         if not isinstance(controls, list) or not 1 <= len(controls) <= 6:
             errors.append(f"Página {page_number}: debe tener entre 1 y 6 controles.")
             continue
+        if template in TEMPLATE_VARIANTS and variant in TEMPLATE_VARIANTS[template]:
+            minimum, maximum = TEMPLATE_VARIANTS[template][variant]
+            if not minimum <= len(controls) <= maximum:
+                errors.append(
+                    f"Página {page_number}: la variante requiere entre {minimum} y {maximum} controles."
+                )
         for control_number, control in enumerate(controls, start=1):
             if not isinstance(control, dict):
                 errors.append(
@@ -59,10 +84,29 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
                 errors.append(f"El control {control_id} está repetido.")
             else:
                 control_ids.add(control_id)
+            if control.get("type") not in {"button", "value"}:
+                errors.append(
+                    f"Página {page_number}, control {control_number}: tipo inválido."
+                )
+            if not isinstance(control.get("caption"), str) or not control["caption"].strip():
+                errors.append(
+                    f"Página {page_number}, control {control_number}: falta texto visible."
+                )
+            if not COLOR_PATTERN.fullmatch(str(control.get("color", ""))):
+                errors.append(
+                    f"Página {page_number}, control {control_number}: color inválido."
+                )
 
     unused_mappings = sorted(set(mappings) - control_ids)
     if unused_mappings:
         errors.append("Hay asociaciones sin control: " + ", ".join(unused_mappings))
+    for control_id in control_ids:
+        mapping = mappings.get(control_id)
+        if not isinstance(mapping, dict):
+            continue
+        entity_id = mapping.get("entity_id", "")
+        if entity_id and not ENTITY_ID_PATTERN.fullmatch(str(entity_id)):
+            errors.append(f"La entidad de {control_id} no es un ID válido.")
 
     try:
         encoded_size = len(

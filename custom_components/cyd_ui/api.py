@@ -10,6 +10,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN, VERSION
+from .model import validate_document
 from .storage import CydUiStorage
 
 
@@ -83,6 +84,25 @@ async def websocket_config_save(
     )
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/config/validate",
+        vol.Required("ui"): dict,
+        vol.Required("backend_map"): dict,
+    }
+)
+@callback
+def websocket_config_validate(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Validate a draft without persisting it."""
+    connection.require_admin()
+    errors = validate_document(msg["ui"], msg["backend_map"])
+    connection.send_result(msg["id"], {"valid": not errors, "errors": errors})
+
+
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/entities/list"})
 @callback
 def websocket_entities_list(
@@ -120,5 +140,6 @@ def async_register_commands(hass: HomeAssistant) -> None:
     """Register all commands exactly once per Home Assistant process."""
     websocket_api.async_register_command(hass, websocket_status)
     websocket_api.async_register_command(hass, websocket_config_get)
+    websocket_api.async_register_command(hass, websocket_config_validate)
     websocket_api.async_register_command(hass, websocket_config_save)
     websocket_api.async_register_command(hass, websocket_entities_list)
