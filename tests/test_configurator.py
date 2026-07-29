@@ -28,5 +28,9 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.ui["pages"][0]["controls"][0]["color"] = "blue"
         self.assertTrue(any("#RRGGBB" in e for e in SERVER.validate_project(self.ui, self.backend_map)))
 
+    def test_partial_entity_name_is_rejected(self):
+        self.backend_map["controls"]["living"]["entity_id"] = "luz living"
+        self.assertTrue(any("ID válido" in e for e in SERVER.validate_project(self.ui, self.backend_map)))
+
 if __name__ == "__main__":
     unittest.main()

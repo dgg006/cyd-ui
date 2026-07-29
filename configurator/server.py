@@ -201,6 +201,13 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
     unused_mappings = sorted(set(mappings) - ids)
     if unused_mappings:
         errors.append("Hay asociaciones sin control: " + ", ".join(unused_mappings))
+    for control_id in ids:
+        mapping = mappings.get(control_id)
+        if not isinstance(mapping, dict):
+            continue
+        entity_id = mapping.get("entity_id", "")
+        if entity_id and not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", str(entity_id)):
+            errors.append(f"La entidad de '{control_id}' no es un ID válido de Home Assistant.")
     return errors
 
 

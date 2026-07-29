@@ -49,6 +49,7 @@ Validar en uso real el configurador visual v0.1, completar los campos avanzados 
 - Lista, alta, duplicación, eliminación y reordenamiento de páginas.
 - Formularios definidos por template y variante.
 - Edición de controles y selección de entidades desde Home Assistant.
+- Búsqueda nativa de entidades y filtrado por dominios compatibles con cada template.
 - Vista previa local de 320 × 240.
 - Validación del contrato antes de guardar.
 - Copia recuperable, escritura atómica y recarga MQTT.
