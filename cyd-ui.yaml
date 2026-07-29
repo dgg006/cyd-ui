@@ -61,7 +61,7 @@ mqtt:
               if (volume > 10) volume = 10;
               id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
             } else if (type == "sound") {
-              if (!id(ui_engine_main).notification_sound_enabled()) return;
+              if (!id(ui_engine_main).prepare_notification_sound()) return;
               const std::string sound = x["sound"] | "";
               if (sound == "attention") {
                 id(ui_sound).play("attention:d=32,o=6,b=220:g,p,g");
@@ -283,7 +283,7 @@ ui_engine:
   on_action:
     - if:
         condition:
-          lambda: return id(ui_engine_main).touch_sound_enabled();
+          lambda: return id(ui_engine_main).prepare_touch_sound();
         then:
           - script.execute: ui_sound_tap
     - logger.log:
@@ -302,6 +302,6 @@ ui_engine:
   on_navigation:
     - if:
         condition:
-          lambda: return id(ui_engine_main).navigation_sound_enabled();
+          lambda: return id(ui_engine_main).prepare_navigation_sound();
         then:
           - script.execute: ui_sound_navigation

@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <set>
 
 #include "ArduinoJson.h"
@@ -159,7 +160,7 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
 
     JsonObject sound = settings["sound"].as<JsonObject>();
     if (!sound.isNull()) {
-      for (const char *key : {"enabled", "touch", "navigation", "notifications"}) {
+      for (const char *key : {"enabled", "touch", "navigation", "notifications", "mute_at_night"}) {
         if (sound.containsKey(key) && !sound[key].is<bool>()) {
           *error = std::string("settings.sound.") + key + " debe ser booleano";
           return false;
@@ -170,6 +171,8 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       if (sound.containsKey("navigation")) candidate.settings.sound.navigation = sound["navigation"].as<bool>();
       if (sound.containsKey("notifications"))
         candidate.settings.sound.notifications = sound["notifications"].as<bool>();
+      if (sound.containsKey("mute_at_night"))
+        candidate.settings.sound.mute_at_night = sound["mute_at_night"].as<bool>();
       if (sound.containsKey("volume")) {
         const int value = sound["volume"].as<int>();
         if (!sound["volume"].is<int>() || value < 0 || value > 10) {
@@ -177,6 +180,22 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
           return false;
         }
         candidate.settings.sound.volume = static_cast<uint8_t>(value);
+      }
+      candidate.settings.sound.touch_volume = candidate.settings.sound.volume;
+      candidate.settings.sound.navigation_volume = candidate.settings.sound.volume;
+      candidate.settings.sound.notification_volume = candidate.settings.sound.volume;
+      for (const char *key : {"touch_volume", "navigation_volume", "notification_volume"}) {
+        if (!sound.containsKey(key)) continue;
+        const int value = sound[key].as<int>();
+        if (!sound[key].is<int>() || value < 0 || value > 10) {
+          *error = std::string("settings.sound.") + key + " debe estar entre 0 y 10";
+          return false;
+        }
+        if (strcmp(key, "touch_volume") == 0) candidate.settings.sound.touch_volume = static_cast<uint8_t>(value);
+        if (strcmp(key, "navigation_volume") == 0)
+          candidate.settings.sound.navigation_volume = static_cast<uint8_t>(value);
+        if (strcmp(key, "notification_volume") == 0)
+          candidate.settings.sound.notification_volume = static_cast<uint8_t>(value);
       }
     }
   }

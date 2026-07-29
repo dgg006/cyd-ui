@@ -287,8 +287,7 @@ float UiEngineComponent::sound_gain_for_volume(uint8_t volume) const {
 
 void UiEngineComponent::apply_sound_settings() {
   if (this->sound_player_ == nullptr) return;
-  const auto &sound = this->active_config_.settings.sound;
-  this->sound_player_->set_gain(sound.enabled ? this->sound_gain_for_volume(sound.volume) : 0.0f);
+  this->sound_player_->set_gain(0.0f);
 }
 
 void UiEngineComponent::preview_notification_sound(uint8_t volume) {
@@ -363,19 +362,29 @@ IdleMode UiEngineComponent::effective_idle_mode() const {
   return this->active_config_.settings.inactivity.mode;
 }
 
-bool UiEngineComponent::touch_sound_enabled() const {
+bool UiEngineComponent::prepare_sound(bool event_enabled, uint8_t volume) {
   const auto &sound = this->active_config_.settings.sound;
-  return sound.enabled && sound.touch && sound.volume > 0;
+  const bool allowed = sound.enabled && event_enabled && volume > 0 && !(sound.mute_at_night && this->is_night());
+  if (allowed && this->sound_player_ != nullptr) {
+    this->sound_preview_active_ = false;
+    this->sound_player_->set_gain(this->sound_gain_for_volume(volume));
+  }
+  return allowed;
 }
 
-bool UiEngineComponent::navigation_sound_enabled() const {
+bool UiEngineComponent::prepare_touch_sound() {
   const auto &sound = this->active_config_.settings.sound;
-  return sound.enabled && sound.navigation && sound.volume > 0;
+  return this->prepare_sound(sound.touch, sound.touch_volume);
 }
 
-bool UiEngineComponent::notification_sound_enabled() const {
+bool UiEngineComponent::prepare_navigation_sound() {
   const auto &sound = this->active_config_.settings.sound;
-  return sound.enabled && sound.notifications && sound.volume > 0;
+  return this->prepare_sound(sound.navigation, sound.navigation_volume);
+}
+
+bool UiEngineComponent::prepare_notification_sound() {
+  const auto &sound = this->active_config_.settings.sound;
+  return this->prepare_sound(sound.notifications, sound.notification_volume);
 }
 
 bool UiEngineComponent::update_control(const std::string &id, bool active, const std::string &value,

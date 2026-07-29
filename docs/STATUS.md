@@ -71,8 +71,9 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - LDR frontal incorporado como entrada de brillo automático, desactivado por defecto hasta calibrarlo en el lugar de uso.
 - Modos de inactividad: reloj y clima, pantalla apagada, brillo tenue o desactivado.
 - Horario nocturno con brillo y comportamiento de reposo propios.
-- Volumen de 0 a 10 y activación independiente de toques, navegación y notificaciones.
+- Activación independiente de sonidos de toque, navegación y notificaciones.
 - Escala perceptual de volumen y prueba inmediata del valor seleccionado sin guardar previamente.
+- Volúmenes independientes para toques, navegación y notificaciones, con silencio general opcional durante el horario nocturno.
 - Editor visual con apartado fijo `Configuración` y prueba sonora.
 - Lectura LDR actualizada cada segundo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
 - Telemetría visible del porcentaje de brillo realmente aplicado y del modo activo (`normal`, noche, protector, apagado o tenue).

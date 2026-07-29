@@ -19,7 +19,7 @@ El editor obtiene la lectura actual del LDR mediante telemetría MQTT retenida y
 
 `settings.night` define `enabled`, `start`, `end`, `brightness` y `mode`. Las horas usan `HH:MM` y admiten intervalos que cruzan medianoche.
 
-`settings.sound` define `enabled`, `volume` (0 a 10), `touch`, `navigation` y `notifications`. La escala es perceptual, no lineal; el volumen 5 conserva el nivel que se validó inicialmente en la placa y los extremos tienen una diferencia audible clara.
+`settings.sound` define `enabled`, los interruptores `touch`, `navigation` y `notifications`, sus volúmenes independientes `touch_volume`, `navigation_volume` y `notification_volume` (0 a 10), y `mute_at_night`. La escala es perceptual, no lineal. `volume` se conserva como respaldo compatible para configuraciones anteriores.
 
 Durante la transición, el editor mantiene sincronizado el antiguo `screensaver_timeout` con `settings.inactivity.timeout`.
 

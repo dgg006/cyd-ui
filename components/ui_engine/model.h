@@ -46,8 +46,12 @@ struct SoundSettings {
   bool enabled{true};
   uint8_t volume{5};
   bool touch{true};
+  uint8_t touch_volume{5};
   bool navigation{true};
+  uint8_t navigation_volume{5};
   bool notifications{true};
+  uint8_t notification_volume{5};
+  bool mute_at_night{false};
 };
 
 struct DeviceSettings {

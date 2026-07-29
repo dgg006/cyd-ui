@@ -191,12 +191,16 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
             errors.append("Horario nocturno: el brillo debe estar entre 0 y 100.")
         if night.get("mode", "screen_off") not in IDLE_MODES:
             errors.append("Horario nocturno: modo desconocido.")
-        for key in ("enabled", "touch", "navigation", "notifications"):
+        for key in ("enabled", "touch", "navigation", "notifications", "mute_at_night"):
             if key in sound and not isinstance(sound[key], bool):
                 errors.append(f"Sonido: {key} debe ser sí o no.")
         volume = sound.get("volume", 5)
         if not isinstance(volume, int) or isinstance(volume, bool) or not 0 <= volume <= 10:
             errors.append("Sonido: el volumen debe estar entre 0 y 10.")
+        for key in ("touch_volume", "navigation_volume", "notification_volume"):
+            event_volume = sound.get(key, volume)
+            if not isinstance(event_volume, int) or isinstance(event_volume, bool) or not 0 <= event_volume <= 10:
+                errors.append(f"Sonido: {key} debe estar entre 0 y 10.")
     pages = ui.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= MAX_PAGES:
         return errors + [f"Debe haber entre 1 y {MAX_PAGES} páginas."]
