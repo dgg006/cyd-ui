@@ -1,5 +1,5 @@
 const STATIC_ROOT = "/cyd_ui_static";
-const ASSET_VERSION = "0.1.0";
+const ASSET_VERSION = "0.1.1";
 
 const EDITOR_MARKUP = `
   <header class="topbar">
