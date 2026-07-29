@@ -91,6 +91,11 @@ class HacsPackageTests(unittest.TestCase):
         self.assertNotIn("async_register_built_in_panel", source)
         self.assertIn("panel_custom", manifest["dependencies"])
 
+    def test_websocket_admin_checks_use_current_decorator(self):
+        source = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
+        self.assertNotIn("connection.require_admin()", source)
+        self.assertEqual(8, source.count("@websocket_api.require_admin"))
+
 
 if __name__ == "__main__":
     unittest.main()
