@@ -40,7 +40,7 @@ Actualizado: 2026-07-29
 ## Memoria de referencia
 
 - DRAM estática: 51.588 bytes (28,5 %).
-- Firmware con catálogo MDI y telemetría de estado: 1.353.883 bytes (73,8 % de la partición de aplicación).
+- Firmware con catálogo MDI y telemetría de estado: 1.354.059 bytes (73,8 % de la partición de aplicación).
 
 ## Próximo hito
 
@@ -76,4 +76,5 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Lectura LDR actualizada cada segundo y calibración asistida de los extremos de oscuridad y mucha luz desde el editor.
 - Telemetría visible del porcentaje de brillo realmente aplicado y del modo activo (`normal`, noche, protector, apagado o tenue).
 - El primer toque tras apagar o atenuar la pantalla se consume exclusivamente para despertarla y no activa el control situado debajo.
+- Los cambios de horario nocturno reevalúan inmediatamente el modo de reposo activo, incluso si el panel ya estaba mostrando el protector.
 - microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.

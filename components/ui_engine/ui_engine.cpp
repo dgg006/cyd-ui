@@ -73,6 +73,7 @@ void UiEngineComponent::loop() {
 
   if (millis() - this->last_display_update_ms_ >= 1000U) {
     this->last_display_update_ms_ = millis();
+    this->refresh_idle_mode();
     this->apply_backlight();
   }
 
@@ -245,6 +246,23 @@ void UiEngineComponent::enter_idle() {
     this->active_idle_mode_ = IdleMode::SCREEN_OFF;
   }
   this->apply_backlight();
+}
+
+void UiEngineComponent::refresh_idle_mode() {
+  if (!this->idle_active_) return;
+  IdleMode desired = this->effective_idle_mode();
+  if (desired == IdleMode::CLOCK_WEATHER && this->screensaver_page_index_ < 0) desired = IdleMode::SCREEN_OFF;
+  if (desired == this->active_idle_mode_) return;
+
+  if (desired == IdleMode::CLOCK_WEATHER) {
+    this->screensaver_active_ = true;
+    this->show_page(static_cast<size_t>(this->screensaver_page_index_));
+  } else if (this->screensaver_active_) {
+    this->screensaver_active_ = false;
+    this->show_page(this->page_before_screensaver_);
+  }
+  this->active_idle_mode_ = desired;
+  ESP_LOGI(TAG, "Modo de reposo actualizado por horario: %s", this->runtime_mode().c_str());
 }
 
 void UiEngineComponent::apply_device_settings() {

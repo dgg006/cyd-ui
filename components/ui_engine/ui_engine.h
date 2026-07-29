@@ -60,6 +60,7 @@ class UiEngineComponent : public Component {
   bool show_page(size_t index);
   void request_page_delta(int delta);
   void enter_idle();
+  void refresh_idle_mode();
   void apply_device_settings();
   void apply_backlight();
   bool wake_guard_active() const;
