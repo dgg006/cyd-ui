@@ -12,6 +12,51 @@ enum class ControlState {
   STALE_OR_DISCONNECTED,
 };
 
+enum class IdleMode {
+  CLOCK_WEATHER,
+  SCREEN_OFF,
+  DIM,
+  NONE,
+};
+
+struct DisplaySettings {
+  uint8_t brightness{100};
+  bool auto_brightness{false};
+  uint8_t minimum_brightness{15};
+  uint8_t maximum_brightness{100};
+  float ldr_dark_voltage{3.0f};
+  float ldr_bright_voltage{0.2f};
+};
+
+struct InactivitySettings {
+  int32_t timeout_seconds{-1};
+  IdleMode mode{IdleMode::CLOCK_WEATHER};
+  uint8_t dim_brightness{10};
+};
+
+struct NightSettings {
+  bool enabled{false};
+  uint16_t start_minutes{23 * 60};
+  uint16_t end_minutes{7 * 60};
+  uint8_t brightness{15};
+  IdleMode mode{IdleMode::SCREEN_OFF};
+};
+
+struct SoundSettings {
+  bool enabled{true};
+  uint8_t volume{5};
+  bool touch{true};
+  bool navigation{true};
+  bool notifications{true};
+};
+
+struct DeviceSettings {
+  DisplaySettings display;
+  InactivitySettings inactivity;
+  NightSettings night;
+  SoundSettings sound;
+};
+
 struct ControlConfig {
   std::string type;
   std::string id;
@@ -40,6 +85,7 @@ struct PageConfig {
 struct UiConfig {
   int schema_version{0};
   int32_t screensaver_timeout_seconds{-1};
+  DeviceSettings settings;
   std::vector<PageConfig> pages;
 };
 

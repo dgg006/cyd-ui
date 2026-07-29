@@ -4,9 +4,22 @@
 
 - `schema_version`: obligatorio; actualmente `1`.
 - `screensaver_timeout`: segundos de inactividad antes de activar el protector; entre `0` y `3600`. El valor `0` lo desactiva.
+- `settings`: configuración general del dispositivo. Es opcional para conservar compatibilidad con documentos anteriores.
 - `pages`: entre 1 y 8 páginas.
 - Los IDs de controles deben ser únicos en todo el documento.
 - Puede existir como máximo una página con `screensaver: true`.
+
+## Configuración del dispositivo
+
+`settings.display` controla el brillo manual (`brightness`), el brillo automático por LDR (`auto_brightness`), sus límites (`minimum_brightness`, `maximum_brightness`) y la calibración en voltios (`ldr_dark_voltage`, `ldr_bright_voltage`).
+
+`settings.inactivity` define `timeout`, `mode` y `dim_brightness`. Los modos admitidos son `clock_weather`, `screen_off`, `dim` y `none`.
+
+`settings.night` define `enabled`, `start`, `end`, `brightness` y `mode`. Las horas usan `HH:MM` y admiten intervalos que cruzan medianoche.
+
+`settings.sound` define `enabled`, `volume` (0 a 10), `touch`, `navigation` y `notifications`. El volumen 5 conserva aproximadamente el nivel que se validó inicialmente en la placa.
+
+Durante la transición, el editor mantiene sincronizado el antiguo `screensaver_timeout` con `settings.inactivity.timeout`.
 
 ## Campos de página
 

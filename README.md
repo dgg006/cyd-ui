@@ -20,6 +20,7 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 - Proyecto Arduino de validación conservado intacto.
 - Configurador visual local v0.1 para páginas, controles y asociaciones con Home Assistant.
 - Catálogo compacto de iconos MDI configurable sin recompilar mientras el icono ya esté incluido.
+- Configuración general desde el editor: brillo PWM, LDR, reposo, horario nocturno y volumen/sonidos.
 
 ## Configurador visual
 

@@ -56,6 +56,7 @@ mqtt:
                 id(ui_engine_main).update_control(control_id, active, value, reliability);
               }
             } else if (type == "sound") {
+              if (!id(ui_engine_main).notification_sound_enabled()) return;
               const std::string sound = x["sound"] | "";
               if (sound == "attention") {
                 id(ui_sound).play("attention:d=32,o=6,b=220:g,p,g");
@@ -93,12 +94,29 @@ spi:
     miso_pin: GPIO39
 
 output:
-  - platform: gpio
+  - platform: ledc
     id: backlight_output
     pin: GPIO21
+    frequency: 20kHz
+    channel: 2
   - platform: ledc
     id: ui_speaker_output
     pin: GPIO26
+    channel: 0
+
+sensor:
+  - platform: adc
+    id: ambient_light_voltage
+    pin: GPIO34
+    attenuation: auto
+    update_interval: 1s
+    internal: true
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+    on_value:
+      - lambda: id(ui_engine_main).set_ambient_light(x);
 
 rtttl:
   id: ui_sound
@@ -124,7 +142,7 @@ script:
       - rtttl.play: "err:d=16,o=4,b=160:g"
 
 light:
-  - platform: binary
+  - platform: monochromatic
     id: backlight
     name: Backlight
     output: backlight_output
@@ -237,9 +255,15 @@ ui_engine:
   config_url: http://192.168.31.240:8124/ui.json
   time_id: system_time
   icon_font_id: mdi_icons_28
+  backlight_output_id: backlight_output
+  sound_id: ui_sound
   screensaver_timeout: 30s
   on_action:
-    - script.execute: ui_sound_tap
+    - if:
+        condition:
+          lambda: return id(ui_engine_main).touch_sound_enabled();
+        then:
+          - script.execute: ui_sound_tap
     - logger.log:
         format: "UI action: control_id=%s action=%s"
         args:
@@ -254,4 +278,8 @@ ui_engine:
           root["id"] = control_id;
           root["action"] = action;
   on_navigation:
-    - script.execute: ui_sound_navigation
+    - if:
+        condition:
+          lambda: return id(ui_engine_main).navigation_sound_enabled();
+        then:
+          - script.execute: ui_sound_navigation

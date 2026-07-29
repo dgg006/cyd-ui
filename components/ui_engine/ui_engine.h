@@ -3,6 +3,8 @@
 #include <map>
 
 #include "esphome/components/font/font.h"
+#include "esphome/components/output/float_output.h"
+#include "esphome/components/rtttl/rtttl.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "button_grid.h"
@@ -36,6 +38,12 @@ class UiEngineComponent : public Component {
   void notify_activity();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
+  void set_backlight_output(output::FloatOutput *output) { this->backlight_output_ = output; }
+  void set_sound_player(rtttl::Rtttl *sound_player) { this->sound_player_ = sound_player; }
+  void set_ambient_light(float voltage) { this->ambient_light_voltage_ = voltage; }
+  bool touch_sound_enabled() const;
+  bool navigation_sound_enabled() const;
+  bool notification_sound_enabled() const;
   void set_screensaver_timeout(uint32_t timeout_ms) {
     this->default_screensaver_timeout_ms_ = timeout_ms;
     this->screensaver_timeout_ms_ = timeout_ms;
@@ -47,6 +55,12 @@ class UiEngineComponent : public Component {
   bool try_apply_config(const std::string &raw_json);
   bool show_page(size_t index);
   void request_page_delta(int delta);
+  void enter_idle();
+  void apply_device_settings();
+  void apply_backlight();
+  bool is_night() const;
+  IdleMode effective_idle_mode() const;
+  float base_brightness_percent() const;
 
   struct RuntimeControlState {
     bool active{false};
@@ -79,6 +93,13 @@ class UiEngineComponent : public Component {
   size_t page_before_screensaver_{0};
   bool screensaver_active_{false};
   bool wake_pending_{false};
+  bool idle_active_{false};
+  IdleMode active_idle_mode_{IdleMode::NONE};
+  output::FloatOutput *backlight_output_{nullptr};
+  rtttl::Rtttl *sound_player_{nullptr};
+  float ambient_light_voltage_{NAN};
+  float applied_backlight_level_{-1.0f};
+  uint32_t last_display_update_ms_{0};
 };
 
 template<typename... Ts> class ReloadAction final : public Action<Ts...>, public Parented<UiEngineComponent> {

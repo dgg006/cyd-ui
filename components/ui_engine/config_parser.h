@@ -13,8 +13,9 @@ class ConfigParser {
 
  private:
   bool parse_color(const char *text, uint32_t *color) const;
+  bool parse_time(const char *text, uint16_t *minutes) const;
+  bool parse_idle_mode(const char *text, IdleMode *mode) const;
 };
 
 }  // namespace ui_engine
 }  // namespace esphome
-

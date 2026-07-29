@@ -65,3 +65,12 @@ Validar en uso real el configurador visual v0.1, completar los campos avanzados 
 - El iniciador sirve `config/ui.json` como `/ui.json`, que es la ruta fija consumida por el firmware.
 
 La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECTURE.md`.
+# Actualización 2026-07-29 — configuración del dispositivo
+
+- Brillo de la retroiluminación migrado a PWM sin interferir con el canal del parlante.
+- LDR frontal incorporado como entrada de brillo automático, desactivado por defecto hasta calibrarlo en el lugar de uso.
+- Modos de inactividad: reloj y clima, pantalla apagada, brillo tenue o desactivado.
+- Horario nocturno con brillo y comportamiento de reposo propios.
+- Volumen de 0 a 10 y activación independiente de toques, navegación y notificaciones.
+- Editor visual con apartado fijo `Configuración` y prueba sonora.
+- microSD deliberadamente postergada: exige una capa FATFS externa y compite por los buses SPI disponibles; no aporta valor inmediato al runtime actual.

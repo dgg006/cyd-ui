@@ -1,5 +1,8 @@
 #include "ui_engine.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -53,16 +56,24 @@ void UiEngineComponent::loop() {
 
   if (this->wake_pending_) {
     this->wake_pending_ = false;
+    const bool was_screensaver = this->screensaver_active_;
+    this->idle_active_ = false;
     this->screensaver_active_ = false;
-    this->show_page(this->page_before_screensaver_);
+    this->active_idle_mode_ = IdleMode::NONE;
+    if (was_screensaver) {
+      this->show_page(this->page_before_screensaver_);
+    }
+    this->apply_backlight();
   }
 
-  if (!this->screensaver_active_ && this->screensaver_page_index_ >= 0 && this->screensaver_timeout_ms_ > 0 &&
-      this->active_page_index_ != static_cast<size_t>(this->screensaver_page_index_) &&
+  if (!this->idle_active_ && this->screensaver_timeout_ms_ > 0 &&
       millis() - this->last_activity_ms_ >= this->screensaver_timeout_ms_) {
-    this->page_before_screensaver_ = this->active_page_index_;
-    this->screensaver_active_ = true;
-    this->show_page(static_cast<size_t>(this->screensaver_page_index_));
+    this->enter_idle();
+  }
+
+  if (millis() - this->last_display_update_ms_ >= 1000U) {
+    this->last_display_update_ms_ = millis();
+    this->apply_backlight();
   }
 
   if (this->page_delta_pending_ != 0 && !this->active_config_.pages.empty()) {
@@ -134,16 +145,20 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   }
 
   this->active_config_ = std::move(candidate);
-  this->screensaver_timeout_ms_ = this->active_config_.screensaver_timeout_seconds >= 0
-                                     ? static_cast<uint32_t>(this->active_config_.screensaver_timeout_seconds) * 1000U
+  const int32_t configured_timeout = this->active_config_.settings.inactivity.timeout_seconds;
+  this->screensaver_timeout_ms_ = configured_timeout >= 0
+                                     ? static_cast<uint32_t>(configured_timeout) * 1000U
                                      : this->default_screensaver_timeout_ms_;
   this->screensaver_page_index_ = screensaver_index;
+  this->idle_active_ = false;
+  this->active_idle_mode_ = IdleMode::NONE;
   this->screensaver_active_ = false;
   this->wake_pending_ = false;
   this->last_activity_ms_ = millis();
   if (!this->show_page(0)) {
     return false;
   }
+  this->apply_device_settings();
   ESP_LOGI(TAG, "Configuracion JSON aplicada atomicamente");
   return true;
 }
@@ -160,7 +175,9 @@ bool UiEngineComponent::show_page(size_t index) {
       return false;
     }
     page->set_action_callback([this](const std::string &control_id, const std::string &action) {
+      const bool waking = this->idle_active_ || this->wake_pending_ || this->applied_backlight_level_ <= 0.001f;
       this->notify_activity();
+      if (waking) return;
       ESP_LOGI(TAG, "action: control_id=%s action=%s", control_id.c_str(), action.c_str());
       this->action_trigger_.trigger(control_id, action);
     });
@@ -188,16 +205,104 @@ bool UiEngineComponent::show_page(size_t index) {
 
 void UiEngineComponent::notify_activity() {
   this->last_activity_ms_ = millis();
-  if (this->screensaver_active_) {
+  if (this->idle_active_) {
     this->wake_pending_ = true;
   }
 }
 
 void UiEngineComponent::request_page_delta(int delta) {
+  const bool waking = this->idle_active_ || this->wake_pending_;
   this->notify_activity();
-  if (!this->screensaver_active_) {
+  if (!waking) {
     this->page_delta_pending_ = delta;
   }
+}
+
+void UiEngineComponent::enter_idle() {
+  const IdleMode mode = this->effective_idle_mode();
+  if (mode == IdleMode::NONE) return;
+
+  this->page_before_screensaver_ = this->active_page_index_;
+  this->idle_active_ = true;
+  this->active_idle_mode_ = mode;
+  if (mode == IdleMode::CLOCK_WEATHER && this->screensaver_page_index_ >= 0) {
+    this->screensaver_active_ = true;
+    this->show_page(static_cast<size_t>(this->screensaver_page_index_));
+  } else if (mode == IdleMode::CLOCK_WEATHER) {
+    this->active_idle_mode_ = IdleMode::SCREEN_OFF;
+  }
+  this->apply_backlight();
+}
+
+void UiEngineComponent::apply_device_settings() {
+  if (this->sound_player_ != nullptr) {
+    const auto &sound = this->active_config_.settings.sound;
+    const float gain = sound.enabled ? static_cast<float>(sound.volume) * 0.036f : 0.0f;
+    this->sound_player_->set_gain(gain);
+  }
+  this->applied_backlight_level_ = -1.0f;
+  this->apply_backlight();
+}
+
+float UiEngineComponent::base_brightness_percent() const {
+  const auto &display = this->active_config_.settings.display;
+  float brightness = static_cast<float>(display.brightness);
+  if (display.auto_brightness && !std::isnan(this->ambient_light_voltage_)) {
+    const float span = display.ldr_bright_voltage - display.ldr_dark_voltage;
+    float ratio = (this->ambient_light_voltage_ - display.ldr_dark_voltage) / span;
+    ratio = std::max(0.0f, std::min(1.0f, ratio));
+    brightness = display.minimum_brightness + ratio * (display.maximum_brightness - display.minimum_brightness);
+  }
+  if (this->is_night()) brightness = this->active_config_.settings.night.brightness;
+  return brightness;
+}
+
+void UiEngineComponent::apply_backlight() {
+  if (this->backlight_output_ == nullptr) return;
+  float brightness = this->base_brightness_percent();
+  if (this->idle_active_) {
+    if (this->active_idle_mode_ == IdleMode::SCREEN_OFF) {
+      brightness = 0.0f;
+    } else if (this->active_idle_mode_ == IdleMode::DIM) {
+      brightness = std::min(brightness, static_cast<float>(this->active_config_.settings.inactivity.dim_brightness));
+    }
+  }
+  const float level = std::max(0.0f, std::min(1.0f, brightness / 100.0f));
+  if (std::fabs(level - this->applied_backlight_level_) < 0.005f) return;
+  this->backlight_output_->set_level(level);
+  this->applied_backlight_level_ = level;
+}
+
+bool UiEngineComponent::is_night() const {
+  const auto &night = this->active_config_.settings.night;
+  if (!night.enabled || this->clock_ == nullptr) return false;
+  const auto now = this->clock_->now();
+  if (!now.is_valid()) return false;
+  const uint16_t minutes = static_cast<uint16_t>(now.hour * 60 + now.minute);
+  if (night.start_minutes == night.end_minutes) return true;
+  if (night.start_minutes < night.end_minutes)
+    return minutes >= night.start_minutes && minutes < night.end_minutes;
+  return minutes >= night.start_minutes || minutes < night.end_minutes;
+}
+
+IdleMode UiEngineComponent::effective_idle_mode() const {
+  if (this->is_night()) return this->active_config_.settings.night.mode;
+  return this->active_config_.settings.inactivity.mode;
+}
+
+bool UiEngineComponent::touch_sound_enabled() const {
+  const auto &sound = this->active_config_.settings.sound;
+  return sound.enabled && sound.touch && sound.volume > 0;
+}
+
+bool UiEngineComponent::navigation_sound_enabled() const {
+  const auto &sound = this->active_config_.settings.sound;
+  return sound.enabled && sound.navigation && sound.volume > 0;
+}
+
+bool UiEngineComponent::notification_sound_enabled() const {
+  const auto &sound = this->active_config_.settings.sound;
+  return sound.enabled && sound.notifications && sound.volume > 0;
 }
 
 bool UiEngineComponent::update_control(const std::string &id, bool active, const std::string &value,

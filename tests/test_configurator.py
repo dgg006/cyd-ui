@@ -58,6 +58,23 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.ui["screensaver_timeout"] = 3601
         self.assertTrue(any("tiempo del protector" in error for error in SERVER.validate_project(self.ui, self.backend_map)))
 
+    def test_device_settings_are_valid(self):
+        self.ui["settings"]["display"]["brightness"] = 72
+        self.ui["settings"]["inactivity"]["mode"] = "dim"
+        self.ui["settings"]["night"]["start"] = "22:30"
+        self.ui["settings"]["sound"]["volume"] = 7
+        self.assertEqual([], SERVER.validate_project(self.ui, self.backend_map))
+
+    def test_invalid_device_settings_are_rejected(self):
+        self.ui["settings"]["display"]["minimum_brightness"] = 90
+        self.ui["settings"]["display"]["maximum_brightness"] = 40
+        self.ui["settings"]["night"]["start"] = "25:00"
+        self.ui["settings"]["sound"]["volume"] = 11
+        errors = SERVER.validate_project(self.ui, self.backend_map)
+        self.assertTrue(any("mínimo" in error for error in errors))
+        self.assertTrue(any("HH:MM" in error for error in errors))
+        self.assertTrue(any("volumen" in error for error in errors))
+
     def test_regular_page_still_requires_title(self):
         self.ui["pages"][0]["title"] = ""
         self.assertTrue(any("título" in error for error in SERVER.validate_project(self.ui, self.backend_map)))

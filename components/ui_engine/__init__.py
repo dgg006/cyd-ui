@@ -4,13 +4,13 @@ from pathlib import Path
 
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components import font, http_request, time
+from esphome.components import font, http_request, output, rtttl, time
 import esphome.config_validation as cv
 from esphome.components.lvgl import defines as lvgl_defines
 from esphome.core import CORE
 from esphome.const import CONF_ID, CONF_TIME_ID
 
-DEPENDENCIES = ["lvgl", "http_request", "font"]
+DEPENDENCIES = ["lvgl", "http_request", "font", "output", "rtttl"]
 AUTO_LOAD = ["json"]
 
 ui_engine_ns = cg.esphome_ns.namespace("ui_engine")
@@ -23,11 +23,80 @@ CONF_CONFIG_URL = "config_url"
 CONF_HTTP_REQUEST_ID = "http_request_id"
 CONF_SCREENSAVER_TIMEOUT = "screensaver_timeout"
 CONF_ICON_FONT_ID = "icon_font_id"
+CONF_BACKLIGHT_OUTPUT_ID = "backlight_output_id"
+CONF_SOUND_ID = "sound_id"
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 ICON_NAMES = {
     item["name"]
     for item in json.loads(Path(__file__).with_name("icons.json").read_text(encoding="utf-8"))
 }
+
+IDLE_MODES = {"clock_weather", "screen_off", "dim", "none"}
+TIME_PATTERN = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
+
+def validate_device_settings(document):
+    settings = document.get("settings")
+    if settings is None:
+        return
+    if not isinstance(settings, dict):
+        raise cv.Invalid("settings debe ser un objeto")
+
+    display = settings.get("display", {})
+    if not isinstance(display, dict):
+        raise cv.Invalid("settings.display debe ser un objeto")
+    for key in ("brightness", "minimum_brightness", "maximum_brightness"):
+        value = display.get(key)
+        if value is not None and (not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 100):
+            raise cv.Invalid(f"settings.display.{key} debe estar entre 0 y 100")
+    minimum = display.get("minimum_brightness", 15)
+    maximum = display.get("maximum_brightness", 100)
+    if minimum > maximum:
+        raise cv.Invalid("settings.display.minimum_brightness no puede superar maximum_brightness")
+    if "auto_brightness" in display and not isinstance(display["auto_brightness"], bool):
+        raise cv.Invalid("settings.display.auto_brightness debe ser booleano")
+    dark = display.get("ldr_dark_voltage", 3.0)
+    bright = display.get("ldr_bright_voltage", 0.2)
+    if (not isinstance(dark, (int, float)) or isinstance(dark, bool) or
+            not isinstance(bright, (int, float)) or isinstance(bright, bool) or
+            not 0 <= dark <= 3.3 or not 0 <= bright <= 3.3 or dark == bright):
+        raise cv.Invalid("la calibracion LDR debe usar valores distintos entre 0.0 y 3.3 V")
+
+    inactivity = settings.get("inactivity", {})
+    if not isinstance(inactivity, dict):
+        raise cv.Invalid("settings.inactivity debe ser un objeto")
+    timeout = inactivity.get("timeout")
+    if timeout is not None and (not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 <= timeout <= 3600):
+        raise cv.Invalid("settings.inactivity.timeout debe estar entre 0 y 3600")
+    if inactivity.get("mode", "clock_weather") not in IDLE_MODES:
+        raise cv.Invalid("settings.inactivity.mode no es valido")
+    dim = inactivity.get("dim_brightness", 10)
+    if not isinstance(dim, int) or isinstance(dim, bool) or not 0 <= dim <= 100:
+        raise cv.Invalid("settings.inactivity.dim_brightness debe estar entre 0 y 100")
+
+    night = settings.get("night", {})
+    if not isinstance(night, dict):
+        raise cv.Invalid("settings.night debe ser un objeto")
+    if "enabled" in night and not isinstance(night["enabled"], bool):
+        raise cv.Invalid("settings.night.enabled debe ser booleano")
+    for key, default in (("start", "23:00"), ("end", "07:00")):
+        if not isinstance(night.get(key, default), str) or not TIME_PATTERN.fullmatch(night.get(key, default)):
+            raise cv.Invalid(f"settings.night.{key} debe usar HH:MM")
+    night_brightness = night.get("brightness", 15)
+    if not isinstance(night_brightness, int) or isinstance(night_brightness, bool) or not 0 <= night_brightness <= 100:
+        raise cv.Invalid("settings.night.brightness debe estar entre 0 y 100")
+    if night.get("mode", "screen_off") not in IDLE_MODES:
+        raise cv.Invalid("settings.night.mode no es valido")
+
+    sound = settings.get("sound", {})
+    if not isinstance(sound, dict):
+        raise cv.Invalid("settings.sound debe ser un objeto")
+    for key in ("enabled", "touch", "navigation", "notifications"):
+        if key in sound and not isinstance(sound[key], bool):
+            raise cv.Invalid(f"settings.sound.{key} debe ser booleano")
+    volume = sound.get("volume", 5)
+    if not isinstance(volume, int) or isinstance(volume, bool) or not 0 <= volume <= 10:
+        raise cv.Invalid("settings.sound.volume debe estar entre 0 y 10")
 
 
 def validate_icon_font(value):
@@ -42,6 +111,7 @@ def validate_ui_document(document):
         raise cv.Invalid("la raiz debe ser un objeto")
     if document.get("schema_version") != 1:
         raise cv.Invalid("schema_version debe ser 1")
+    validate_device_settings(document)
     timeout = document.get("screensaver_timeout", 30)
     if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 <= timeout <= 3600:
         raise cv.Invalid("screensaver_timeout debe estar entre 0 y 3600 segundos")
@@ -179,6 +249,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_HTTP_REQUEST_ID): cv.use_id(http_request.HttpRequestComponent),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         cv.Required(CONF_ICON_FONT_ID): validate_icon_font,
+        cv.Required(CONF_BACKLIGHT_OUTPUT_ID): cv.use_id(output.FloatOutput),
+        cv.Required(CONF_SOUND_ID): cv.use_id(rtttl.Rtttl),
         cv.Optional(CONF_SCREENSAVER_TIMEOUT, default="2min"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_ON_ACTION): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_NAVIGATION): automation.validate_automation(single=True),
@@ -204,8 +276,12 @@ async def to_code(config):
     await cg.register_component(var, config)
     clock = await cg.get_variable(config[CONF_TIME_ID])
     icon_font = await cg.get_variable(config[CONF_ICON_FONT_ID])
+    backlight_output = await cg.get_variable(config[CONF_BACKLIGHT_OUTPUT_ID])
+    sound_player = await cg.get_variable(config[CONF_SOUND_ID])
     cg.add(var.set_clock(clock))
     cg.add(var.set_icon_font(icon_font))
+    cg.add(var.set_backlight_output(backlight_output))
+    cg.add(var.set_sound_player(sound_player))
     cg.add(var.set_screensaver_timeout(config[CONF_SCREENSAVER_TIMEOUT].total_milliseconds))
     config_path = CORE.relative_config_path(config[CONF_CONFIG_FILE])
     cg.add(var.set_initial_config(config_path.read_text(encoding="utf-8")))

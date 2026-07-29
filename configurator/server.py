@@ -37,6 +37,8 @@ COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
 ICON_CATALOG = json.loads(ICON_CATALOG_PATH.read_text(encoding="utf-8"))
 ICON_NAMES = {item["name"] for item in ICON_CATALOG}
+IDLE_MODES = {"clock_weather", "screen_off", "dim", "none"}
+TIME_PATTERN = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 
 TEMPLATE_CATALOG: dict[str, dict[str, Any]] = {
     "button_grid": {
@@ -139,6 +141,56 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
     timeout = ui.get("screensaver_timeout", 30)
     if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 <= timeout <= 3600:
         errors.append("El tiempo del protector debe estar entre 0 y 3600 segundos.")
+    settings = ui.get("settings", {})
+    if not isinstance(settings, dict):
+        errors.append("Configuración: settings debe ser un objeto.")
+        settings = {}
+    display = settings.get("display", {})
+    inactivity = settings.get("inactivity", {})
+    night = settings.get("night", {})
+    sound = settings.get("sound", {})
+    for name, section in (("pantalla", display), ("inactividad", inactivity), ("noche", night), ("sonido", sound)):
+        if not isinstance(section, dict):
+            errors.append(f"Configuración de {name}: debe ser un objeto.")
+    if all(isinstance(section, dict) for section in (display, inactivity, night, sound)):
+        for key in ("brightness", "minimum_brightness", "maximum_brightness"):
+            value = display.get(key)
+            if value is not None and (not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 100):
+                errors.append(f"Pantalla: {key} debe estar entre 0 y 100.")
+        if display.get("minimum_brightness", 15) > display.get("maximum_brightness", 100):
+            errors.append("Pantalla: el brillo mínimo no puede superar el máximo.")
+        if "auto_brightness" in display and not isinstance(display["auto_brightness"], bool):
+            errors.append("Pantalla: auto_brightness debe ser sí o no.")
+        dark, bright = display.get("ldr_dark_voltage", 3.0), display.get("ldr_bright_voltage", 0.2)
+        if (not isinstance(dark, (int, float)) or isinstance(dark, bool) or
+                not isinstance(bright, (int, float)) or isinstance(bright, bool) or
+                not 0 <= dark <= 3.3 or not 0 <= bright <= 3.3 or dark == bright):
+            errors.append("Pantalla: la calibración LDR debe usar dos valores distintos entre 0 y 3,3 V.")
+        idle_timeout = inactivity.get("timeout", timeout)
+        if not isinstance(idle_timeout, int) or isinstance(idle_timeout, bool) or not 0 <= idle_timeout <= 3600:
+            errors.append("Inactividad: el tiempo debe estar entre 0 y 3600 segundos.")
+        if inactivity.get("mode", "clock_weather") not in IDLE_MODES:
+            errors.append("Inactividad: modo desconocido.")
+        dim = inactivity.get("dim_brightness", 10)
+        if not isinstance(dim, int) or isinstance(dim, bool) or not 0 <= dim <= 100:
+            errors.append("Inactividad: el brillo tenue debe estar entre 0 y 100.")
+        if "enabled" in night and not isinstance(night["enabled"], bool):
+            errors.append("Horario nocturno: enabled debe ser sí o no.")
+        for key in ("start", "end"):
+            value = night.get(key, "23:00" if key == "start" else "07:00")
+            if not isinstance(value, str) or not TIME_PATTERN.fullmatch(value):
+                errors.append(f"Horario nocturno: {key} debe usar HH:MM.")
+        night_brightness = night.get("brightness", 15)
+        if not isinstance(night_brightness, int) or isinstance(night_brightness, bool) or not 0 <= night_brightness <= 100:
+            errors.append("Horario nocturno: el brillo debe estar entre 0 y 100.")
+        if night.get("mode", "screen_off") not in IDLE_MODES:
+            errors.append("Horario nocturno: modo desconocido.")
+        for key in ("enabled", "touch", "navigation", "notifications"):
+            if key in sound and not isinstance(sound[key], bool):
+                errors.append(f"Sonido: {key} debe ser sí o no.")
+        volume = sound.get("volume", 5)
+        if not isinstance(volume, int) or isinstance(volume, bool) or not 0 <= volume <= 10:
+            errors.append("Sonido: el volumen debe estar entre 0 y 10.")
     pages = ui.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= MAX_PAGES:
         return errors + [f"Debe haber entre 1 y {MAX_PAGES} páginas."]
@@ -255,10 +307,14 @@ def backup_current() -> str:
     return stamp
 
 
-def publish_reload() -> None:
-    mqtt_publish.single(EVENT_TOPIC, payload=json.dumps({"type": "reload"}, separators=(",", ":")), qos=1,
+def publish_event(event: dict[str, Any]) -> None:
+    mqtt_publish.single(EVENT_TOPIC, payload=json.dumps(event, separators=(",", ":")), qos=1,
                         hostname=MQTT_BROKER, port=MQTT_PORT,
                         auth={"username": yaml_secret("mqtt_username"), "password": yaml_secret("mqtt_password")})
+
+
+def publish_reload() -> None:
+    publish_event({"type": "reload"})
 
 
 class ConfiguratorHandler(SimpleHTTPRequestHandler):
@@ -342,6 +398,10 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
             if self.path == "/api/reload":
                 publish_reload()
                 self.json_response({"reloaded": True})
+                return
+            if self.path == "/api/test-sound":
+                publish_event({"type": "sound", "sound": "notification"})
+                self.json_response({"played": True})
                 return
             self.json_response({"error": "Ruta desconocida."}, HTTPStatus.NOT_FOUND)
         except (ValueError, json.JSONDecodeError) as error:
