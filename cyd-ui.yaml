@@ -117,6 +117,12 @@ sensor:
           send_every: 1
     on_value:
       - lambda: id(ui_engine_main).set_ambient_light(x);
+      - mqtt.publish:
+          topic: esphome_ui/cyd-ui/telemetry/ldr_voltage
+          qos: 0
+          retain: true
+          payload: !lambda |-
+            return str_sprintf("%.3f", x);
 
 rtttl:
   id: ui_sound

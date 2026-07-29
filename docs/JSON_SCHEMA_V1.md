@@ -13,6 +13,8 @@
 
 `settings.display` controla el brillo manual (`brightness`), el brillo automático por LDR (`auto_brightness`), sus límites (`minimum_brightness`, `maximum_brightness`) y la calibración en voltios (`ldr_dark_voltage`, `ldr_bright_voltage`).
 
+El editor obtiene la lectura actual del LDR mediante telemetría MQTT retenida y permite copiarla a cualquiera de los dos extremos de calibración. La telemetría es auxiliar y no forma parte del documento JSON.
+
 `settings.inactivity` define `timeout`, `mode` y `dim_brightness`. Los modos admitidos son `clock_weather`, `screen_off`, `dim` y `none`.
 
 `settings.night` define `enabled`, `start`, `end`, `brightness` y `mode`. Las horas usan `HH:MM` y admiten intervalos que cruzan medianoche.

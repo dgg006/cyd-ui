@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import tempfile
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -16,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import paho.mqtt.publish as mqtt_publish
+import paho.mqtt.client as mqtt_client
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +33,7 @@ HA_ACCESS_PATH = Path.home() / "Desktop" / "Nabu Casa.txt"
 MQTT_BROKER = "192.168.31.240"
 MQTT_PORT = 1883
 EVENT_TOPIC = "esphome_ui/cyd-ui/event"
+LDR_TOPIC = "esphome_ui/cyd-ui/telemetry/ldr_voltage"
 MAX_BODY_BYTES = 512 * 1024
 MAX_PAGES = 8
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -317,6 +320,39 @@ def publish_reload() -> None:
     publish_event({"type": "reload"})
 
 
+def read_ldr_voltage(timeout: float = 2.0) -> float | None:
+    """Read the retained LDR telemetry without ever blocking the editor indefinitely."""
+    result: dict[str, float] = {}
+    received = threading.Event()
+    client = mqtt_client.Client()
+    client.username_pw_set(yaml_secret("mqtt_username"), yaml_secret("mqtt_password"))
+
+    def on_connect(active_client: mqtt_client.Client, _userdata: Any, _flags: Any, return_code: int) -> None:
+        if return_code == 0:
+            active_client.subscribe(LDR_TOPIC, qos=0)
+        else:
+            received.set()
+
+    def on_message(_client: mqtt_client.Client, _userdata: Any, message: Any) -> None:
+        try:
+            result["value"] = float(message.payload.decode("utf-8"))
+        except (TypeError, ValueError, UnicodeDecodeError):
+            pass
+        finally:
+            received.set()
+
+    client.on_connect = on_connect
+    client.on_message = on_message
+    client.connect_async(MQTT_BROKER, MQTT_PORT, keepalive=10)
+    client.loop_start()
+    try:
+        received.wait(timeout)
+    finally:
+        client.loop_stop()
+        client.disconnect()
+    return result.get("value")
+
+
 class ConfiguratorHandler(SimpleHTTPRequestHandler):
     server_version = "CydUiConfigurator/0.1"
 
@@ -366,6 +402,12 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
                 self.json_response({"entities": fetch_ha_entities()})
             except (OSError, StopIteration, urllib.error.HTTPError, urllib.error.URLError) as error:
                 self.json_response({"error": f"No se pudo consultar Home Assistant: {error}"}, HTTPStatus.BAD_GATEWAY)
+            return
+        if parsed.path == "/api/device-status":
+            try:
+                self.json_response({"ldr_voltage": read_ldr_voltage()})
+            except Exception as error:
+                self.json_response({"ldr_voltage": None, "error": str(error)})
             return
         if parsed.path == "/config/ui.json":
             self.json_response(read_json(CONFIG_PATH))
