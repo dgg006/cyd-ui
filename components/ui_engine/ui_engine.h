@@ -45,6 +45,7 @@ class UiEngineComponent : public Component {
   bool touch_sound_enabled() const;
   bool navigation_sound_enabled() const;
   bool notification_sound_enabled() const;
+  void preview_notification_sound(uint8_t volume);
   float applied_brightness_percent() const;
   bool night_active() const { return this->is_night(); }
   std::string runtime_mode() const;
@@ -62,6 +63,8 @@ class UiEngineComponent : public Component {
   void enter_idle();
   void refresh_idle_mode();
   void apply_device_settings();
+  void apply_sound_settings();
+  float sound_gain_for_volume(uint8_t volume) const;
   void apply_backlight();
   bool wake_guard_active() const;
   bool is_night() const;
@@ -104,6 +107,8 @@ class UiEngineComponent : public Component {
   IdleMode active_idle_mode_{IdleMode::NONE};
   output::FloatOutput *backlight_output_{nullptr};
   rtttl::Rtttl *sound_player_{nullptr};
+  bool sound_preview_active_{false};
+  uint32_t sound_preview_restore_at_ms_{0};
   float ambient_light_voltage_{NAN};
   float applied_backlight_level_{-1.0f};
   uint32_t last_display_update_ms_{0};

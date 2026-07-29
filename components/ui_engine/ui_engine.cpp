@@ -54,6 +54,12 @@ void UiEngineComponent::loop() {
     this->active_page_->loop();
   }
 
+  if (this->sound_preview_active_ &&
+      static_cast<int32_t>(millis() - this->sound_preview_restore_at_ms_) >= 0) {
+    this->sound_preview_active_ = false;
+    this->apply_sound_settings();
+  }
+
   if (this->wake_pending_) {
     this->wake_pending_ = false;
     const bool was_screensaver = this->screensaver_active_;
@@ -266,13 +272,31 @@ void UiEngineComponent::refresh_idle_mode() {
 }
 
 void UiEngineComponent::apply_device_settings() {
-  if (this->sound_player_ != nullptr) {
-    const auto &sound = this->active_config_.settings.sound;
-    const float gain = sound.enabled ? static_cast<float>(sound.volume) * 0.036f : 0.0f;
-    this->sound_player_->set_gain(gain);
-  }
+  this->apply_sound_settings();
   this->applied_backlight_level_ = -1.0f;
   this->apply_backlight();
+}
+
+float UiEngineComponent::sound_gain_for_volume(uint8_t volume) const {
+  // Perceptual curve for the CYD speaker. Volume 5 remains the reference level
+  // already validated on hardware, while the extremes are clearly separated.
+  static constexpr float GAINS[11] = {0.0f, 0.008f, 0.020f, 0.045f, 0.090f, 0.180f,
+                                      0.240f, 0.305f, 0.375f, 0.445f, 0.520f};
+  return GAINS[std::min<uint8_t>(volume, 10)];
+}
+
+void UiEngineComponent::apply_sound_settings() {
+  if (this->sound_player_ == nullptr) return;
+  const auto &sound = this->active_config_.settings.sound;
+  this->sound_player_->set_gain(sound.enabled ? this->sound_gain_for_volume(sound.volume) : 0.0f);
+}
+
+void UiEngineComponent::preview_notification_sound(uint8_t volume) {
+  if (this->sound_player_ == nullptr || volume == 0) return;
+  this->sound_player_->set_gain(this->sound_gain_for_volume(volume));
+  this->sound_player_->play("preview:d=32,o=6,b=180:c,e");
+  this->sound_preview_active_ = true;
+  this->sound_preview_restore_at_ms_ = millis() + 500U;
 }
 
 float UiEngineComponent::base_brightness_percent() const {

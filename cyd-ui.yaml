@@ -55,6 +55,11 @@ mqtt:
               if (!control_id.empty()) {
                 id(ui_engine_main).update_control(control_id, active, value, reliability);
               }
+            } else if (type == "sound_preview") {
+              int volume = x["volume"] | 0;
+              if (volume < 0) volume = 0;
+              if (volume > 10) volume = 10;
+              id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
             } else if (type == "sound") {
               if (!id(ui_engine_main).notification_sound_enabled()) return;
               const std::string sound = x["sound"] | "";

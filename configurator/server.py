@@ -449,7 +449,10 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
                 self.json_response({"reloaded": True})
                 return
             if self.path == "/api/test-sound":
-                publish_event({"type": "sound", "sound": "notification"})
+                volume = payload.get("volume", 5)
+                if isinstance(volume, bool) or not isinstance(volume, int) or volume < 0 or volume > 10:
+                    raise ValueError("El volumen de prueba debe estar entre 0 y 10.")
+                publish_event({"type": "sound_preview", "sound": "notification", "volume": volume})
                 self.json_response({"played": True})
                 return
             self.json_response({"error": "Ruta desconocida."}, HTTPStatus.NOT_FOUND)
