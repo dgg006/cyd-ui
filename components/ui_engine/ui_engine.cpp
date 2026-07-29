@@ -162,6 +162,7 @@ bool UiEngineComponent::show_page(size_t index) {
       this->action_trigger_.trigger(control_id, action);
     });
     page->set_navigation_callback([this](int delta) { this->request_page_delta(delta); });
+    page->set_icon_font(this->icon_font_);
     page->create(lv_screen_active());
     this->active_page_ = std::move(page);
     this->active_template_name_ = page_config.template_name;

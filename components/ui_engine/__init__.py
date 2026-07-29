@@ -1,15 +1,16 @@
 import json
 import re
+from pathlib import Path
 
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components import http_request, time
+from esphome.components import font, http_request, time
 import esphome.config_validation as cv
 from esphome.components.lvgl import defines as lvgl_defines
 from esphome.core import CORE
 from esphome.const import CONF_ID, CONF_TIME_ID
 
-DEPENDENCIES = ["lvgl", "http_request"]
+DEPENDENCIES = ["lvgl", "http_request", "font"]
 AUTO_LOAD = ["json"]
 
 ui_engine_ns = cg.esphome_ns.namespace("ui_engine")
@@ -21,7 +22,19 @@ CONF_ON_NAVIGATION = "on_navigation"
 CONF_CONFIG_URL = "config_url"
 CONF_HTTP_REQUEST_ID = "http_request_id"
 CONF_SCREENSAVER_TIMEOUT = "screensaver_timeout"
+CONF_ICON_FONT_ID = "icon_font_id"
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
+ICON_NAMES = {
+    item["name"]
+    for item in json.loads(Path(__file__).with_name("icons.json").read_text(encoding="utf-8"))
+}
+
+
+def validate_icon_font(value):
+    font_id = cv.use_id(font.Font)(value)
+    lvgl_defines.add_lv_use("font")
+    lvgl_defines.get_esphome_fonts_used().add(font_id)
+    return cv.requires_component("font")(font_id)
 
 
 def validate_ui_document(document):
@@ -105,6 +118,10 @@ def validate_ui_document(document):
                 raise cv.Invalid(f"{prefix}.meta debe ser un objeto")
             if "unit" in control and not isinstance(control["unit"], str):
                 raise cv.Invalid(f"{prefix}.unit debe ser texto")
+            for icon_field in ("icon", "icon_on", "icon_off"):
+                icon_name = control.get(icon_field, "")
+                if not isinstance(icon_name, str) or (icon_name and icon_name not in ICON_NAMES):
+                    raise cv.Invalid(f"{prefix}.{icon_field} no es un icono MDI admitido")
             if template == "climate":
                 role = control.get("role")
                 if role not in ("current_temperature", "target_temperature", "decrease", "power", "increase"):
@@ -137,7 +154,7 @@ def validate_ui_document(document):
 
 
 def validate_config_file(value):
-    lvgl_defines.get_lv_fonts_used().update({"montserrat_32", "montserrat_48"})
+    lvgl_defines.get_lv_fonts_used().update({"montserrat_20", "montserrat_32", "montserrat_48"})
     value = cv.file_(value)
     path = CORE.relative_config_path(value)
     try:
@@ -157,6 +174,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_CONFIG_URL): cv.url,
         cv.Optional(CONF_HTTP_REQUEST_ID): cv.use_id(http_request.HttpRequestComponent),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
+        cv.Required(CONF_ICON_FONT_ID): validate_icon_font,
         cv.Optional(CONF_SCREENSAVER_TIMEOUT, default="2min"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_ON_ACTION): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_NAVIGATION): automation.validate_automation(single=True),
@@ -181,7 +199,9 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     clock = await cg.get_variable(config[CONF_TIME_ID])
+    icon_font = await cg.get_variable(config[CONF_ICON_FONT_ID])
     cg.add(var.set_clock(clock))
+    cg.add(var.set_icon_font(icon_font))
     cg.add(var.set_screensaver_timeout(config[CONF_SCREENSAVER_TIMEOUT].total_milliseconds))
     config_path = CORE.relative_config_path(config[CONF_CONFIG_FILE])
     cg.add(var.set_initial_config(config_path.read_text(encoding="utf-8")))

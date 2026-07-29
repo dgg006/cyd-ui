@@ -45,11 +45,18 @@ void ButtonGrid::create(lv_obj_t *parent) {
     lv_obj_t *label = lv_label_create(button);
     lv_obj_center(label);
 
+    lv_obj_t *icon_label = lv_label_create(button);
+    if (this->icon_font_ != nullptr) {
+      lv_obj_set_style_text_font(icon_label, this->icon_font_->get_lv_font(), LV_PART_MAIN);
+    }
+    lv_obj_add_flag(icon_label, LV_OBJ_FLAG_HIDDEN);
+
     this->bindings_[index] = {this, index};
     lv_obj_add_event_cb(button, event_callback, LV_EVENT_CLICKED, &this->bindings_[index]);
 
     this->buttons_[index] = button;
     this->labels_[index] = label;
+    this->icon_labels_[index] = icon_label;
     this->states_[index] = ControlState::UNKNOWN;
     this->active_[index] = false;
   }
@@ -69,6 +76,9 @@ void ButtonGrid::apply(const PageConfig &config) {
     lv_obj_remove_flag(this->buttons_[index], LV_OBJ_FLAG_HIDDEN);
     this->ids_[index] = control.id;
     this->actions_[index] = control.action.empty() ? "toggle" : control.action;
+    this->icons_[index] = control.resolved_icon;
+    this->icons_on_[index] = control.resolved_icon_on;
+    this->icons_off_[index] = control.resolved_icon_off;
     this->colors_[index] = control.color;
     this->states_[index] = ControlState::UNKNOWN;
     this->active_[index] = false;
@@ -217,6 +227,21 @@ void ButtonGrid::apply_state(size_t index) {
 
   lv_obj_set_style_bg_color(this->buttons_[index], color, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->buttons_[index], opacity, LV_PART_MAIN);
+
+  const char *glyph = this->active_[index] ? this->icons_on_[index] : this->icons_off_[index];
+  if (glyph == nullptr) {
+    glyph = this->icons_[index];
+  }
+  if (glyph != nullptr && this->icon_font_ != nullptr) {
+    lv_label_set_text(this->icon_labels_[index], glyph);
+    lv_obj_set_style_text_color(this->icon_labels_[index], lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_remove_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_align(this->icon_labels_[index], LV_ALIGN_CENTER, 0, -12);
+    lv_obj_align(this->labels_[index], LV_ALIGN_BOTTOM_MID, 0, -5);
+  } else {
+    lv_obj_add_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_center(this->labels_[index]);
+  }
 }
 
 }  // namespace ui_engine

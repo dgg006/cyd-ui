@@ -32,5 +32,21 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.backend_map["controls"]["living"]["entity_id"] = "luz living"
         self.assertTrue(any("ID válido" in e for e in SERVER.validate_project(self.ui, self.backend_map)))
 
+    def test_known_mdi_icon_is_accepted(self):
+        self.ui["pages"][0]["controls"][0]["icon"] = "mdi:lightbulb"
+        self.assertEqual([], SERVER.validate_project(self.ui, self.backend_map))
+
+    def test_unknown_mdi_icon_is_rejected(self):
+        self.ui["pages"][0]["controls"][0]["icon"] = "mdi:no-existe"
+        self.assertTrue(any("icon" in error.lower() for error in SERVER.validate_project(self.ui, self.backend_map)))
+
+    def test_icon_catalog_matches_firmware_registry(self):
+        import re
+
+        registry = (PROJECT_ROOT / "components" / "ui_engine" / "icon_registry.cpp").read_text(encoding="utf-8")
+        catalog_names = {item["name"] for item in SERVER.ICON_CATALOG}
+        registry_names = set(re.findall(r'\{"(mdi:[^"]+)",', registry))
+        self.assertEqual(catalog_names, registry_names)
+
 if __name__ == "__main__":
     unittest.main()

@@ -19,6 +19,7 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 - Integración bidireccional real con Home Assistant validada mediante un mapa externo de controles.
 - Proyecto Arduino de validación conservado intacto.
 - Configurador visual local v0.1 para páginas, controles y asociaciones con Home Assistant.
+- Catálogo compacto de iconos MDI configurable sin recompilar mientras el icono ya esté incluido.
 
 ## Configurador visual
 

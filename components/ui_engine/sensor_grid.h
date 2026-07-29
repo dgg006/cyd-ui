@@ -30,12 +30,17 @@ class SensorGrid : public PageTemplate {
   lv_obj_t *next_button_{nullptr};
   std::array<lv_obj_t *, 4> cards_{};
   std::array<lv_obj_t *, 4> captions_{};
+  std::array<lv_obj_t *, 4> icon_labels_{};
   std::array<lv_obj_t *, 4> values_{};
   std::array<std::string, 4> ids_{};
   std::array<std::string, 4> units_{};
   std::array<std::string, 4> raw_values_{};
+  std::array<const char *, 4> icons_{};
+  std::array<const char *, 4> icons_on_{};
+  std::array<const char *, 4> icons_off_{};
   std::array<uint32_t, 4> colors_{};
   std::array<ControlState, 4> states_{};
+  std::array<bool, 4> active_{};
   ActionCallback action_callback_;
   NavigationCallback navigation_callback_;
 };

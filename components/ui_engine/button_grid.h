@@ -40,9 +40,13 @@ class ButtonGrid : public PageTemplate {
   lv_obj_t *next_button_{nullptr};
   std::array<lv_obj_t *, 6> buttons_{};
   std::array<lv_obj_t *, 6> labels_{};
+  std::array<lv_obj_t *, 6> icon_labels_{};
   std::array<EventBinding, 6> bindings_{};
   std::array<std::string, 6> ids_{};
   std::array<std::string, 6> actions_{};
+  std::array<const char *, 6> icons_{};
+  std::array<const char *, 6> icons_on_{};
+  std::array<const char *, 6> icons_off_{};
   std::array<uint32_t, 6> colors_{};
   std::array<ControlState, 6> states_{};
   std::array<bool, 6> active_{};

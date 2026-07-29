@@ -24,7 +24,15 @@
 - `color`: formato `#RRGGBB`.
 - `unit`: unidad opcional para valores.
 - `action`: acción genérica emitida al tocar.
+- `icon`: nombre MDI opcional usado en ambos estados, por ejemplo `mdi:thermometer`.
+- `icon_on`: nombre MDI opcional usado cuando el control está activo.
+- `icon_off`: nombre MDI opcional usado cuando el control está inactivo.
 - `meta`: objeto opcional reservado para evolución futura.
+
+Los iconos deben pertenecer al catálogo reducido incluido en el firmware. Un
+nombre MDI desconocido invalida la configuración completa, de modo que nunca se
+aplica una interfaz con glifos faltantes. Agregar un nombre nuevo al catálogo
+requiere recompilar una vez; elegir o cambiar entre los iconos ya incluidos no.
 
 ## Templates y variantes actuales
 

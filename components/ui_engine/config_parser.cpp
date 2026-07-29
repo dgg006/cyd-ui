@@ -5,6 +5,7 @@
 
 #include "ArduinoJson.h"
 #include "esphome/components/json/json_util.h"
+#include "icon_registry.h"
 
 namespace esphome {
 namespace ui_engine {
@@ -61,6 +62,9 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       control.role = control_json["role"] | "";
       control.action = control_json["action"] | "";
       control.unit = control_json["unit"] | "";
+      control.icon_raw = control_json["icon"] | "";
+      control.icon_on_raw = control_json["icon_on"] | "";
+      control.icon_off_raw = control_json["icon_off"] | "";
       const char *color_text = control_json["color"] | "";
 
       if ((control.type != "button" && control.type != "value") || control.id.empty() || control.caption.empty()) {
@@ -73,6 +77,15 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       }
       if (!this->parse_color(color_text, &control.color)) {
         *error = "color debe tener formato #RRGGBB";
+        return false;
+      }
+      control.resolved_icon = resolve_mdi_icon(control.icon_raw);
+      control.resolved_icon_on = resolve_mdi_icon(control.icon_on_raw);
+      control.resolved_icon_off = resolve_mdi_icon(control.icon_off_raw);
+      if ((!control.icon_raw.empty() && control.resolved_icon == nullptr) ||
+          (!control.icon_on_raw.empty() && control.resolved_icon_on == nullptr) ||
+          (!control.icon_off_raw.empty() && control.resolved_icon_off == nullptr)) {
+        *error = "icon, icon_on e icon_off deben ser nombres MDI admitidos";
         return false;
       }
       if (control_json["meta"].is<JsonObject>()) {

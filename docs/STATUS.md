@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Actualizado: 2026-07-28
+Actualizado: 2026-07-29
 
 ## Plataforma validada
 
@@ -18,6 +18,8 @@ Actualizado: 2026-07-28
 - Acciones genéricas y confirmación del backend.
 - Navegación circular, conservación de estado y protector de pantalla.
 - Estados `UNKNOWN`, `VALID` y `STALE_OR_DISCONNECTED`.
+- Catálogo reducido de 50 iconos MDI con estados activo/inactivo; compilación
+  verificada y pendiente de validación física en la próxima carga.
 
 ## Templates verificados físicamente
 
@@ -37,8 +39,8 @@ Actualizado: 2026-07-28
 
 ## Memoria de referencia
 
-- DRAM estática: 50.788 bytes (28,1 %).
-- Firmware: aproximadamente 1.274 kB (69,4 % de la partición de aplicación).
+- DRAM estática: 50.876 bytes (28,1 %).
+- Firmware con catálogo MDI: 1.315.947 bytes (71,7 % de la partición de aplicación).
 
 ## Próximo hito
 
@@ -52,6 +54,8 @@ Validar en uso real el configurador visual v0.1, completar los campos avanzados 
 - Búsqueda nativa de entidades y filtrado por dominios compatibles con cada template.
 - Adaptación automática de `binary_sensor` mediante `device_class` y textos claros para estados `on/off`.
 - Textos o símbolos `on/off` editables por control binario, sin campos numéricos irrelevantes.
+- Búsqueda de iconos MDI y selección independiente para estados `on/off`.
+- Vista previa de iconos usando la misma fuente incluida en el firmware.
 - Vista previa local de 320 × 240.
 - Validación del contrato antes de guardar.
 - Copia recuperable, escritura atómica y recarga MQTT.

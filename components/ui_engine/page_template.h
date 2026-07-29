@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 
+#include "esphome/components/font/font.h"
 #include "lvgl.h"
 #include "model.h"
 
@@ -24,6 +25,10 @@ class PageTemplate {
   virtual void set_action_callback(ActionCallback callback) = 0;
   virtual void set_navigation_callback(NavigationCallback callback) = 0;
   virtual void set_navigation_enabled(bool enabled) = 0;
+  void set_icon_font(font::Font *font) { this->icon_font_ = font; }
+
+ protected:
+  font::Font *icon_font_{nullptr};
 };
 
 }  // namespace ui_engine

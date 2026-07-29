@@ -20,6 +20,8 @@ import paho.mqtt.publish as mqtt_publish
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
+ICON_CATALOG_PATH = PROJECT_ROOT / "components" / "ui_engine" / "icons.json"
+MDI_FONT_PATH = PROJECT_ROOT / "fonts" / "materialdesignicons-webfont.ttf"
 CONFIG_PATH = PROJECT_ROOT / "config" / "ui.json"
 BACKEND_MAP_PATH = PROJECT_ROOT / "config" / "backend-map.json"
 HISTORY_ROOT = PROJECT_ROOT / "config" / "history"
@@ -33,6 +35,8 @@ MAX_BODY_BYTES = 512 * 1024
 MAX_PAGES = 8
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
+ICON_CATALOG = json.loads(ICON_CATALOG_PATH.read_text(encoding="utf-8"))
+ICON_NAMES = {item["name"] for item in ICON_CATALOG}
 
 TEMPLATE_CATALOG: dict[str, dict[str, Any]] = {
     "button_grid": {
@@ -186,6 +190,10 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
                 errors.append(f"{label}: type debe ser button o value.")
             if not COLOR_PATTERN.fullmatch(str(control.get("color", ""))):
                 errors.append(f"{label}: color debe tener formato #RRGGBB.")
+            for icon_field in ("icon", "icon_on", "icon_off"):
+                icon_name = control.get(icon_field, "")
+                if not isinstance(icon_name, str) or (icon_name and icon_name not in ICON_NAMES):
+                    errors.append(f"{label}: {icon_field} no es un icono MDI admitido.")
             role = control.get("role", "")
             if expected_roles:
                 if role not in expected_roles:
@@ -274,6 +282,18 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/catalog":
             self.json_response(TEMPLATE_CATALOG)
+            return
+        if parsed.path == "/api/icons":
+            self.json_response({"icons": ICON_CATALOG})
+            return
+        if parsed.path == "/assets/materialdesignicons-webfont.ttf":
+            body = MDI_FONT_PATH.read_bytes()
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "font/ttf")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(body)
             return
         if parsed.path == "/api/entities":
             try:

@@ -641,7 +641,7 @@ UiEngineComponent (external_component ESPHome)
       ESP32-2432S028R CYD
 ```
 
-La frontera conceptual original se mantuvo: el firmware conoce `Control.id`, `type`, `role`, `caption`, `color`, `unit`, `action` y estado, pero no conoce dominios ni servicios de Home Assistant. El mapa entre IDs opacos y entidades reales vive en `config/backend-map.json` y es interpretado por el backend externo.
+La frontera conceptual original se mantuvo: el firmware conoce `Control.id`, `type`, `role`, `caption`, `color`, `unit`, `action`, iconos MDI resueltos y estado, pero no conoce dominios ni servicios de Home Assistant. El mapa entre IDs opacos y entidades reales vive en `config/backend-map.json` y es interpretado por el backend externo.
 
 ## Ciclo de vida real
 
@@ -703,9 +703,23 @@ Campos utilizados por la implementación:
 - `color`: color RGB hexadecimal.
 - `unit`: unidad opcional para valores.
 - `action`: acción genérica emitida al tocar.
+- `icon`, `icon_on`, `icon_off`: nombres MDI crudos y punteros resueltos a glifos estáticos.
 - `meta`: objeto reservado para extensiones futuras.
 
-`PageConfig` contiene `template`, `variant`, `title`, `screensaver` y `controls[]`. El parser convierte colores a valores de runtime, conserva los strings necesarios y rechaza documentos que excedan límites o contengan IDs duplicados.
+`PageConfig` contiene `template`, `variant`, `title`, `screensaver` y `controls[]`. El parser convierte colores a valores de runtime, resuelve los nombres MDI contra un catálogo cerrado, conserva los strings necesarios y rechaza documentos que excedan límites, contengan IDs duplicados o soliciten un icono que no existe en el firmware.
+
+## Catálogo MDI
+
+La implementación no incorpora la fuente Material Design Icons completa al
+binario. ESPHome genera una fuente de 28 px y 4 bpp que contiene únicamente los
+50 glifos declarados en `components/ui_engine/icons.json`. Este archivo es el
+catálogo compartido por el validador y el configurador; `icon_registry.cpp`
+resuelve cada nombre a un glifo UTF-8 estático sin asignaciones dinámicas.
+
+Un control puede definir un icono común o variantes `on/off`. Los templates
+seleccionan la variante en tiempo de ejecución sin crear ni destruir widgets.
+Ampliar el catálogo requiere una compilación de firmware, pero cambiar entre
+iconos ya incluidos sigue siendo una operación de configuración remota.
 
 ## Estado y confiabilidad
 

@@ -19,6 +19,12 @@ struct ControlConfig {
   std::string role;
   std::string action;
   std::string unit;
+  std::string icon_raw;
+  std::string icon_on_raw;
+  std::string icon_off_raw;
+  const char *resolved_icon{nullptr};
+  const char *resolved_icon_on{nullptr};
+  const char *resolved_icon_off{nullptr};
   uint32_t color{0};
   std::string meta_raw;
 };

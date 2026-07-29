@@ -48,8 +48,15 @@ void SensorGrid::create(lv_obj_t *parent) {
     lv_obj_set_style_text_font(value, &lv_font_montserrat_32, LV_PART_MAIN);
     lv_obj_align(value, LV_ALIGN_BOTTOM_MID, 0, -1);
 
+    lv_obj_t *icon_label = lv_label_create(card);
+    if (this->icon_font_ != nullptr) {
+      lv_obj_set_style_text_font(icon_label, this->icon_font_->get_lv_font(), LV_PART_MAIN);
+    }
+    lv_obj_add_flag(icon_label, LV_OBJ_FLAG_HIDDEN);
+
     this->cards_[index] = card;
     this->captions_[index] = caption;
+    this->icon_labels_[index] = icon_label;
     this->values_[index] = value;
     this->states_[index] = ControlState::UNKNOWN;
   }
@@ -68,8 +75,12 @@ void SensorGrid::apply(const PageConfig &config) {
     this->ids_[index] = control.id;
     this->units_[index] = control.unit;
     this->colors_[index] = control.color;
+    this->icons_[index] = control.resolved_icon;
+    this->icons_on_[index] = control.resolved_icon_on;
+    this->icons_off_[index] = control.resolved_icon_off;
     this->raw_values_[index].clear();
     this->states_[index] = ControlState::UNKNOWN;
+    this->active_[index] = false;
     lv_label_set_text(this->captions_[index], control.caption.c_str());
     this->apply_state_(index);
   }
@@ -80,6 +91,7 @@ bool SensorGrid::update_control(const std::string &id, bool active, const std::s
     if (this->ids_[index] == id) {
       this->raw_values_[index] = value;
       this->states_[index] = state;
+      this->active_[index] = active;
       this->apply_state_(index);
       return true;
     }
@@ -144,6 +156,23 @@ void SensorGrid::apply_state_(size_t index) {
   lv_obj_set_style_border_color(this->cards_[index], lv_color_hex(color), LV_PART_MAIN);
   lv_obj_set_style_bg_color(this->cards_[index], lv_color_hex(0x182631), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->cards_[index], valid ? LV_OPA_COVER : LV_OPA_70, LV_PART_MAIN);
+
+  const char *glyph = this->active_[index] ? this->icons_on_[index] : this->icons_off_[index];
+  if (glyph == nullptr) {
+    glyph = this->icons_[index];
+  }
+  if (glyph != nullptr && this->icon_font_ != nullptr) {
+    lv_label_set_text(this->icon_labels_[index], glyph);
+    lv_obj_set_style_text_color(this->icon_labels_[index], lv_color_hex(color), LV_PART_MAIN);
+    lv_obj_remove_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_align(this->icon_labels_[index], LV_ALIGN_BOTTOM_LEFT, 1, -1);
+    lv_obj_set_style_text_font(this->values_[index], &lv_font_montserrat_20, LV_PART_MAIN);
+    lv_obj_align(this->values_[index], LV_ALIGN_BOTTOM_RIGHT, -1, -3);
+  } else {
+    lv_obj_add_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_style_text_font(this->values_[index], &lv_font_montserrat_32, LV_PART_MAIN);
+    lv_obj_align(this->values_[index], LV_ALIGN_BOTTOM_MID, 0, -1);
+  }
 }
 
 }  // namespace ui_engine

@@ -2,6 +2,7 @@
 
 #include <map>
 
+#include "esphome/components/font/font.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "button_grid.h"
@@ -34,6 +35,7 @@ class UiEngineComponent : public Component {
   void request_reload() { this->reload_pending_ = true; }
   void notify_activity();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
+  void set_icon_font(font::Font *font) { this->icon_font_ = font; }
   void set_screensaver_timeout(uint32_t timeout_ms) { this->screensaver_timeout_ms_ = timeout_ms; }
   bool update_control(const std::string &id, bool active, const std::string &value, const std::string &reliability);
   void set_backend_connected(bool connected);
@@ -66,6 +68,7 @@ class UiEngineComponent : public Component {
   http_request::HttpRequestComponent *http_client_{nullptr};
   std::string config_url_;
   time::RealTimeClock *clock_{nullptr};
+  font::Font *icon_font_{nullptr};
   uint32_t screensaver_timeout_ms_{0};
   uint32_t last_activity_ms_{0};
   int screensaver_page_index_{-1};
