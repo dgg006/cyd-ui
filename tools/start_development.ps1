@@ -19,7 +19,7 @@ if (-not (Test-CommandLine "mqtt\mosquitto.conf")) {
 
 if (-not (Test-CommandLine "http.server 8124")) {
     Start-Process -FilePath $pythonLauncher `
-        -ArgumentList "-3.13", "-m", "http.server", "8124", "--directory", $projectRoot `
+        -ArgumentList "-3.13", "-m", "http.server", "8124", "--directory", "$projectRoot\config" `
         -WorkingDirectory $projectRoot `
         -WindowStyle Hidden
 }

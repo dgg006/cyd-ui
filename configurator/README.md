@@ -13,3 +13,5 @@ Abrir `http://127.0.0.1:8125`.
 - Escribe ambos archivos de forma atómica.
 - Ordena una recarga MQTT después de guardar.
 - Las credenciales nunca se envían al navegador.
+
+El servidor de configuración que consume el firmware debe servir la carpeta `config` en el puerto 8124, porque la URL del dispositivo termina en `/ui.json`.

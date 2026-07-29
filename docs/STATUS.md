@@ -52,5 +52,6 @@ Validar en uso real el configurador visual v0.1, completar los campos avanzados 
 - Vista previa local de 320 × 240.
 - Validación del contrato antes de guardar.
 - Copia recuperable, escritura atómica y recarga MQTT.
+- El iniciador sirve `config/ui.json` como `/ui.json`, que es la ruta fija consumida por el firmware.
 
 La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECTURE.md`.
