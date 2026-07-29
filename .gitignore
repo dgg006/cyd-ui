@@ -4,3 +4,4 @@ secrets.yaml
 mqtt/passwd
 __pycache__/
 *.pyc
+config/history/

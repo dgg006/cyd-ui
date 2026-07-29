@@ -18,6 +18,21 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 - Acciones y estados en tiempo real mediante MQTT.
 - Integración bidireccional real con Home Assistant validada mediante un mapa externo de controles.
 - Proyecto Arduino de validación conservado intacto.
+- Configurador visual local v0.1 para páginas, controles y asociaciones con Home Assistant.
+
+## Configurador visual
+
+```powershell
+py -3.13 configurator\server.py
+```
+
+Abrir `http://127.0.0.1:8125`. Antes de guardar valida el contrato, conserva una copia recuperable y, al finalizar, ordena la recarga de la CYD.
+
+Para iniciar en conjunto el broker, servidor de configuración, puente de Home Assistant y configurador:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\start_development.ps1
+```
 
 ## Comandos locales
 

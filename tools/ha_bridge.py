@@ -19,6 +19,7 @@ EVENT_TOPIC = "esphome_ui/cyd-ui/event"
 POLL_SECONDS = 15.0
 _FETCH_ENTITY = object()
 ALLOWED_SOUNDS = {"attention", "notification", "success", "warning", "error"}
+BACKEND_MAP_PATH = PROJECT_ROOT / "config" / "backend-map.json"
 
 
 def read_mqtt_secrets():
@@ -58,10 +59,15 @@ def ha_request(base_url, token, path, method="GET", payload=None):
         return json.loads(body) if body else None
 
 
+def load_backend_map():
+    return json.loads(BACKEND_MAP_PATH.read_text(encoding="utf-8"))["controls"]
+
+
 def main():
     mqtt_username, mqtt_password = read_mqtt_secrets()
     ha_base_url, ha_token = read_ha_access()
-    backend_map = json.loads((PROJECT_ROOT / "config" / "backend-map.json").read_text(encoding="utf-8"))["controls"]
+    backend_map = load_backend_map()
+    backend_map_mtime = BACKEND_MAP_PATH.stat().st_mtime_ns
     commands = queue.Queue()
     last_states = {}
     latest_entities = {}
@@ -245,6 +251,13 @@ def main():
     try:
         next_poll = 0.0
         while True:
+            current_mtime = BACKEND_MAP_PATH.stat().st_mtime_ns
+            if current_mtime != backend_map_mtime:
+                backend_map = load_backend_map()
+                backend_map_mtime = current_mtime
+                last_states.clear()
+                print(f"Mapa de controles recargado: {len(backend_map)} asociaciones", flush=True)
+                publish_all(force=True)
             try:
                 command = commands.get(timeout=0.1)
                 if command.get("type") == "sync_request":

@@ -42,6 +42,15 @@ Actualizado: 2026-07-28
 
 ## Próximo hito
 
-Construir el configurador visual para agregar, quitar, ordenar y editar páginas, elegir entidades de Home Assistant, guardar con validación y recargar la CYD sin flashear.
+Validar en uso real el configurador visual v0.1, completar los campos avanzados por dominio y agregar restauración desde el historial.
+
+## Configurador visual v0.1
+
+- Lista, alta, duplicación, eliminación y reordenamiento de páginas.
+- Formularios definidos por template y variante.
+- Edición de controles y selección de entidades desde Home Assistant.
+- Vista previa local de 320 × 240.
+- Validación del contrato antes de guardar.
+- Copia recuperable, escritura atómica y recarga MQTT.
 
 La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECTURE.md`.

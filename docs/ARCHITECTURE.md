@@ -890,9 +890,15 @@ Cuando el transporte tiene segundos de latencia, “iniciar movimiento y detener
 
 HTTP, flash y configuración embebida son fuentes de datos, no garantías de validez. Cada candidato debe superar parseo y validación. Una fuente inválida no puede bloquear el uso de la siguiente fuente segura.
 
-## Próximo hito: configurador visual
+### ADR-021: Configurador local antes de integrarlo en Home Assistant
 
-No se priorizarán más templates hasta resolver la experiencia de configuración. La próxima etapa debe permitir:
+**Estado:** Cerrada e implementada en v0.1.
+
+La primera interfaz de configuración es una aplicación web local servida desde el mismo repositorio. Lee y escribe los contratos existentes, consulta las entidades mediante la API de Home Assistant sin exponer el token al navegador, valida antes de guardar, conserva una copia recuperable y ordena la recarga por MQTT. Este corte permite probar la experiencia completa sin empaquetar prematuramente una integración o panel de Home Assistant. El formato de `ui.json` y `backend-map.json` no depende de esta interfaz, por lo que más adelante podrá alojarse como panel o iframe sin modificar el firmware.
+
+## Configurador visual v0.1
+
+No se priorizarán más templates hasta resolver la experiencia de configuración. La primera versión implementa:
 
 1. Ver la lista de páginas actuales.
 2. Agregar, eliminar, duplicar y reordenar páginas.
@@ -903,9 +909,9 @@ No se priorizarán más templates hasta resolver la experiencia de configuració
 7. Validar antes de guardar.
 8. Generar `ui.json` y el mapa de backend.
 9. Mantener copia anterior recuperable.
-10. Ordenar una recarga y mostrar si la CYD aceptó o rechazó el cambio.
+10. Ordenar una recarga y mostrar el resultado del guardado.
 
-La primera versión puede ser una aplicación web portátil servida junto al backend. El diseño debe permitir integrarla luego como panel o iframe en Home Assistant sin cambiar el formato de configuración.
+Queda para la siguiente iteración la confirmación explícita de aceptación desde la CYD, la restauración visual desde el historial y formularios especializados para servicios avanzados de cada dominio.
 
 ## Roadmap actualizado
 
@@ -918,13 +924,14 @@ La primera versión puede ser una aplicación web portátil servida junto al bac
 - ButtonGrid, Climate, ClockWeather, SensorGrid y Cover.
 - Sonido y protector de pantalla.
 - Recuperación segura ante configuración incompatible.
+- Configurador visual local v0.1 con selección de entidades, vista previa, validación, historial y recarga.
 
 ### Siguiente
 
-- Configurador visual v0.1.
-- API local del backend para listar entidades, leer/escribir configuración y recargar.
-- Vista previa sencilla por template.
-- Historial mínimo y restauración de configuración.
+- Validación de uso del configurador v0.1.
+- Confirmación de aceptación o rechazo enviada por la CYD.
+- Restauración desde el historial.
+- Formularios de backend específicos para climate, cover y otros dominios.
 
 ### Posterior
 
