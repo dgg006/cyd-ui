@@ -8,3 +8,7 @@ PANEL_TITLE = "CYD UI"
 PANEL_ICON = "mdi:monitor-dashboard"
 STATIC_URL = "/cyd_ui_static"
 VERSION = "0.1.0"
+STORAGE_KEY = "cyd_ui.config"
+STORAGE_VERSION = 1
+MAX_HISTORY = 10
+MAX_CONFIG_BYTES = 512 * 1024

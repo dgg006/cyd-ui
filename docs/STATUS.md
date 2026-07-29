@@ -114,5 +114,7 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Creado el bootstrap de una integración personalizada `cyd_ui` compatible con la estructura exigida por HACS.
 - La integración dispone de flujo de alta gráfico, traducciones en español e inglés y un panel administrativo inicial en la barra lateral.
 - El recurso web y el comando WebSocket de diagnóstico quedan encapsulados dentro de `custom_components/cyd_ui`.
+- Implementado almacenamiento administrado y atómico para la configuración, con historial acotado a diez revisiones.
+- Implementadas operaciones WebSocket administrativas para leer/guardar el proyecto y consultar entidades sin token externo.
 - La integración todavía no se instala en el Home Assistant doméstico: primero debe recibir el editor real, almacenamiento administrado y pruebas de carga/descarga.
 - Antes de publicarla se deben definir la URL y el propietario definitivos del repositorio, reemplazando los marcadores `OWNER` del manifiesto.

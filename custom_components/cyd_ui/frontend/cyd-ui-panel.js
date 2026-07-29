@@ -4,6 +4,7 @@ class CydUiPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._hass = null;
     this._status = null;
+    this._project = null;
     this._loading = false;
   }
 
@@ -24,7 +25,10 @@ class CydUiPanel extends HTMLElement {
     if (!this._hass) return;
     this._loading = true;
     try {
-      this._status = await this._hass.callWS({ type: "cyd_ui/status" });
+      [this._status, this._project] = await Promise.all([
+        this._hass.callWS({ type: "cyd_ui/status" }),
+        this._hass.callWS({ type: "cyd_ui/config/get" }),
+      ]);
     } catch (error) {
       this._status = { ready: false, message: String(error) };
     } finally {
@@ -52,7 +56,8 @@ class CydUiPanel extends HTMLElement {
         <section class="card">
           <div class="state"><span class="dot"></span><span>${status?.message || "Conectando con Home Assistant…"}</span></div>
           <p>Versión: ${status?.version || "0.1.0"}</p>
-          <p class="next">Próximo paso: trasladar aquí el editor de páginas, entidades y configuración del dispositivo.</p>
+          <p>Proyecto: ${status?.configured ? `revisión ${status.revision}` : "todavía no importado"}</p>
+          <p class="next">El almacenamiento nativo ya está listo. Próximo paso: importar el proyecto actual y trasladar aquí el editor visual.</p>
         </section>
       </main>`;
   }

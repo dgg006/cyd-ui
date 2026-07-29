@@ -1,15 +1,12 @@
 """Home Assistant integration for CYD UI."""
 
 from pathlib import Path
-from typing import Any
-
-import voluptuous as vol
-
-from homeassistant.components import frontend, websocket_api
+from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 
+from .api import async_register_commands
 from .const import (
     DOMAIN,
     PANEL_COMPONENT,
@@ -19,26 +16,7 @@ from .const import (
     STATIC_URL,
     VERSION,
 )
-
-
-@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/status"})
-@callback
-def websocket_status(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Return the integration bootstrap status to the editor panel."""
-    connection.require_admin()
-    connection.send_result(
-        msg["id"],
-        {
-            "version": VERSION,
-            "ready": True,
-            "phase": "bootstrap",
-            "message": "Base de la integración cargada correctamente.",
-        },
-    )
+from .storage import CydUiStorage
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -47,6 +25,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend_root = Path(__file__).parent / "frontend"
     module_url = f"{STATIC_URL}/cyd-ui-panel.js?v={VERSION}"
 
+    storage = CydUiStorage(hass)
+    await storage.async_load()
+    data["storage"] = storage
+
     if not data.get("static_registered"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC_URL, str(frontend_root), False)]
@@ -54,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data["static_registered"] = True
 
     if not data.get("websocket_registered"):
-        websocket_api.async_register_command(hass, websocket_status)
+        async_register_commands(hass)
         data["websocket_registered"] = True
 
     frontend.add_extra_js_url(hass, module_url)
@@ -79,4 +61,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         frontend.remove_extra_js_url(hass, module_url)
     data.pop("entry_id", None)
     data.pop("module_url", None)
+    data.pop("storage", None)
     return True

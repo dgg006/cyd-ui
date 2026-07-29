@@ -1,6 +1,6 @@
 # Integración de Home Assistant y distribución por HACS
 
-Estado: bootstrap 0.1.0, todavía no instalable para usuarios finales.
+Estado: bootstrap 0.1.0 con almacenamiento nativo, todavía no instalable para usuarios finales.
 
 ## Objetivo
 
@@ -25,6 +25,10 @@ La carpeta `custom_components/cyd_ui` contiene:
 - Panel administrativo `CYD UI`.
 - Recurso JavaScript servido por la propia integración.
 - Comando WebSocket autenticado `cyd_ui/status`.
+- Almacenamiento atómico en `.storage/cyd_ui.config` con diez revisiones anteriores.
+- Comandos WebSocket administrativos para leer y guardar el proyecto completo.
+- Catálogo de entidades consultado directamente desde el estado interno de Home Assistant, sin token externo.
+- Validación estructural y límite de tamaño antes de cada guardado.
 - Limpieza del panel y del recurso al descargar la entrada.
 
 El archivo raíz `hacs.json` declara el repositorio como integración y fija Home Assistant 2026.7 como versión mínima.
@@ -33,6 +37,9 @@ El archivo raíz `hacs.json` declara el repositorio como integración y fija Hom
 
 - Elegir propietario y URL definitiva del repositorio; reemplazar `OWNER` en `manifest.json`.
 - Añadir iconos de marca locales.
+- Importar de forma asistida el proyecto existente del configurador local.
+- Trasladar el editor visual completo al panel registrado por la integración.
+- Conectar guardado, recarga del dispositivo y sincronización de estados sin automatizaciones generadas.
 - Incorporar pruebas bajo Home Assistant y ejecutar Hassfest y la validación de HACS.
 - Crear una versión y un GitHub Release.
 - Probar instalación, actualización, descarga y recuperación en una instancia separada.
