@@ -11,6 +11,11 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN, VERSION
 from .model import validate_document
+from .migration import (
+    async_migrate_to_native_bridge,
+    async_rollback_to_automations,
+    bridge_status,
+)
 from .storage import CydUiStorage
 
 
@@ -36,9 +41,46 @@ def websocket_status(
             "phase": "storage",
             "revision": storage.data["revision"],
             "configured": storage.data["ui"] is not None,
+            "bridge": bridge_status(hass),
             "message": "Integración y almacenamiento cargados correctamente.",
         },
     )
+
+
+@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/status"})
+@callback
+def websocket_bridge_status(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return bridge ownership and legacy automation state."""
+    connection.require_admin()
+    connection.send_result(msg["id"], bridge_status(hass))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/migrate"})
+@websocket_api.async_response
+async def websocket_bridge_migrate(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Atomically transfer ownership to the native bridge."""
+    connection.require_admin()
+    connection.send_result(msg["id"], await async_migrate_to_native_bridge(hass))
+
+
+@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/rollback"})
+@websocket_api.async_response
+async def websocket_bridge_rollback(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Restore generated automations and stop native ownership."""
+    connection.require_admin()
+    connection.send_result(msg["id"], await async_rollback_to_automations(hass))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/config/get"})
@@ -139,6 +181,9 @@ def websocket_entities_list(
 def async_register_commands(hass: HomeAssistant) -> None:
     """Register all commands exactly once per Home Assistant process."""
     websocket_api.async_register_command(hass, websocket_status)
+    websocket_api.async_register_command(hass, websocket_bridge_status)
+    websocket_api.async_register_command(hass, websocket_bridge_migrate)
+    websocket_api.async_register_command(hass, websocket_bridge_rollback)
     websocket_api.async_register_command(hass, websocket_config_get)
     websocket_api.async_register_command(hass, websocket_config_validate)
     websocket_api.async_register_command(hass, websocket_config_save)

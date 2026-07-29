@@ -33,6 +33,7 @@ class HacsPackageTests(unittest.TestCase):
             "api.py",
             "bridge.py",
             "bridge_model.py",
+            "migration.py",
             "manifest.json",
             "model.py",
             "storage.py",

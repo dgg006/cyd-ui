@@ -6,6 +6,7 @@ const EDITOR_MARKUP = `
     <div><div class="eyebrow">CYD UI ENGINE</div><h1>Configurador</h1></div>
     <div class="top-actions">
       <span id="connectionState" class="status neutral">Iniciando…</span>
+      <button id="nativeBridgeButton" class="button secondary">Puente</button>
       <button id="reloadButton" class="button secondary hidden">Recargar pantalla</button>
       <button id="saveButton" class="button primary">Guardar en Home Assistant</button>
     </div>
@@ -123,6 +124,31 @@ class CydUiPanel extends HTMLElement {
     this._root.innerHTML = `<link rel="stylesheet" href="${STATIC_ROOT}/editor.css?v=${ASSET_VERSION}">${EDITOR_MARKUP}`;
     const module = await import(`${STATIC_ROOT}/editor-app.js?v=${ASSET_VERSION}`);
     this._cleanup = module.startCydUiEditor(this._root, this._hass);
+    await this._refreshBridgeButton();
+  }
+
+  async _refreshBridgeButton() {
+    const button = this._root.querySelector("#nativeBridgeButton");
+    if (!button) return;
+    const status = await this._hass.callWS({ type: "cyd_ui/bridge/status" });
+    button.textContent = status.enabled ? "Puente nativo activo" : "Migrar puente";
+    button.onclick = async () => {
+      const enabling = !status.enabled;
+      const message = enabling
+        ? "Esto desactivará las automatizaciones temporales y activará el puente nativo. ¿Continuar?"
+        : "Esto detendrá el puente nativo y restaurará las automatizaciones temporales. ¿Continuar?";
+      if (!window.confirm(message)) return;
+      button.disabled = true;
+      try {
+        await this._hass.callWS({
+          type: enabling ? "cyd_ui/bridge/migrate" : "cyd_ui/bridge/rollback",
+        });
+        await this._refreshBridgeButton();
+      } catch (error) {
+        button.disabled = false;
+        window.alert(`No se pudo cambiar el puente: ${String(error)}`);
+      }
+    };
   }
 
   _renderError(error) {

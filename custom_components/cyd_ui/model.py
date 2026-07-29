@@ -145,4 +145,8 @@ def create_revision(
         "ui": deepcopy(ui),
         "backend_map": deepcopy(backend_map),
         "history": history[-MAX_HISTORY:],
+        "native_bridge_enabled": bool(current.get("native_bridge_enabled", False)),
+        "temporary_automation_states": deepcopy(
+            current.get("temporary_automation_states", {})
+        ),
     }

@@ -52,11 +52,17 @@ class IntegrationModelTests(unittest.TestCase):
             "ui": self.ui,
             "backend_map": self.backend_map,
             "history": [{"revision": number} for number in range(10)],
+            "native_bridge_enabled": True,
+            "temporary_automation_states": {"automation.old": "on"},
         }
         result = MODEL.create_revision(current, self.ui, self.backend_map, "new")
         self.assertEqual(11, result["revision"])
         self.assertEqual(10, len(result["history"]))
         self.assertEqual(1, result["history"][0]["revision"])
+        self.assertTrue(result["native_bridge_enabled"])
+        self.assertEqual(
+            {"automation.old": "on"}, result["temporary_automation_states"]
+        )
         self.ui["pages"][0]["title"] = "modificado después"
         self.assertNotEqual("modificado después", result["ui"]["pages"][0]["title"])
 

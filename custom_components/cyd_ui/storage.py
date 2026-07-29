@@ -25,6 +25,8 @@ class CydUiStorage:
             "ui": None,
             "backend_map": {"controls": {}},
             "history": [],
+            "native_bridge_enabled": False,
+            "temporary_automation_states": {},
         }
 
     async def async_load(self) -> None:
@@ -44,3 +46,18 @@ class CydUiStorage:
         await self._store.async_save(next_data)
         self.data = next_data
         return []
+
+    async def async_set_bridge_enabled(
+        self, enabled: bool, automation_states: dict[str, str] | None = None
+    ) -> None:
+        """Persist bridge ownership independently from editor revisions."""
+        next_data = dict(self.data)
+        next_data["native_bridge_enabled"] = enabled
+        if automation_states is not None:
+            next_data["temporary_automation_states"] = automation_states
+        await self._store.async_save(next_data)
+        self.data = next_data
+
+    async def async_remove(self) -> None:
+        """Remove managed data when the integration is permanently deleted."""
+        await self._store.async_remove()

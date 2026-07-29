@@ -17,6 +17,7 @@ from .const import (
     VERSION,
 )
 from .storage import CydUiStorage
+from .migration import async_rollback_to_automations, async_restore_enabled_bridge
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -50,6 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     data["module_url"] = module_url
     data["entry_id"] = entry.entry_id
+    await async_restore_enabled_bridge(hass)
     return True
 
 
@@ -61,5 +63,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         frontend.remove_extra_js_url(hass, module_url)
     data.pop("entry_id", None)
     data.pop("module_url", None)
-    data.pop("storage", None)
+    if bridge := data.pop("bridge", None):
+        await bridge.async_stop()
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Restore temporary ownership before permanently removing CYD UI."""
+    data = hass.data.get(DOMAIN, {})
+    storage: CydUiStorage | None = data.get("storage")
+    if storage is None:
+        return
+    if storage.data.get("native_bridge_enabled"):
+        await async_rollback_to_automations(hass)
+    await storage.async_remove()
+    data.pop("storage", None)
