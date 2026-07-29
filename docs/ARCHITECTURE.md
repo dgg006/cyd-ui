@@ -950,6 +950,20 @@ El generador aplica una lista positiva: solo crea ramas para controles con entid
 
 Las redes autorizadas se declaran en `secrets.yaml` y el firmware selecciona automáticamente la disponible. El portal cautivo es un mecanismo de recuperación, no el método normal de instalación. Cuando se activa, un overlay bloqueante muestra en la CYD el SSID, la clave simple y `192.168.4.1`, evitando depender de documentación externa y evitando que un toque accidental active controles ocultos.
 
+### ADR-024: Confirmación local para activar climatización
+
+**Estado:** Cerrada e implementada.
+
+Cuando el control de climatización está apagado, el primer toque no emite ninguna acción: cambia temporalmente el texto a `Confirmar`. Solo un segundo toque dentro de tres segundos solicita el cambio a `heat`. El apagado conserva un único toque para favorecer una desconexión rápida. Los estados desconocidos o sin conexión bloquean ambos caminos. Esta protección pertenece al template porque evita un toque físico accidental; la lista positiva del backend continúa siendo una segunda frontera independiente.
+
+### ADR-025: Guardado coordinado durante la etapa de editor local
+
+**Estado:** Cerrada e implementada.
+
+Mientras el configurador se ejecuta localmente, `Guardar y aplicar` coordina tres operaciones independientes: escritura atómica de los contratos, recarga de la CYD y regeneración de las automatizaciones nativas de Home Assistant. Un fallo de red no revierte los archivos válidos y se informa indicando qué destino falló. Esta coordinación desaparecerá como dependencia local cuando el configurador se empaquete como integración de Home Assistant.
+
+El tamaño máximo compartido para transporte HTTP y caché flash es 16 KiB. El límite se mantiene único en `config_limits.h` para impedir divergencias entre descarga y persistencia.
+
 ## Configurador visual v0.1
 
 No se priorizarán más templates hasta resolver la experiencia de configuración. La primera versión implementa:

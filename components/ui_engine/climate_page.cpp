@@ -2,8 +2,18 @@
 
 #include <set>
 
+#include "esphome/core/hal.h"
+
 namespace esphome {
 namespace ui_engine {
+
+void ClimatePage::loop() {
+  if (this->power_confirmation_pending_ &&
+      static_cast<int32_t>(millis() - this->power_confirmation_deadline_ms_) >= 0) {
+    this->power_confirmation_pending_ = false;
+    this->apply_power_state();
+  }
+}
 
 void ClimatePage::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
@@ -103,6 +113,7 @@ bool ClimatePage::update_control(const std::string &id, bool active, const std::
     return true;
   }
   if (id == this->power_id_) {
+    this->power_confirmation_pending_ = false;
     this->power_active_ = active;
     this->power_state_ = state;
     this->apply_power_state();
@@ -112,6 +123,7 @@ bool ClimatePage::update_control(const std::string &id, bool active, const std::
 }
 
 void ClimatePage::set_all_states(ControlState state) {
+  this->power_confirmation_pending_ = false;
   this->power_state_ = state;
   this->apply_power_state();
   if (state != ControlState::VALID) {
@@ -166,7 +178,24 @@ void ClimatePage::decrease_callback(lv_event_t *event) {
 }
 void ClimatePage::power_callback(lv_event_t *event) {
   auto *page = static_cast<ClimatePage *>(lv_event_get_user_data(event));
-  page->emit_action(page->power_id_, page->power_action_);
+  if (page->power_state_ != ControlState::VALID) return;
+
+  if (page->power_active_) {
+    page->power_confirmation_pending_ = false;
+    page->emit_action(page->power_id_, page->power_action_);
+    return;
+  }
+
+  if (page->power_confirmation_pending_ &&
+      static_cast<int32_t>(page->power_confirmation_deadline_ms_ - millis()) > 0) {
+    page->power_confirmation_pending_ = false;
+    page->emit_action(page->power_id_, page->power_action_);
+    return;
+  }
+
+  page->power_confirmation_pending_ = true;
+  page->power_confirmation_deadline_ms_ = millis() + 3000U;
+  page->apply_power_state();
 }
 void ClimatePage::increase_callback(lv_event_t *event) {
   auto *page = static_cast<ClimatePage *>(lv_event_get_user_data(event));
@@ -189,6 +218,18 @@ void ClimatePage::apply_power_state() {
   }
   lv_obj_set_style_bg_color(this->power_button_, lv_color_hex(color), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->power_button_, opacity, LV_PART_MAIN);
+
+  const char *label = "Estado";
+  if (this->power_confirmation_pending_) {
+    label = "Confirmar";
+    lv_obj_set_style_bg_color(this->power_button_, lv_color_hex(0xD84315), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(this->power_button_, LV_OPA_COVER, LV_PART_MAIN);
+  } else if (this->power_state_ == ControlState::VALID) {
+    label = this->power_active_ ? "Apagar" : "Encender";
+  } else if (this->power_state_ == ControlState::STALE_OR_DISCONNECTED) {
+    label = "Sin red";
+  }
+  lv_label_set_text(this->power_label_, label);
 }
 
 }  // namespace ui_engine

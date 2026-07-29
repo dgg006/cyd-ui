@@ -22,8 +22,17 @@ class NativeBridgeTests(unittest.TestCase):
         self.assertIn("living", rendered)
         self.assertIn("climate_living_down", rendered)
         self.assertIn("climate_living_up", rendered)
-        self.assertNotIn("climate_living_power", rendered)
+        self.assertIn("climate_living_power", rendered)
+        self.assertIn("climate.set_hvac_mode", rendered)
         self.assertNotIn("turn_on", rendered)
+
+    def test_climate_power_toggles_only_off_and_heat(self):
+        mapping = self.controls["climate_living_power"]
+        sequence = native_bridge.command_sequence(mapping)
+
+        self.assertEqual(sequence[0]["action"], "climate.set_hvac_mode")
+        self.assertIn("'heat'", sequence[0]["data"]["hvac_mode"])
+        self.assertIn("'off'", sequence[0]["data"]["hvac_mode"])
 
     def test_state_bridge_has_recovery_triggers(self):
         automation = native_bridge.build_state_automation(self.controls)

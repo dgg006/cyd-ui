@@ -4,6 +4,7 @@
 #include <string>
 
 #include "esphome/components/http_request/http_request.h"
+#include "config_limits.h"
 #include "flash_storage.h"
 
 namespace esphome {
@@ -42,7 +43,6 @@ class HttpConfigProvider final : public ConfigProvider {
   bool fetched_from_remote() const override { return this->last_fetch_succeeded_; }
 
  private:
-  static constexpr size_t MAX_CONFIG_SIZE = 8192;
   http_request::HttpRequestComponent *client_;
   std::string url_;
   bool last_fetch_succeeded_{false};

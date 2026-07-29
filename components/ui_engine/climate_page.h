@@ -10,6 +10,7 @@ namespace ui_engine {
 
 class ClimatePage : public PageTemplate {
  public:
+  void loop() override;
   void create(lv_obj_t *parent) override;
   void apply(const PageConfig &config) override;
   bool update_control(const std::string &id, bool active, const std::string &value, ControlState state) override;
@@ -50,6 +51,8 @@ class ClimatePage : public PageTemplate {
   std::string increase_action_{"increment"};
   uint32_t power_color_{0xD84315};
   bool power_active_{false};
+  bool power_confirmation_pending_{false};
+  uint32_t power_confirmation_deadline_ms_{0};
   ControlState power_state_{ControlState::UNKNOWN};
   ActionCallback action_callback_;
   NavigationCallback navigation_callback_;

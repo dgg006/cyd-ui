@@ -19,8 +19,8 @@ bool HttpConfigProvider::fetch(std::string *raw_json, std::string *error) {
     response->end();
     return false;
   }
-  if (response->content_length > MAX_CONFIG_SIZE) {
-    *error = "configuracion HTTP supera 8192 bytes";
+  if (response->content_length > UI_CONFIG_MAX_SIZE) {
+    *error = "configuracion HTTP supera " + std::to_string(UI_CONFIG_MAX_SIZE) + " bytes";
     response->end();
     return false;
   }
@@ -57,8 +57,8 @@ bool HttpConfigProvider::fetch(std::string *raw_json, std::string *error) {
     }
 
     raw_json->append(reinterpret_cast<const char *>(buffer), static_cast<size_t>(read_result));
-    if (raw_json->size() > MAX_CONFIG_SIZE) {
-      *error = "configuracion HTTP supera 8192 bytes";
+    if (raw_json->size() > UI_CONFIG_MAX_SIZE) {
+      *error = "configuracion HTTP supera " + std::to_string(UI_CONFIG_MAX_SIZE) + " bytes";
       response->end();
       return false;
     }

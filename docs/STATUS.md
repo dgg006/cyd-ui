@@ -44,12 +44,14 @@ Actualizado: 2026-07-29
 ## Memoria de referencia
 
 - DRAM estática: 53.412 bytes (29,6 %).
-- Firmware con API cifrada, portal cautivo, OTA, MDI, telemetría y selector de dos redes: 1.551.615 bytes (84,6 % de la partición de aplicación).
+- Firmware con API cifrada, portal cautivo, OTA, MDI, telemetría, selector de dos redes y confirmación del calefactor: 1.552.419 bytes (84,6 % de la partición de aplicación).
 - Margen de firmware restante: 16 %. Antes de sumar dependencias grandes debe revisarse nuevamente el tamaño.
 
 ## Próximo hito
 
 Validar en uso real el configurador visual v0.1, completar los campos avanzados por dominio y agregar restauración desde el historial.
+
+Pendiente para la próxima carga de firmware: ampliar la fuente de texto LVGL con caracteres españoles, como mínimo `áéíóúüñ¿¡` y sus mayúsculas. Actualmente el editor y el JSON conservan `Baño`, pero la `ñ` se muestra como un cuadro en la CYD.
 
 En paralelo: validar la incorporación del dispositivo a Home Assistant en su red definitiva y decidir cómo alojar allí el configurador y el backend dinámico.
 
@@ -103,3 +105,6 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Portal de recuperación simplificado a `CYD UI Setup` / `12345678`; sus datos aparecen en la pantalla cuando se activa.
 - Dos automatizaciones nativas instaladas en Home Assistant para comandos y sincronización de estados sin depender de la PC del taller.
 - Ruta nativa de comando validada con `switch.sonoff_1001327309_2`; no se accionó el calefactor.
+- El límite compartido de descarga HTTP y caché flash se amplió de 8 a 16 KiB después de detectar correctamente el crecimiento de la configuración a 8.407 bytes.
+- `Guardar y aplicar` actualiza ahora la pantalla y regenera las automatizaciones nativas de Home Assistant en una sola operación; los fallos se informan por separado.
+- La activación del calefactor requiere dos toques dentro de tres segundos; apagarlo requiere uno. La generación solo alterna entre `off` y `heat` y no se probó la activación fuera de casa.

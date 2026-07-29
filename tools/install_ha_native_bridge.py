@@ -12,7 +12,10 @@ import argparse
 import json
 from pathlib import Path
 
-from ha_bridge import ha_request, read_ha_access
+try:
+    from .ha_bridge import ha_request, read_ha_access
+except ImportError:
+    from ha_bridge import ha_request, read_ha_access
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -89,6 +92,19 @@ def command_sequence(mapping):
     entity_id = mapping["entity_id"]
     domain = mapping.get("domain", entity_id.split(".", 1)[0])
     service = mapping.get("service", mapping["action"])
+
+    if service == "toggle_hvac":
+        return [{
+            "action": "climate.set_hvac_mode",
+            "target": {"entity_id": entity_id},
+            "data": {
+                "hvac_mode": (
+                    "{{ 'heat' if states('"
+                    + entity_id
+                    + "') == 'off' else 'off' }}"
+                )
+            },
+        }]
 
     if service == "set_temperature":
         delta = float(mapping["temperature_delta"])
@@ -206,6 +222,19 @@ def install_automation(base_url, token, automation_id, config):
     )
 
 
+def install_current_map():
+    controls = load_controls()
+    automations = {
+        COMMAND_AUTOMATION_ID: build_command_automation(controls),
+        STATE_AUTOMATION_ID: build_state_automation(controls),
+    }
+    base_url, token = read_ha_access()
+    for automation_id, config in automations.items():
+        install_automation(base_url, token, automation_id, config)
+    ha_request(base_url, token, "/api/services/automation/reload", method="POST", payload={})
+    return [config["alias"] for config in automations.values()]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -225,11 +254,9 @@ def main():
         print(json.dumps(automations, ensure_ascii=False, indent=2))
         return
 
-    base_url, token = read_ha_access()
-    for automation_id, config in automations.items():
-        install_automation(base_url, token, automation_id, config)
-        print(f"Instalada: {config['alias']}")
-    ha_request(base_url, token, "/api/services/automation/reload", method="POST", payload={})
+    installed = install_current_map()
+    for alias in installed:
+        print(f"Instalada: {alias}")
     print("Automatizaciones recargadas.")
 
 

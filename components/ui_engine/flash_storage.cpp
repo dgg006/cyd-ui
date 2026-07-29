@@ -4,6 +4,8 @@
 #include <cstring>
 #include <memory>
 
+#include "config_limits.h"
+
 namespace esphome {
 namespace ui_engine {
 
@@ -12,14 +14,12 @@ namespace {
 static constexpr uint32_t CACHE_MAGIC = 0x55494531;  // "UIE1"
 static constexpr uint16_t CACHE_SCHEMA_VERSION = 1;
 static constexpr uint32_t CACHE_PREFERENCE_KEY = 0xC7D00101;
-static constexpr size_t MAX_CONFIG_SIZE = 8192;
-
 struct CacheRecord {
   uint32_t magic;
   uint16_t schema_version;
   uint16_t length;
   uint32_t checksum;
-  std::array<char, MAX_CONFIG_SIZE> json;
+  std::array<char, UI_CONFIG_MAX_SIZE> json;
 };
 
 uint32_t fnv1a(const char *data, size_t length) {
@@ -47,7 +47,7 @@ bool FlashStorage::load(std::string *raw_json, std::string *error) {
     *error = "cache flash incompatible";
     return false;
   }
-  if (record->length == 0 || record->length > MAX_CONFIG_SIZE) {
+  if (record->length == 0 || record->length > UI_CONFIG_MAX_SIZE) {
     *error = "longitud de cache flash invalida";
     return false;
   }
@@ -61,7 +61,7 @@ bool FlashStorage::load(std::string *raw_json, std::string *error) {
 }
 
 bool FlashStorage::save(const std::string &raw_json, std::string *error) {
-  if (raw_json.empty() || raw_json.size() > MAX_CONFIG_SIZE) {
+  if (raw_json.empty() || raw_json.size() > UI_CONFIG_MAX_SIZE) {
     *error = "configuracion fuera del limite de cache flash";
     return false;
   }

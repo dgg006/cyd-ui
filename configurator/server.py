@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import sys
 import tempfile
 import threading
 import urllib.error
@@ -15,6 +16,9 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from tools.install_ha_native_bridge import install_current_map
 
 import paho.mqtt.publish as mqtt_publish
 import paho.mqtt.client as mqtt_client
@@ -469,11 +473,21 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
                 atomic_write_json(CONFIG_PATH, ui)
                 atomic_write_json(BACKEND_MAP_PATH, backend_map)
                 reload_error = None
+                ha_sync_error = None
                 try:
                     publish_reload()
                 except Exception as error:
                     reload_error = str(error)
-                self.json_response({"saved": True, "backup": backup, "reload_error": reload_error})
+                try:
+                    install_current_map()
+                except Exception as error:
+                    ha_sync_error = str(error)
+                self.json_response({
+                    "saved": True,
+                    "backup": backup,
+                    "reload_error": reload_error,
+                    "ha_sync_error": ha_sync_error,
+                })
                 return
             if self.path == "/api/reload":
                 publish_reload()
