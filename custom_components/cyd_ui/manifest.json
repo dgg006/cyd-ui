@@ -7,12 +7,13 @@
   "config_flow": true,
   "dependencies": [
     "frontend",
-    "http"
+    "http",
+    "panel_custom"
   ],
   "documentation": "https://github.com/dgg006/cyd-ui",
   "integration_type": "hub",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/dgg006/cyd-ui/issues",
   "single_config_entry": true,
-  "version": "0.1.0"
+  "version": "0.1.1"
 }

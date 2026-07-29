@@ -84,6 +84,13 @@ class HacsPackageTests(unittest.TestCase):
         self.assertEqual("https://github.com/dgg006/cyd-ui/issues", manifest["issue_tracker"])
         self.assertEqual(["@dgg006"], manifest["codeowners"])
 
+    def test_panel_uses_home_assistant_custom_panel_api(self):
+        source = (INTEGRATION_ROOT / "__init__.py").read_text(encoding="utf-8")
+        manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        self.assertIn("panel_custom.async_register_panel", source)
+        self.assertNotIn("async_register_built_in_panel", source)
+        self.assertIn("panel_custom", manifest["dependencies"])
+
 
 if __name__ == "__main__":
     unittest.main()
