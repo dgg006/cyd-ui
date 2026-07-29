@@ -75,7 +75,7 @@ function renderSettings(){
       inputField("LDR con mucha luz (V)",display.ldr_bright_voltage,v=>{display.ldr_bright_voltage=v;validate()},{type:"number",min:0,max:3.3,step:.01})
     ]),
     settingsGroup("Inactividad","Qué hace la pantalla después de un tiempo sin tocarla.",[
-      inputField("Tiempo sin uso",inactivity.timeout,v=>{inactivity.timeout=v;state.ui.screensaver_timeout=v;validate()},{choices:timeoutChoices,event:"change"}),
+      inputField("Tiempo sin uso",inactivity.timeout,v=>{inactivity.timeout=v;state.ui.screensaver_timeout=v;validate()},{choices:timeoutChoices,event:"change",type:"number"}),
       inputField("Al quedar inactiva",inactivity.mode,v=>{inactivity.mode=v;renderSettings();renderPreview();validate()},{choices:idleModeChoices,event:"change"}),
       inputField("Brillo tenue",inactivity.dim_brightness,v=>{inactivity.dim_brightness=v;validate()},{type:"number",min:0,max:100,disabled:inactivity.mode!=="dim"})
     ]),
