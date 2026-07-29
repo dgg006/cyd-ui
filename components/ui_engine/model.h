@@ -39,6 +39,7 @@ struct PageConfig {
 
 struct UiConfig {
   int schema_version{0};
+  int32_t screensaver_timeout_seconds{-1};
   std::vector<PageConfig> pages;
 };
 

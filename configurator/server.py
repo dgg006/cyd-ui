@@ -112,6 +112,11 @@ def fetch_ha_entities() -> list[dict[str, Any]]:
     for state in states:
         entity_id = state.get("entity_id", "")
         attributes = state.get("attributes", {})
+        attribute_values = {
+            key: value
+            for key, value in attributes.items()
+            if isinstance(value, (str, int, float, bool)) and not isinstance(value, (dict, list))
+        }
         entities.append({
             "entity_id": entity_id,
             "domain": entity_id.partition(".")[0],
@@ -120,6 +125,7 @@ def fetch_ha_entities() -> list[dict[str, Any]]:
             "device_class": attributes.get("device_class", ""),
             "unit": attributes.get("unit_of_measurement", ""),
             "attributes": sorted(attributes.keys()),
+            "attribute_values": attribute_values,
         })
     return sorted(entities, key=lambda item: (item["domain"], item["name"].casefold()))
 
@@ -130,6 +136,9 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
         return ["La configuración debe ser un objeto JSON."]
     if ui.get("schema_version") != 1:
         errors.append("schema_version debe ser 1.")
+    timeout = ui.get("screensaver_timeout", 30)
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 <= timeout <= 3600:
+        errors.append("El tiempo del protector debe estar entre 0 y 3600 segundos.")
     pages = ui.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= MAX_PAGES:
         return errors + [f"Debe haber entre 1 y {MAX_PAGES} páginas."]
@@ -153,8 +162,9 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
         expected_count = catalog["variants"].get(variant)
         if expected_count is None:
             errors.append(f"{prefix}: variante '{variant}' no admitida.")
-        if not isinstance(page.get("title"), str) or not page["title"].strip():
-            errors.append(f"{prefix}: el título es obligatorio.")
+        title_optional = template_name == "clock_weather" and variant == "screensaver"
+        if not isinstance(page.get("title", ""), str) or (not title_optional and not page["title"].strip()):
+            errors.append(f"{prefix}: el título es obligatorio salvo en el protector.")
         if page.get("screensaver") is True:
             screensavers += 1
             if template_name != "clock_weather":

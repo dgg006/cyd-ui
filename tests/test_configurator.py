@@ -48,5 +48,19 @@ class ConfiguratorValidationTests(unittest.TestCase):
         registry_names = set(re.findall(r'\{"(mdi:[^"]+)",', registry))
         self.assertEqual(catalog_names, registry_names)
 
+    def test_screensaver_accepts_empty_title_and_timeout(self):
+        screensaver = next(page for page in self.ui["pages"] if page.get("screensaver"))
+        screensaver["title"] = ""
+        self.ui["screensaver_timeout"] = 120
+        self.assertEqual([], SERVER.validate_project(self.ui, self.backend_map))
+
+    def test_invalid_screensaver_timeout_is_rejected(self):
+        self.ui["screensaver_timeout"] = 3601
+        self.assertTrue(any("tiempo del protector" in error for error in SERVER.validate_project(self.ui, self.backend_map)))
+
+    def test_regular_page_still_requires_title(self):
+        self.ui["pages"][0]["title"] = ""
+        self.assertTrue(any("título" in error for error in SERVER.validate_project(self.ui, self.backend_map)))
+
 if __name__ == "__main__":
     unittest.main()

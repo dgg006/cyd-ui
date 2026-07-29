@@ -42,6 +42,9 @@ def validate_ui_document(document):
         raise cv.Invalid("la raiz debe ser un objeto")
     if document.get("schema_version") != 1:
         raise cv.Invalid("schema_version debe ser 1")
+    timeout = document.get("screensaver_timeout", 30)
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 <= timeout <= 3600:
+        raise cv.Invalid("screensaver_timeout debe estar entre 0 y 3600 segundos")
 
     pages = document.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= 8:
@@ -75,8 +78,9 @@ def validate_ui_document(document):
             screensaver_count += 1
             if template != "clock_weather":
                 raise cv.Invalid(f"{page_prefix}.screensaver requiere clock_weather")
-        if not isinstance(page.get("title"), str) or not page["title"].strip():
-            raise cv.Invalid(f"{page_prefix}.title es obligatorio")
+        title_optional = template == "clock_weather" and variant == "screensaver"
+        if not isinstance(page.get("title", ""), str) or (not title_optional and not page["title"].strip()):
+            raise cv.Invalid(f"{page_prefix}.title es obligatorio salvo en el screensaver")
 
         controls = page.get("controls")
         maximum = capacities[variant] if template == "button_grid" else (

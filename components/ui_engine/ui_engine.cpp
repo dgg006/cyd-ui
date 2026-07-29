@@ -134,6 +134,9 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   }
 
   this->active_config_ = std::move(candidate);
+  this->screensaver_timeout_ms_ = this->active_config_.screensaver_timeout_seconds >= 0
+                                     ? static_cast<uint32_t>(this->active_config_.screensaver_timeout_seconds) * 1000U
+                                     : this->default_screensaver_timeout_ms_;
   this->screensaver_page_index_ = screensaver_index;
   this->screensaver_active_ = false;
   this->wake_pending_ = false;

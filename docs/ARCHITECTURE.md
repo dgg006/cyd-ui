@@ -795,7 +795,9 @@ El template `clock_weather` puede marcarse con `screensaver: true`. Tras el tiem
 - el primer toque despierta la interfaz y regresa a la página anterior;
 - no se ejecuta la acción subyacente a ese primer toque.
 
-El timeout actual de laboratorio es corto para facilitar pruebas. El valor final deberá ser configurable desde el editor visual.
+El timeout se guarda en el documento como `screensaver_timeout`, en segundos. El editor visual ofrece desde desactivarlo hasta una hora y el runtime aplica el cambio al recargar el JSON, sin recompilar. El valor de YAML queda como respaldo para documentos antiguos que no incluyan el campo.
+
+El protector no requiere título: el reloj es la jerarquía principal. La vista previa del configurador replica las posiciones de reloj, fecha, condición, temperatura, humedad y ayuda usadas por el template LVGL para reducir diferencias entre el diseño y la pantalla física.
 
 ## Incidentes y lecciones de hardware real
 

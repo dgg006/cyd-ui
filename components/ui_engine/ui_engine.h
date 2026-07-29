@@ -36,7 +36,10 @@ class UiEngineComponent : public Component {
   void notify_activity();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
-  void set_screensaver_timeout(uint32_t timeout_ms) { this->screensaver_timeout_ms_ = timeout_ms; }
+  void set_screensaver_timeout(uint32_t timeout_ms) {
+    this->default_screensaver_timeout_ms_ = timeout_ms;
+    this->screensaver_timeout_ms_ = timeout_ms;
+  }
   bool update_control(const std::string &id, bool active, const std::string &value, const std::string &reliability);
   void set_backend_connected(bool connected);
 
@@ -70,6 +73,7 @@ class UiEngineComponent : public Component {
   time::RealTimeClock *clock_{nullptr};
   font::Font *icon_font_{nullptr};
   uint32_t screensaver_timeout_ms_{0};
+  uint32_t default_screensaver_timeout_ms_{0};
   uint32_t last_activity_ms_{0};
   int screensaver_page_index_{-1};
   size_t page_before_screensaver_{0};

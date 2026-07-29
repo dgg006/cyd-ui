@@ -57,6 +57,9 @@ Validar en uso real el configurador visual v0.1, completar los campos avanzados 
 - Búsqueda de iconos MDI y selección independiente para estados `on/off`.
 - Vista previa de iconos usando la misma fuente incluida en el firmware.
 - Vista previa local de 320 × 240.
+- Vista previa del protector alineada con las posiciones y jerarquía visual usadas por LVGL en la CYD.
+- Protector sin título obligatorio y tiempo de activación configurable entre nunca y 1 hora desde la interfaz.
+- Atributos y acciones presentados como opciones legibles obtenidas de la entidad, sin exigir conocer nombres internos de Home Assistant.
 - Validación del contrato antes de guardar.
 - Copia recuperable, escritura atómica y recarga MQTT.
 - El iniciador sirve `config/ui.json` como `/ui.json`, que es la ruta fija consumida por el firmware.

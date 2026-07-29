@@ -3,6 +3,7 @@
 ## Documento
 
 - `schema_version`: obligatorio; actualmente `1`.
+- `screensaver_timeout`: segundos de inactividad antes de activar el protector; entre `0` y `3600`. El valor `0` lo desactiva.
 - `pages`: entre 1 y 8 páginas.
 - Los IDs de controles deben ser únicos en todo el documento.
 - Puede existir como máximo una página con `screensaver: true`.
@@ -11,7 +12,7 @@
 
 - `template`: nombre registrado del template.
 - `variant`: variante semántica admitida por el template.
-- `title`: texto obligatorio y no vacío.
+- `title`: texto obligatorio y no vacío, salvo en `clock_weather/screensaver`, donde puede omitirse visualmente con una cadena vacía.
 - `screensaver`: booleano opcional; solo válido para `clock_weather`.
 - `controls`: controles requeridos por el contrato del template.
 

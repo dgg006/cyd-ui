@@ -29,7 +29,6 @@ class ClockWeatherPage : public PageTemplate {
   static const char *translate_condition_(const std::string &condition);
 
   time::RealTimeClock *clock_{nullptr};
-  lv_obj_t *title_{nullptr};
   lv_obj_t *time_label_{nullptr};
   lv_obj_t *date_label_{nullptr};
   lv_obj_t *condition_label_{nullptr};

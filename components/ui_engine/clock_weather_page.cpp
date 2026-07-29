@@ -12,10 +12,6 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
   lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
 
-  this->title_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->title_, lv_color_hex(0x8FAFC4), LV_PART_MAIN);
-  lv_obj_align(this->title_, LV_ALIGN_TOP_MID, 0, 9);
-
   this->previous_button_ = lv_button_create(parent);
   lv_obj_set_size(this->previous_button_, 34, 32);
   lv_obj_set_pos(this->previous_button_, 5, 4);
@@ -36,23 +32,23 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
   lv_label_set_text(this->time_label_, "--:--");
   lv_obj_set_style_text_font(this->time_label_, &lv_font_montserrat_48, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->time_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_set_pos(this->time_label_, 18, 55);
+  lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 32);
 
   this->date_label_ = lv_label_create(parent);
   lv_label_set_text(this->date_label_, "Esperando hora...");
   lv_obj_set_style_text_color(this->date_label_, lv_color_hex(0x9FB6C5), LV_PART_MAIN);
-  lv_obj_set_pos(this->date_label_, 20, 116);
+  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 94);
 
   this->condition_label_ = lv_label_create(parent);
   lv_label_set_text(this->condition_label_, "Sin clima");
   lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_RIGHT, -18, 61);
+  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 0, 124);
 
   this->temperature_label_ = lv_label_create(parent);
   lv_label_set_text(this->temperature_label_, "--.- C");
   lv_obj_set_style_text_font(this->temperature_label_, &lv_font_montserrat_32, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_RIGHT, -18, 86);
+  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 146);
 
   this->humidity_label_ = lv_label_create(parent);
   lv_label_set_text(this->humidity_label_, "Humedad -- %");
@@ -73,7 +69,6 @@ void ClockWeatherPage::loop() {
 }
 
 void ClockWeatherPage::apply(const PageConfig &config) {
-  lv_label_set_text(this->title_, config.title.c_str());
   for (const auto &control : config.controls) {
     if (control.role == "condition") this->condition_id_ = control.id;
     else if (control.role == "outside_temperature") this->temperature_id_ = control.id;

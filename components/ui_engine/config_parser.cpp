@@ -31,6 +31,17 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
 
   UiConfig candidate;
   candidate.schema_version = 1;
+  if (root.containsKey("screensaver_timeout")) {
+    if (!root["screensaver_timeout"].is<int>()) {
+      *error = "screensaver_timeout debe ser una cantidad entera de segundos";
+      return false;
+    }
+    candidate.screensaver_timeout_seconds = root["screensaver_timeout"].as<int>();
+    if (candidate.screensaver_timeout_seconds < 0 || candidate.screensaver_timeout_seconds > 3600) {
+      *error = "screensaver_timeout debe estar entre 0 y 3600 segundos";
+      return false;
+    }
+  }
   std::set<std::string> ids;
   for (JsonObject page_json : pages) {
     if (page_json.isNull()) {
@@ -43,8 +54,9 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
     page.variant = page_json["variant"] | "";
     page.title = page_json["title"] | "";
     page.screensaver = page_json["screensaver"] | false;
-    if (page.template_name.empty() || page.variant.empty() || page.title.empty()) {
-      *error = "template, variant y title son obligatorios";
+    const bool title_optional = page.template_name == "clock_weather" && page.variant == "screensaver";
+    if (page.template_name.empty() || page.variant.empty() || (!title_optional && page.title.empty())) {
+      *error = "template, variant y title son obligatorios salvo en el screensaver";
       return false;
     }
 
