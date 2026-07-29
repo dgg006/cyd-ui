@@ -117,5 +117,6 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - Implementado almacenamiento administrado y atómico para la configuración, con historial acotado a diez revisiones.
 - Implementadas operaciones WebSocket administrativas para leer/guardar el proyecto y consultar entidades sin token externo.
 - El editor visual ya puede ejecutarse dentro del panel de Home Assistant, importar el proyecto actual y guardar revisiones; la aplicación directa a la CYD continúa deshabilitada hasta implementar el puente nativo definitivo.
+- El puente nativo de eventos y estados está codificado y probado, pero no se registra todavía: primero debe desactivarse de forma transaccional el puente de automatizaciones para evitar órdenes duplicadas.
 - La integración todavía no se instala en el Home Assistant doméstico: primero debe recibir el editor real, almacenamiento administrado y pruebas de carga/descarga.
 - Antes de publicarla se deben definir la URL y el propietario definitivos del repositorio, reemplazando los marcadores `OWNER` del manifiesto.

@@ -31,6 +31,7 @@ La carpeta `custom_components/cyd_ui` contiene:
 - Validación estructural y límite de tamaño antes de cada guardado.
 - Editor visual reutilizado dentro del panel de Home Assistant, aislado mediante Shadow DOM para no alterar el resto de la interfaz.
 - Importación inicial de la configuración de desarrollo incluida en el paquete de prueba.
+- Traductor nativo de acciones y estados implementado con lista positiva de servicios, todavía desactivado para evitar duplicar las automatizaciones temporales.
 - Limpieza del panel y del recurso al descargar la entrada.
 
 Los recursos del editor se regeneran desde el configurador local probado con:
@@ -48,6 +49,7 @@ El archivo raíz `hacs.json` declara el repositorio como integración y fija Hom
 - Elegir propietario y URL definitiva del repositorio; reemplazar `OWNER` en `manifest.json`.
 - Añadir iconos de marca locales.
 - Conectar guardado, recarga del dispositivo y sincronización de estados sin automatizaciones generadas.
+- Crear una migración explícita que desactive las dos automatizaciones temporales antes de activar el puente nativo.
 - Sustituir el proyecto inicial personal por un asistente genérico antes de publicar el repositorio.
 - Incorporar pruebas bajo Home Assistant y ejecutar Hassfest y la validación de HACS.
 - Crear una versión y un GitHub Release.

@@ -31,6 +31,8 @@ class HacsPackageTests(unittest.TestCase):
             "config_flow.py",
             "const.py",
             "api.py",
+            "bridge.py",
+            "bridge_model.py",
             "manifest.json",
             "model.py",
             "storage.py",
