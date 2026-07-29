@@ -26,7 +26,7 @@ API_IMPLEMENTATION = '''async function api(path,options={}){
   if(path==="/api/validate")return hass.callWS({type:"cyd_ui/config/validate",ui:body.ui,backend_map:body.backend_map});
   if(path==="/api/save"){
     const result=await hass.callWS({type:"cyd_ui/config/save",ui:body.ui,backend_map:body.backend_map});
-    return {...result,backup:`revisión ${result.revision}`,reload_error:"la aplicación directa al panel todavía está pendiente"};
+    return {...result,backup:`revisión ${result.revision}`,reload_error:result.device_applied?null:"la pantalla no está conectada; se aplicará al reconectar"};
   }
   if(path==="/api/device-status")return {ldr_voltage:null,brightness_percent:null,mode:null,night:null,touch_calibration:null};
   throw new Error("Esta acción estará disponible al conectar el panel directamente con la CYD.");

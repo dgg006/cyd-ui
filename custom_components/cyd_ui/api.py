@@ -116,12 +116,18 @@ async def websocket_config_save(
     if errors:
         connection.send_error(msg["id"], "invalid_config", "\n".join(errors))
         return
+    bridge = _domain_data(hass).get("bridge")
+    device_applied = False
+    if bridge is not None:
+        device_applied = await bridge.async_apply_config()
+        await bridge.async_sync_all()
     connection.send_result(
         msg["id"],
         {
             "saved": True,
             "revision": storage.data["revision"],
             "updated_at": storage.data["updated_at"],
+            "device_applied": device_applied,
         },
     )
 

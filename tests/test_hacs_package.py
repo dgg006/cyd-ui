@@ -96,6 +96,13 @@ class HacsPackageTests(unittest.TestCase):
         self.assertNotIn("connection.require_admin()", source)
         self.assertEqual(8, source.count("@websocket_api.require_admin"))
 
+    def test_native_bridge_delivers_saved_ui_to_esphome(self):
+        bridge = (INTEGRATION_ROOT / "bridge.py").read_text(encoding="utf-8")
+        api = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
+        self.assertIn('APPLY_CONFIG_SERVICE = "cyd_ui_apply_config"', bridge)
+        self.assertIn("async def async_apply_config", bridge)
+        self.assertIn('"device_applied": device_applied', api)
+
 
 if __name__ == "__main__":
     unittest.main()

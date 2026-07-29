@@ -4,9 +4,9 @@ Motor declarativo de interfaces LVGL para la pantalla
 **ESP32-2432S028R (Cheap Yellow Display)**, integrado con ESPHome y Home
 Assistant.
 
-> Estado: **versión preliminar 0.1.2**. El firmware fue validado en hardware
-> real, pero la instalación HACS y la migración del puente nativo todavía deben
-> probarse en una instancia separada antes de considerarse estables.
+> Estado: **versión preliminar 0.2.0**. El firmware fue validado en hardware
+> real. La instalación HACS y la migración reversible al puente nativo fueron
+> verificadas en Home Assistant 2026.7.4.
 
 ## Qué resuelve
 
@@ -25,6 +25,7 @@ Funciones disponibles:
 - calibración táctil guiada;
 - caché de configuración en flash;
 - editor visual dentro de Home Assistant;
+- entrega directa y persistente de la configuración mediante la API de ESPHome;
 - migración reversible desde automatizaciones temporales al puente nativo.
 
 ## Instalación experimental mediante HACS
@@ -82,8 +83,6 @@ tests/                      pruebas de configuración e integración
 
 - La fuente LVGL todavía debe ampliarse para mostrar correctamente todos los
   caracteres españoles, incluida la `ñ`.
-- La entrega directa de la configuración guardada hacia la CYD sigue en
-  desarrollo; la caché y el transporte actual continúan siendo necesarios.
 - La publicación inicial no está incluida todavía en el catálogo predeterminado
   de HACS; se instala como repositorio personalizado.
 - El proyecto está optimizado inicialmente para la CYD clásica sin PSRAM.

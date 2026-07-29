@@ -39,6 +39,7 @@ class UiEngineComponent : public Component {
   Trigger<int> *get_navigation_trigger() { return &this->navigation_trigger_; }
   Trigger<bool, int, int, int, int> *get_calibration_trigger() { return &this->calibration_trigger_; }
   void request_reload() { this->reload_pending_ = true; }
+  bool apply_config(const std::string &raw_json);
   void notify_activity();
   void notify_touch_released();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
