@@ -154,6 +154,7 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   this->active_idle_mode_ = IdleMode::NONE;
   this->screensaver_active_ = false;
   this->wake_pending_ = false;
+  this->wake_guard_until_ms_ = 0;
   this->last_activity_ms_ = millis();
   if (!this->show_page(0)) {
     return false;
@@ -175,7 +176,8 @@ bool UiEngineComponent::show_page(size_t index) {
       return false;
     }
     page->set_action_callback([this](const std::string &control_id, const std::string &action) {
-      const bool waking = this->idle_active_ || this->wake_pending_ || this->applied_backlight_level_ <= 0.001f;
+      const bool waking = this->idle_active_ || this->wake_pending_ || this->wake_guard_active() ||
+                          this->applied_backlight_level_ <= 0.001f;
       this->notify_activity();
       if (waking) return;
       ESP_LOGI(TAG, "action: control_id=%s action=%s", control_id.c_str(), action.c_str());
@@ -207,15 +209,26 @@ void UiEngineComponent::notify_activity() {
   this->last_activity_ms_ = millis();
   if (this->idle_active_) {
     this->wake_pending_ = true;
+    // LVGL emits CLICKED after the physical touch has already woken the panel.
+    // Keep a short guard so that same touch cannot reach the control underneath.
+    this->wake_guard_until_ms_ = millis() + 10000U;
   }
 }
 
+void UiEngineComponent::notify_touch_released() {
+  if (this->wake_guard_active()) this->wake_guard_until_ms_ = millis() + 250U;
+}
+
 void UiEngineComponent::request_page_delta(int delta) {
-  const bool waking = this->idle_active_ || this->wake_pending_;
+  const bool waking = this->idle_active_ || this->wake_pending_ || this->wake_guard_active();
   this->notify_activity();
   if (!waking) {
     this->page_delta_pending_ = delta;
   }
+}
+
+bool UiEngineComponent::wake_guard_active() const {
+  return static_cast<int32_t>(this->wake_guard_until_ms_ - millis()) > 0;
 }
 
 void UiEngineComponent::enter_idle() {

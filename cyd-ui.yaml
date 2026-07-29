@@ -245,6 +245,8 @@ touchscreen:
       mirror_x: true
     on_touch:
       - lambda: id(ui_engine_main).notify_activity();
+    on_release:
+      - lambda: id(ui_engine_main).notify_touch_released();
 
 lvgl:
   id: cyd_lvgl

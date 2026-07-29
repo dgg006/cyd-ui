@@ -36,6 +36,7 @@ class UiEngineComponent : public Component {
   Trigger<int> *get_navigation_trigger() { return &this->navigation_trigger_; }
   void request_reload() { this->reload_pending_ = true; }
   void notify_activity();
+  void notify_touch_released();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
   void set_backlight_output(output::FloatOutput *output) { this->backlight_output_ = output; }
@@ -61,6 +62,7 @@ class UiEngineComponent : public Component {
   void enter_idle();
   void apply_device_settings();
   void apply_backlight();
+  bool wake_guard_active() const;
   bool is_night() const;
   IdleMode effective_idle_mode() const;
   float base_brightness_percent() const;
@@ -96,6 +98,7 @@ class UiEngineComponent : public Component {
   size_t page_before_screensaver_{0};
   bool screensaver_active_{false};
   bool wake_pending_{false};
+  uint32_t wake_guard_until_ms_{0};
   bool idle_active_{false};
   IdleMode active_idle_mode_{IdleMode::NONE};
   output::FloatOutput *backlight_output_{nullptr};
