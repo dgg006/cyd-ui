@@ -1,0 +1,10 @@
+.esphome/
+config/
+dist/
+secrets.yaml
+*.bin
+__pycache__/
+*.pyc
+.venv/
+.vscode/
+

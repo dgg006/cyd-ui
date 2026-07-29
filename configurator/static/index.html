@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CYD UI Configurator</title>
+  <link rel="stylesheet" href="/app.css?v=2">
+</head>
+<body>
+  <header class="topbar">
+    <div><div class="eyebrow">CYD UI ENGINE</div><h1>Configurador</h1></div>
+    <div class="top-actions">
+      <span id="connectionState" class="status neutral">Iniciando…</span>
+      <button id="reloadButton" class="button secondary">Recargar pantalla</button>
+      <button id="saveButton" class="button primary">Guardar y aplicar</button>
+    </div>
+  </header>
+  <main class="workspace">
+    <aside class="pages-panel panel">
+      <div class="panel-heading"><div><span class="section-kicker">ESTRUCTURA</span><h2>Páginas</h2></div><button id="addPageButton" class="icon-button" title="Agregar página">+</button></div>
+      <div id="pageList" class="page-list"></div><p class="hint">Arrastrá para ordenar. Máximo 8 páginas.</p>
+      <button id="deviceSettingsButton" class="settings-card"><span class="settings-icon">⚙</span><span><strong>Configuración</strong><small>Pantalla, reposo y sonido</small></span></button>
+    </aside>
+    <section class="editor-panel panel">
+      <div class="panel-heading"><div><span class="section-kicker">CONTENIDO</span><h2 id="editorTitle">Página</h2></div><div class="inline-actions"><button id="duplicateButton" class="text-button">Duplicar</button><button id="deleteButton" class="text-button danger">Eliminar</button></div></div>
+      <div id="pageForm" class="page-form"></div>
+      <div id="controlsHeading" class="controls-heading"><div><span class="section-kicker">CONTROLES</span><h3>Contenido de la página</h3></div><button id="addControlButton" class="button secondary hidden">Agregar valor</button></div>
+      <div id="controlList" class="control-list"></div>
+    </section>
+    <aside class="preview-panel panel">
+      <div class="panel-heading"><div><span class="section-kicker">VISTA PREVIA</span><h2>320 × 240</h2></div></div>
+      <div id="devicePreview" class="device-preview"></div>
+      <div class="entity-state"><span id="entityCount">Entidades: cargando…</span><button id="refreshEntitiesButton" class="text-button">Actualizar</button></div>
+      <div id="validationBox" class="validation-box valid">Configuración lista.</div>
+    </aside>
+  </main>
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js?v=11" defer></script>
+</body>
+</html>

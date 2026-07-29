@@ -1,0 +1,135 @@
+# Contrato JSON v1
+
+## Documento
+
+- `schema_version`: obligatorio; actualmente `1`.
+- `screensaver_timeout`: segundos de inactividad antes de activar el protector; entre `0` y `3600`. El valor `0` lo desactiva.
+- `settings`: configuración general del dispositivo. Es opcional para conservar compatibilidad con documentos anteriores.
+- `pages`: entre 1 y 8 páginas.
+- Los IDs de controles deben ser únicos en todo el documento.
+- Puede existir como máximo una página con `screensaver: true`.
+
+## Configuración del dispositivo
+
+`settings.display` controla el brillo manual (`brightness`), el brillo automático por LDR (`auto_brightness`), sus límites (`minimum_brightness`, `maximum_brightness`) y la calibración en voltios (`ldr_dark_voltage`, `ldr_bright_voltage`).
+
+El editor obtiene la lectura actual del LDR mediante telemetría MQTT retenida y permite copiarla a cualquiera de los dos extremos de calibración. La telemetría es auxiliar y no forma parte del documento JSON.
+
+`settings.inactivity` define `timeout`, `mode` y `dim_brightness`. Los modos admitidos son `clock_weather`, `screen_off`, `dim` y `none`.
+
+`settings.night` define `enabled`, `start`, `end`, `brightness` y `mode`. Las horas usan `HH:MM` y admiten intervalos que cruzan medianoche.
+
+`settings.sound` define `enabled`, los interruptores `touch`, `navigation` y `notifications`, sus volúmenes independientes `touch_volume`, `navigation_volume` y `notification_volume` (0 a 10), y `mute_at_night`. La escala es perceptual, no lineal. `volume` se conserva como respaldo compatible para configuraciones anteriores.
+
+`settings.touchscreen` guarda la calibración individual del panel resistivo mediante `x_min`, `x_max`, `y_min` y `y_max` (valores crudos de 0 a 4095). El asistente del configurador calcula estos límites con cuatro puntos, los aplica inmediatamente y solo reemplaza la configuración persistente cuando el usuario guarda.
+
+Durante la transición, el editor mantiene sincronizado el antiguo `screensaver_timeout` con `settings.inactivity.timeout`.
+
+## Campos de página
+
+- `template`: nombre registrado del template.
+- `variant`: variante semántica admitida por el template.
+- `title`: texto obligatorio y no vacío, salvo en `clock_weather/screensaver`, donde puede omitirse visualmente con una cadena vacía.
+- `screensaver`: booleano opcional; solo válido para `clock_weather`.
+- `controls`: controles requeridos por el contrato del template.
+
+## Campos de control
+
+- `type`: `button` o `value` según el template.
+- `id`: identificador opaco y globalmente único.
+- `role`: función semántica dentro de templates especializados.
+- `caption`: texto visible.
+- `color`: formato `#RRGGBB`.
+- `unit`: unidad opcional para valores.
+- `action`: acción genérica emitida al tocar.
+- `icon`: nombre MDI opcional usado en ambos estados, por ejemplo `mdi:thermometer`.
+- `icon_on`: nombre MDI opcional usado cuando el control está activo.
+- `icon_off`: nombre MDI opcional usado cuando el control está inactivo.
+- `meta`: objeto opcional reservado para evolución futura.
+
+Los iconos deben pertenecer al catálogo reducido incluido en el firmware. Un
+nombre MDI desconocido invalida la configuración completa, de modo que nunca se
+aplica una interfaz con glifos faltantes. Agregar un nombre nuevo al catálogo
+requiere recompilar una vez; elegir o cambiar entre los iconos ya incluidos no.
+
+## Templates y variantes actuales
+
+### `button_grid`
+
+- Variantes: `two_buttons`, `four_buttons`, `six_buttons`.
+- Controles: exclusivamente `type: button`.
+- Capacidad: 2, 4 o 6 según la variante.
+
+### `climate`
+
+- Variante: `thermostat`.
+- Roles obligatorios: `current_temperature`, `target_temperature`, `decrease`, `power`, `increase`.
+- Los dos valores de temperatura usan `type: value`; las acciones usan `type: button`.
+
+### `clock_weather`
+
+- Variante: `screensaver`.
+- Roles obligatorios: `condition`, `outside_temperature`, `humidity`.
+- Todos los controles son `type: value`.
+
+### `sensor_grid`
+
+- Variante: `four_values`.
+- Entre uno y cuatro controles `type: value`.
+- Admite `unit` y precisión definida en el backend.
+
+### `cover`
+
+- Variante: `position_controls`.
+- Roles obligatorios actuales: `position`, `state`, `open`, `close`, `close_step`, `open_step`.
+- `position` y `state` son valores; los demás son botones.
+- El runtime acepta temporalmente el formato anterior con `stop` para migrar cachés existentes.
+
+## Navegación
+
+- Las flechas recorren las páginas circularmente.
+- La página `screensaver` queda fuera de la navegación manual.
+- Los estados recibidos se conservan al navegar.
+- Agregar, quitar, ordenar o cambiar páginas no requiere recompilar mientras los templates ya existan en firmware.
+
+## MQTT
+
+### Panel hacia backend
+
+Tópico: `esphome_ui/cyd-ui/cmd`.
+
+```json
+{"type":"action","id":"living","action":"toggle"}
+```
+
+```json
+{"type":"sync_request"}
+```
+
+### Backend hacia panel
+
+Tópico: `esphome_ui/cyd-ui/event`.
+
+```json
+{"type":"control_changed","id":"living","active":true,"value":"","reliability":"valid"}
+```
+
+```json
+{"type":"reload"}
+```
+
+```json
+{"type":"sound","sound":"attention"}
+```
+
+`reliability` admite `valid`, `unknown`, `stale`, `disconnected` y `unavailable`; el runtime los representa mediante sus tres estados internos de confiabilidad.
+
+## Aplicación segura y persistencia
+
+1. En el arranque se lee la caché flash.
+2. La caché debe completar parseo y validación antes de aplicarse.
+3. Si la caché es inválida, se usa la configuración embebida.
+4. Al conectar, la configuración remota se descarga por HTTP.
+5. Una candidata remota solo sustituye la UI después de validarse por completo.
+6. La configuración remota aceptada se guarda en flash.
+7. Si una recarga falla, se conserva la interfaz activa.

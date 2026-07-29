@@ -1,0 +1,14 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "CYD UI is already configured."
+    },
+    "step": {
+      "user": {
+        "description": "Create the CYD UI panel inside Home Assistant.",
+        "title": "Set up CYD UI"
+      }
+    }
+  },
+  "title": "CYD UI"
+}

@@ -1,0 +1,407 @@
+esphome:
+  name: cyd-ui
+  friendly_name: CYD UI
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+time:
+  - platform: sntp
+    id: system_time
+    timezone: !secret timezone
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+  ap:
+    ssid: "CYD UI Setup"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+interval:
+  - interval: 2s
+    then:
+      - if:
+          condition:
+            wifi.ap_active:
+          then:
+            - lambda: |-
+                id(ui_engine_main).set_wifi_setup_visible(true, "CYD UI Setup", "12345678");
+          else:
+            - lambda: |-
+                id(ui_engine_main).set_wifi_setup_visible(false, "", "");
+
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_encryption_key
+  actions:
+    - action: play_sound
+      variables:
+        sound: string
+      then:
+        - lambda: id(ui_engine_main).play_notification_sound(sound);
+    - action: update_control
+      variables:
+        control_id: string
+        active: bool
+        value: string
+        reliability: string
+      then:
+        - lambda: |-
+            id(ui_engine_main).update_control(control_id, active, value, reliability);
+    - action: reload_ui
+      then:
+        - lambda: id(ui_engine_main).request_reload();
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+mqtt:
+  broker: !secret mqtt_broker
+  port: 1883
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: false
+  reboot_timeout: 0s
+  topic_prefix: cyd-ui
+  on_connect:
+    - lambda: |-
+        id(ui_engine_main).set_backend_connected(true);
+        id(ui_engine_main).request_reload();
+    - delay: 4s
+    - mqtt.publish_json:
+        topic: esphome_ui/cyd-ui/cmd
+        qos: 1
+        retain: false
+        payload: |-
+          root["type"] = "sync_request";
+  on_disconnect:
+    - lambda: |-
+        id(ui_engine_main).set_backend_connected(false);
+  on_json_message:
+    - topic: esphome_ui/cyd-ui/event
+      qos: 1
+      then:
+        - lambda: |-
+            const std::string type = x["type"] | "";
+            if (type == "reload") {
+              id(ui_engine_main).request_reload();
+            } else if (type == "touch_calibration_start") {
+              id(ui_engine_main).start_touch_calibration();
+            } else if (type == "control_changed") {
+              const std::string control_id = x["id"] | "";
+              const bool active = x["active"] | false;
+              const std::string value = x["value"] | "";
+              const std::string reliability = x["reliability"] | "valid";
+              if (!control_id.empty()) {
+                id(ui_engine_main).update_control(control_id, active, value, reliability);
+              }
+            } else if (type == "sound_preview") {
+              int volume = x["volume"] | 0;
+              if (volume < 0) volume = 0;
+              if (volume > 10) volume = 10;
+              id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
+            } else if (type == "sound") {
+              const std::string sound = x["sound"] | "";
+              id(ui_engine_main).play_notification_sound(sound);
+            }
+
+http_request:
+  id: ui_http
+  timeout: 3s
+  watchdog_timeout: 10s
+  follow_redirects: true
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+spi:
+  - id: display_spi
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+  - id: touch_spi
+    clk_pin: GPIO25
+    mosi_pin: GPIO32
+    miso_pin: GPIO39
+
+output:
+  - platform: ledc
+    id: backlight_output
+    pin: GPIO21
+    frequency: 20kHz
+    channel: 2
+  - platform: ledc
+    id: ui_speaker_output
+    pin: GPIO26
+    channel: 0
+
+sensor:
+  - platform: adc
+    id: ambient_light_voltage
+    pin: GPIO34
+    attenuation: auto
+    update_interval: 1s
+    internal: true
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+    on_value:
+      - lambda: id(ui_engine_main).set_ambient_light(x);
+      - mqtt.publish:
+          topic: esphome_ui/cyd-ui/telemetry/ldr_voltage
+          qos: 0
+          retain: true
+          payload: !lambda |-
+            return str_sprintf("%.3f", x);
+      - mqtt.publish_json:
+          topic: esphome_ui/cyd-ui/telemetry/status
+          qos: 0
+          retain: true
+          payload: !lambda |-
+            root["ldr_voltage"] = x;
+            root["brightness_percent"] = id(ui_engine_main).applied_brightness_percent();
+            root["mode"] = id(ui_engine_main).runtime_mode();
+            root["night"] = id(ui_engine_main).night_active();
+  - platform: template
+    name: "Luz ambiental"
+    id: ambient_light_percent
+    icon: mdi:brightness-percent
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    update_interval: 5s
+    lambda: return id(ui_engine_main).ambient_light_percent();
+
+rtttl:
+  id: ui_sound
+  output: ui_speaker_output
+  gain: 18%
+
+script:
+  - id: ui_sound_tap
+    mode: restart
+    then:
+      - rtttl.play: "tap:d=32,o=6,b=180:c"
+  - id: ui_sound_navigation
+    mode: restart
+    then:
+      - rtttl.play: "nav:d=32,o=6,b=200:g"
+  - id: ui_sound_success
+    mode: restart
+    then:
+      - rtttl.play: "ok:d=32,o=6,b=180:c,e"
+  - id: ui_sound_error
+    mode: restart
+    then:
+      - rtttl.play: "err:d=16,o=4,b=160:g"
+
+button:
+  - platform: template
+    name: "Sonido de atención"
+    icon: mdi:bell-ring
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("attention");
+  - platform: template
+    name: "Sonido de notificación"
+    icon: mdi:bell
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("notification");
+  - platform: template
+    name: "Sonido de éxito"
+    icon: mdi:check-circle
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("success");
+  - platform: template
+    name: "Sonido de advertencia"
+    icon: mdi:alert
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("warning");
+  - platform: template
+    name: "Sonido de error"
+    icon: mdi:close-circle
+    on_press:
+      - lambda: id(ui_engine_main).play_notification_sound("error");
+
+light:
+  - platform: monochromatic
+    id: backlight
+    name: Backlight
+    output: backlight_output
+    restore_mode: ALWAYS_ON
+
+font:
+  # Catálogo MDI deliberadamente reducido: se compilan solo estos glifos.
+  - file: fonts/materialdesignicons-webfont.ttf
+    id: mdi_icons_28
+    size: 28
+    bpp: 4
+    glyphs:
+      - "\U000F0D91" # motion-sensor
+      - "\U000F1435" # motion-sensor-off
+      - "\U000F0335" # lightbulb
+      - "\U000F0E4F" # lightbulb-off
+      - "\U000F081C" # door-open
+      - "\U000F081B" # door-closed
+      - "\U000F05B1" # window-open
+      - "\U000F05AE" # window-closed
+      - "\U000F06DA" # garage-open
+      - "\U000F06D9" # garage
+      - "\U000F050F" # thermometer
+      - "\U000F058E" # water-percent
+      - "\U000F0599" # weather-sunny
+      - "\U000F0594" # weather-night
+      - "\U000F0590" # weather-cloudy
+      - "\U000F0597" # weather-rainy
+      - "\U000F0438" # radiator
+      - "\U000F001B" # air-conditioner
+      - "\U000F0210" # fan
+      - "\U000F1011" # blinds-open
+      - "\U000F00AC" # blinds
+      - "\U000F033E" # lock
+      - "\U000F033F" # lock-open
+      - "\U000F0425" # power
+      - "\U000F02DC" # home
+      - "\U000F070D" # robot-vacuum
+      - "\U000F04C3" # speaker
+      - "\U000F009A" # bell
+      - "\U000F0026" # alert
+      - "\U000F05E0" # check-circle
+      - "\U000F0159" # close-circle
+      - "\U000F05A9" # wifi
+      - "\U000F05AA" # wifi-off
+      - "\U000F0079" # battery
+      - "\U000F0083" # battery-alert
+      - "\U000F0208" # eye
+      - "\U000F0209" # eye-off
+      - "\U000F0521" # toggle-switch
+      - "\U000F0522" # toggle-switch-off
+      - "\U000F005D" # arrow-up
+      - "\U000F0045" # arrow-down
+      - "\U000F004D" # arrow-left
+      - "\U000F0054" # arrow-right
+      - "\U000F040A" # play
+      - "\U000F03E4" # pause
+      - "\U000F04DB" # stop
+      - "\U000F02FC" # information
+      - "\U000F029A" # gauge
+      - "\U000F0238" # fire
+      - "\U000F0717" # snowflake
+
+display:
+  - platform: mipi_spi
+    id: cyd_display
+    spi_id: display_spi
+    model: ESP32-2432S028
+    auto_clear_enabled: false
+    update_interval: never
+
+touchscreen:
+  - platform: xpt2046
+    id: cyd_touch
+    spi_id: touch_spi
+    cs_pin: GPIO33
+    interrupt_pin: GPIO36
+    threshold: 400
+    calibration:
+      x_min: 200
+      x_max: 3700
+      y_min: 240
+      y_max: 3800
+    transform:
+      mirror_x: true
+    on_touch:
+      - lambda: |-
+          if (!id(ui_engine_main).handle_calibration_touch(touch)) {
+            id(ui_engine_main).notify_activity();
+          }
+    on_update:
+      - lambda: id(ui_engine_main).handle_calibration_update(touches);
+    on_release:
+      - lambda: |-
+          if (!id(ui_engine_main).handle_calibration_release()) {
+            id(ui_engine_main).notify_touch_released();
+          }
+
+lvgl:
+  id: cyd_lvgl
+  rotation: 90
+  displays:
+    - cyd_display
+  touchscreens:
+    - touchscreen_id: cyd_touch
+  buffer_size: 8%
+  bg_color: 0x101820
+  text_color: 0xFFFFFF
+  widgets:
+    - button:
+        hidden: true
+        widgets:
+          - label:
+              text: "ui_engine module declaration"
+
+ui_engine:
+  id: ui_engine_main
+  config_file: examples/ui.example.json
+  http_request_id: ui_http
+  config_url: !secret ui_config_url
+  time_id: system_time
+  icon_font_id: mdi_icons_28
+  backlight_output_id: backlight_output
+  sound_id: ui_sound
+  touchscreen_id: cyd_touch
+  screensaver_timeout: 30s
+  on_action:
+    - if:
+        condition:
+          lambda: return id(ui_engine_main).prepare_touch_sound();
+        then:
+          - script.execute: ui_sound_tap
+    - logger.log:
+        format: "UI action: control_id=%s action=%s"
+        args:
+          - control_id.c_str()
+          - action.c_str()
+    - homeassistant.event:
+        event: esphome.cyd_ui_action
+        data:
+          control_id: !lambda return control_id;
+          action: !lambda return action;
+    - mqtt.publish_json:
+        topic: esphome_ui/cyd-ui/cmd
+        qos: 1
+        retain: false
+        payload: |-
+          root["type"] = "action";
+          root["id"] = control_id;
+          root["action"] = action;
+  on_navigation:
+    - if:
+        condition:
+          lambda: return id(ui_engine_main).prepare_navigation_sound();
+        then:
+          - script.execute: ui_sound_navigation
+  on_calibration:
+    - mqtt.publish_json:
+        topic: esphome_ui/cyd-ui/telemetry/touch_calibration
+        qos: 1
+        retain: true
+        payload: |-
+          root["success"] = success;
+          root["x_min"] = x_min;
+          root["x_max"] = x_max;
+          root["y_min"] = y_min;
+          root["y_max"] = y_max;
+          root["completed_at"] = millis();
