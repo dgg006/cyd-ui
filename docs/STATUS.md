@@ -43,8 +43,8 @@ Actualizado: 2026-07-29
 
 ## Memoria de referencia
 
-- DRAM estática: 53.284 bytes (29,5 %).
-- Firmware con API cifrada, portal cautivo, OTA, MDI y telemetría: 1.549.891 bytes (84,5 % de la partición de aplicación).
+- DRAM estática: 53.412 bytes (29,6 %).
+- Firmware con API cifrada, portal cautivo, OTA, MDI, telemetría y selector de dos redes: 1.551.615 bytes (84,6 % de la partición de aplicación).
 - Margen de firmware restante: 16 %. Antes de sumar dependencias grandes debe revisarse nuevamente el tamaño.
 
 ## Próximo hito
@@ -99,3 +99,7 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - La configuración dinámica de páginas continúa dependiendo, por ahora, del servidor HTTP y del backend MQTT; el firmware conserva en flash la última interfaz válida cuando esos servicios no están disponibles.
 - El Home Assistant de destino fue comprobado en modo lectura: versión 2026.7.4, integración ESPHome cargada y Mosquitto broker cargado. No es necesario instalar esas dos piezas para la prueba doméstica.
 - Prueba de aislamiento realizada: con servidor JSON, puente y broker LAN detenidos, la API del dispositivo continuó accesible; al restaurar los servicios, todos los canales volvieron a estar disponibles.
+- Firmware final de traslado cargado: selecciona automáticamente `ServiCell` o `Red_IOT` desde secretos privados.
+- Portal de recuperación simplificado a `CYD UI Setup` / `12345678`; sus datos aparecen en la pantalla cuando se activa.
+- Dos automatizaciones nativas instaladas en Home Assistant para comandos y sincronización de estados sin depender de la PC del taller.
+- Ruta nativa de comando validada con `switch.sonoff_1001327309_2`; no se accionó el calefactor.

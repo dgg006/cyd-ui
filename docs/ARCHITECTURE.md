@@ -936,6 +936,20 @@ HTTP, flash y configuración embebida son fuentes de datos, no garantías de val
 
 La primera interfaz de configuración es una aplicación web local servida desde el mismo repositorio. Lee y escribe los contratos existentes, consulta las entidades mediante la API de Home Assistant sin exponer el token al navegador, valida antes de guardar, conserva una copia recuperable y ordena la recarga por MQTT. Este corte permite probar la experiencia completa sin empaquetar prematuramente una integración o panel de Home Assistant. El formato de `ui.json` y `backend-map.json` no depende de esta interfaz, por lo que más adelante podrá alojarse como panel o iframe sin modificar el firmware.
 
+### ADR-022: Puente nativo temporal para la primera instalación doméstica
+
+**Estado:** Cerrada e implementada.
+
+La API nativa de ESPHome se utiliza temporalmente como transporte completo cuando el backend de desarrollo no está disponible. Dos automatizaciones generadas desde `backend-map.json` traducen pulsaciones a servicios autorizados y estados de Home Assistant a `update_control`. El firmware conserva identificadores opacos y no incorpora entidades. Esta solución permite validar el uso autónomo real sin convertir todavía el editor local en un complemento, y puede retirarse cuando exista el backend instalable definitivo.
+
+El generador aplica una lista positiva: solo crea ramas para controles con entidad, acción y `allow_control`. El encendido del calefactor queda fuera del contrato; únicamente se permite ajustar su objetivo.
+
+### ADR-023: Credenciales conocidas más portal visible para traslado entre redes
+
+**Estado:** Cerrada e implementada.
+
+Las redes autorizadas se declaran en `secrets.yaml` y el firmware selecciona automáticamente la disponible. El portal cautivo es un mecanismo de recuperación, no el método normal de instalación. Cuando se activa, un overlay bloqueante muestra en la CYD el SSID, la clave simple y `192.168.4.1`, evitando depender de documentación externa y evitando que un toque accidental active controles ocultos.
+
 ## Configurador visual v0.1
 
 No se priorizarán más templates hasta resolver la experiencia de configuración. La primera versión implementa:
@@ -966,6 +980,8 @@ Queda para la siguiente iteración la confirmación explícita de aceptación de
 - Recuperación segura ante configuración incompatible.
 - Configurador visual local v0.1 con selección de entidades, vista previa, validación, historial y recarga.
 - API nativa cifrada para hardware fijo, portal Wi-Fi de emergencia y actualización OTA.
+- Puente nativo de Home Assistant para la primera prueba doméstica autónoma.
+- Selección automática de redes conocidas y overlay de recuperación Wi-Fi.
 
 ### Siguiente
 
@@ -973,7 +989,7 @@ Queda para la siguiente iteración la confirmación explícita de aceptación de
 - Confirmación de aceptación o rechazo enviada por la CYD.
 - Restauración desde el historial.
 - Formularios de backend específicos para climate, cover y otros dominios.
-- Validación de la incorporación del panel a Home Assistant en su red definitiva.
+- Validación física de la incorporación del panel a Home Assistant en `Red_IOT`.
 
 ### Posterior
 

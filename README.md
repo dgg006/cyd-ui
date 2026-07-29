@@ -23,6 +23,8 @@ Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP3
 - Configuración general desde el editor: brillo PWM, LDR, reposo, horario nocturno y volumen/sonidos.
 - Integración directa con Home Assistant para brillo, LDR y sonidos, sin depender del puente MQTT.
 - Portal Wi-Fi de emergencia y OTA preparados para trasladar el panel entre redes.
+- Puente nativo temporal instalado en Home Assistant para que los controles y estados actuales funcionen sin la PC de desarrollo.
+- Selección automática entre las redes autorizadas y datos del portal de emergencia visibles en la propia CYD.
 
 ## Configurador visual
 
@@ -48,3 +50,9 @@ esphome upload cyd-ui.yaml --device COM57
 
 La instalación en Home Assistant y el traslado entre redes están explicados en
 [`docs/HOME_ASSISTANT_SETUP.md`](docs/HOME_ASSISTANT_SETUP.md).
+
+El puente nativo temporal se genera desde el mapa actual con:
+
+```powershell
+py -3.13 tools\install_ha_native_bridge.py --install
+```

@@ -525,6 +525,54 @@ float UiEngineComponent::ambient_light_percent() const {
   return ratio * 100.0f;
 }
 
+void UiEngineComponent::set_wifi_setup_visible(bool visible, const std::string &ssid,
+                                               const std::string &password) {
+  if (!visible) {
+    if (this->wifi_setup_overlay_ != nullptr) lv_obj_add_flag(this->wifi_setup_overlay_, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
+
+  this->notify_activity();
+  if (this->wifi_setup_overlay_ == nullptr) {
+    this->wifi_setup_overlay_ = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(this->wifi_setup_overlay_, LV_PCT(100), LV_PCT(100));
+    lv_obj_align(this->wifi_setup_overlay_, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_style_bg_color(this->wifi_setup_overlay_, lv_color_hex(0x101820), 0);
+    lv_obj_set_style_bg_opa(this->wifi_setup_overlay_, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(this->wifi_setup_overlay_, 0, 0);
+    lv_obj_set_style_radius(this->wifi_setup_overlay_, 0, 0);
+    lv_obj_remove_flag(this->wifi_setup_overlay_, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *title = lv_label_create(this->wifi_setup_overlay_);
+    lv_label_set_text(title, "CONFIGURAR WI-FI");
+    lv_obj_set_style_text_color(title, lv_color_hex(0x55C8FF), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 18);
+
+    lv_obj_t *network = lv_label_create(this->wifi_setup_overlay_);
+    lv_label_set_text_fmt(network, "Red: %s", ssid.c_str());
+    lv_obj_set_style_text_color(network, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(network, LV_ALIGN_TOP_MID, 0, 62);
+
+    lv_obj_t *key = lv_label_create(this->wifi_setup_overlay_);
+    lv_label_set_text_fmt(key, "Clave: %s", password.c_str());
+    lv_obj_set_style_text_color(key, lv_color_hex(0xFFD166), 0);
+    lv_obj_align(key, LV_ALIGN_TOP_MID, 0, 92);
+
+    lv_obj_t *help = lv_label_create(this->wifi_setup_overlay_);
+    lv_label_set_text(help, "Abrir en el telefono:");
+    lv_obj_set_style_text_color(help, lv_color_hex(0xB8C4CC), 0);
+    lv_obj_align(help, LV_ALIGN_TOP_MID, 0, 137);
+
+    lv_obj_t *address = lv_label_create(this->wifi_setup_overlay_);
+    lv_label_set_text(address, "192.168.4.1");
+    lv_obj_set_style_text_color(address, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_align(address, LV_ALIGN_TOP_MID, 0, 166);
+  }
+
+  lv_obj_remove_flag(this->wifi_setup_overlay_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(this->wifi_setup_overlay_);
+}
+
 float UiEngineComponent::base_brightness_percent() const {
   const auto &display = this->active_config_.settings.display;
   float brightness = static_cast<float>(display.brightness);

@@ -53,6 +53,7 @@ class UiEngineComponent : public Component {
   bool play_notification_sound(const std::string &sound);
   void preview_notification_sound(uint8_t volume);
   float ambient_light_percent() const;
+  void set_wifi_setup_visible(bool visible, const std::string &ssid, const std::string &password);
   void start_touch_calibration();
   bool handle_calibration_touch(const touchscreen::TouchPoint &touch);
   bool handle_calibration_update(const touchscreen::TouchPoints_t &touches);
@@ -141,6 +142,7 @@ class UiEngineComponent : public Component {
   lv_obj_t *calibration_overlay_{nullptr};
   lv_obj_t *calibration_target_{nullptr};
   lv_obj_t *calibration_label_{nullptr};
+  lv_obj_t *wifi_setup_overlay_{nullptr};
   uint32_t calibration_timeout_at_ms_{0};
   uint32_t calibration_close_at_ms_{0};
 };

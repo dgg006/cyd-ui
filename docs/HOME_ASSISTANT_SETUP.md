@@ -2,100 +2,96 @@
 
 Actualizado: 2026-07-29
 
-## Qué funciona directamente con Home Assistant
+## Estado actual
 
-El firmware expone por la API nativa cifrada de ESPHome:
+El firmware ya contiene las dos redes de desarrollo autorizadas:
 
-- `Backlight`: encendido y nivel de brillo de la pantalla.
-- `Luz ambiental`: lectura porcentual del LDR frontal.
+- `ServiCell`, para las pruebas en el taller.
+- `Red_IOT`, para la prueba doméstica.
+
+Las contraseñas se leen desde `secrets.yaml`; no están escritas en el YAML público ni se incorporan a la documentación. Al encender, ESPHome elige automáticamente la red disponible.
+
+Si ninguna red funciona, la pantalla muestra los datos del portal de emergencia:
+
+```text
+Red: CYD UI Setup
+Clave: 12345678
+Dirección: 192.168.4.1
+```
+
+El portal es solo un mecanismo de recuperación. Para la primera prueba en casa no debería ser necesario.
+
+## Primera prueba real en casa
+
+1. Conectar la CYD a la alimentación y esperar entre 30 y 90 segundos.
+2. Abrir Home Assistant en el teléfono.
+3. Ir a **Ajustes → Dispositivos y servicios**.
+4. Si aparece el dispositivo descubierto `CYD UI Lab`, pulsar **Configurar**.
+5. Si no aparece, pulsar **Añadir integración → ESPHome** e introducir `cyd-ui.local`.
+6. Cuando Home Assistant solicite la clave de cifrado, usar `api_encryption_key` de `secrets.yaml`.
+7. Activar **Permitir que el dispositivo realice acciones de Home Assistant**. Esta autorización es necesaria para que las pulsaciones de la pantalla lleguen a las automatizaciones.
+8. Esperar hasta un minuto después de completar la integración.
+
+Resultado esperado:
+
+- La entidad `Backlight` controla encendido y brillo.
+- `Luz ambiental` muestra el LDR frontal.
+- Los cinco botones de sonido reproducen sus avisos.
+- El botón Living controla `switch.sonoff_1001327309_2`.
+- Los estados configurados se actualizan en la pantalla.
+- Los botones `-` y `+` del calefactor pueden modificar su temperatura objetivo.
+- Ninguna automatización instalada puede encender el calefactor.
+
+## Puente nativo instalado
+
+Se instalaron en Home Assistant dos automatizaciones temporales:
+
+- `CYD UI - Ejecutar controles`: recibe `esphome.cyd_ui_action` y ejecuta solamente las acciones autorizadas en el mapa actual.
+- `CYD UI - Sincronizar estados`: envía a la pantalla los estados actuales al iniciar Home Assistant, cuando cambia una entidad y cada minuto como recuperación.
+
+Este puente permite la prueba doméstica completa sin ejecutar en la PC del taller el broker, el servidor JSON ni `ha_bridge.py`. Se generó desde `config/backend-map.json` con:
+
+```powershell
+py -3.13 tools\install_ha_native_bridge.py --install
+```
+
+El encendido del calefactor no forma parte de las acciones generadas. Solo se leen sus valores y se permite cambiar la temperatura objetivo.
+
+## Configurador visual
+
+El editor de `http://127.0.0.1:8125` todavía es una herramienta local de desarrollo. No está alojado dentro de Home Assistant. Esta limitación no impide la prueba de esta noche: la CYD conserva en flash la última interfaz válida y las automatizaciones nativas conectan esa interfaz con Home Assistant.
+
+Convertir el editor en un panel o complemento instalable de Home Assistant es un hito posterior. La configuración actual no se perderá por apagar o trasladar la placa.
+
+## Entidades y acciones nativas
+
+El firmware expone mediante la API cifrada de ESPHome:
+
+- `Backlight`.
+- `Luz ambiental`.
 - Cinco botones de sonido: atención, notificación, éxito, advertencia y error.
 - Acción `esphome.cyd_ui_play_sound` con el argumento `sound`.
 - Acción `esphome.cyd_ui_update_control` para actualizar un control genérico.
-- Acción `esphome.cyd_ui_reload_ui` para solicitar una recarga de configuración.
-- Evento `esphome.cyd_ui_action` con `control_id` y `action` cuando se toca un control.
+- Acción `esphome.cyd_ui_reload_ui` para solicitar una recarga.
+- Evento `esphome.cyd_ui_action` con `control_id` y `action` al tocar un control.
 
-Los nombres exactos de las entidades pueden recibir un prefijo de dispositivo al incorporarse a Home Assistant.
-
-## Primera conexión en una red nueva
-
-1. Encender la CYD y esperar aproximadamente 90 segundos.
-2. Si no reconoce la red guardada, buscar desde el teléfono la red Wi-Fi `CYD UI Setup`.
-3. Conectarse usando la contraseña privada guardada en `secrets.yaml` como `fallback_ap_password`.
-4. Si el portal no se abre solo, visitar `http://192.168.4.1`.
-5. Elegir la red Wi-Fi de la casa y escribir su contraseña.
-6. Esperar a que la red temporal desaparezca y la CYD se conecte a la red elegida.
-
-La interfaz anterior se conserva en flash. La ausencia del servidor HTTP o del broker MQTT no deja la pantalla en blanco ni provoca reinicios.
-
-Este comportamiento fue comprobado en laboratorio deteniendo simultáneamente el servidor JSON, el puente y el broker accesible por LAN: la API del dispositivo permaneció operativa y los servicios se reconectaron al restaurarlos.
-
-## Incorporación a Home Assistant
-
-El servidor de destino ya fue verificado: Home Assistant 2026.7.4 tiene cargados ESPHome y el complemento Mosquitto broker.
-
-1. Abrir **Ajustes → Dispositivos y servicios**.
-2. Esperar el descubrimiento de `CYD UI Lab` y pulsar **Configurar**.
-3. Si no aparece, usar **Añadir integración → ESPHome** e introducir `cyd-ui.local`.
-4. Cuando lo solicite, copiar la clave `api_encryption_key` del archivo privado `secrets.yaml`.
-5. Habilitar la opción que permite al dispositivo ejecutar acciones de Home Assistant si se desea recibir `esphome.cyd_ui_action`.
-
-## Ejemplos de automatización
-
-Reproducir una notificación:
-
-```yaml
-action:
-  - action: esphome.cyd_ui_play_sound
-    data:
-      sound: notification
-```
-
-Sonidos admitidos:
-
-- `attention`
-- `notification`
-- `success`
-- `warning`
-- `error`
-
-También es posible usar los botones del dispositivo con una acción `button.press`; esto resulta cómodo desde la interfaz gráfica de automatizaciones.
-
-Escuchar pulsaciones genéricas del panel:
-
-```yaml
-triggers:
-  - trigger: event
-    event_type: esphome.cyd_ui_action
-    event_data:
-      control_id: living
-actions:
-  - action: light.toggle
-    target:
-      entity_id: light.living
-```
-
-El ejemplo es ilustrativo: el firmware solo emite un identificador opaco y no conoce la entidad real.
-
-## Qué requiere todavía el backend dinámico
-
-La API nativa cubre el hardware fijo del panel y ofrece acciones genéricas. Las páginas configurables, el mapa hacia entidades arbitrarias y la sincronización automática de todos sus estados continúan usando:
-
-- `configurator/server.py` para editar `ui.json` y `backend-map.json`;
-- el servidor HTTP local para entregar `ui.json`;
-- MQTT y `tools/ha_bridge.py` para traducir estados y comandos dinámicos.
-
-Por eso, en una prueba doméstica sin esos servicios, la CYD mostrará la última interfaz guardada y Home Assistant podrá usar LDR, brillo y sonidos, pero los botones dinámicos no controlarán entidades hasta trasladar o reemplazar el backend.
-
-## Camino previsto para la integración completa
-
-1. Validar primero la API nativa y las entidades fijas en la red doméstica.
-2. Empaquetar configurador, servidor JSON y puente como un servicio instalable junto a Home Assistant.
-3. Mantener `ui.json` y `backend-map.json` como contratos independientes del editor.
-4. Evaluar una integración personalizada de Home Assistant cuando el contrato sea estable; no introducirla prematuramente en el firmware.
+Los nombres de servicios pueden incluir el nombre del dispositivo cuando Home Assistant los registra.
 
 ## Recuperación
 
-- Si cambia el Wi-Fi: usar `CYD UI Setup` y el portal `192.168.4.1`.
-- Si Home Assistant no descubre la placa: comprobar que el teléfono, Home Assistant y la CYD estén en la misma red y probar con la IP asignada por el router.
-- Si falta el backend: la interfaz cacheada sigue visible; las entidades nativas continúan disponibles.
-- Si una actualización falla: la partición OTA anterior queda como respaldo del mecanismo de ESPHome.
+- Si la CYD muestra `CONFIGURAR WI-FI`, conectarse a `CYD UI Setup` con `12345678` y abrir `http://192.168.4.1`.
+- Si Home Assistant no descubre la placa, confirmar que Home Assistant y la CYD alcanzan la misma red y probar con la IP que le asignó el router.
+- Si `cyd-ui.local` no resuelve entre VLAN o redes separadas, usar esa IP directamente.
+- Si los controles aparecen naranjas al principio, esperar un minuto: indica que todavía no llegó la primera sincronización.
+- Si los botones físicos no ejecutan acciones, revisar que se haya autorizado al dispositivo a realizar acciones de Home Assistant.
+- La falta del backend de desarrollo no borra la interfaz: se usa la copia validada de la caché flash.
+
+## Verificación realizada antes del traslado
+
+- Firmware compilado y cargado por USB.
+- Conexión a la red del taller recuperada después de reiniciar.
+- API cifrada accesible en el puerto 6053.
+- Siete entidades y tres acciones nativas enumeradas correctamente.
+- Automatizaciones instaladas y activas en Home Assistant.
+- Ruta completa de comando probada con el control Living: encendido, confirmación de estado y restauración a apagado.
+- No se accionó el calefactor.
