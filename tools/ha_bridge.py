@@ -120,7 +120,7 @@ def main():
                     "value": value,
                     "reliability": "unavailable" if unavailable else "valid",
                 }
-        except (OSError, KeyError, urllib.error.HTTPError, urllib.error.URLError):
+        except (OSError, KeyError, TypeError, ValueError, urllib.error.HTTPError, urllib.error.URLError):
             event = {
                 "type": "control_changed",
                 "id": control_id,

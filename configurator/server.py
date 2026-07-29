@@ -113,6 +113,8 @@ def fetch_ha_entities() -> list[dict[str, Any]]:
             "domain": entity_id.partition(".")[0],
             "name": attributes.get("friendly_name", entity_id),
             "state": state.get("state", ""),
+            "device_class": attributes.get("device_class", ""),
+            "unit": attributes.get("unit_of_measurement", ""),
             "attributes": sorted(attributes.keys()),
         })
     return sorted(entities, key=lambda item: (item["domain"], item["name"].casefold()))
