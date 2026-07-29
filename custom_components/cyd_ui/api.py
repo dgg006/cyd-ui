@@ -24,6 +24,7 @@ def _domain_data(hass: HomeAssistant) -> dict[str, Any]:
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/status"})
+@websocket_api.require_admin
 @callback
 def websocket_status(
     hass: HomeAssistant,
@@ -31,7 +32,6 @@ def websocket_status(
     msg: dict[str, Any],
 ) -> None:
     """Return bootstrap and persistent-storage status."""
-    connection.require_admin()
     storage: CydUiStorage = _domain_data(hass)["storage"]
     connection.send_result(
         msg["id"],
@@ -48,6 +48,7 @@ def websocket_status(
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/status"})
+@websocket_api.require_admin
 @callback
 def websocket_bridge_status(
     hass: HomeAssistant,
@@ -55,11 +56,11 @@ def websocket_bridge_status(
     msg: dict[str, Any],
 ) -> None:
     """Return bridge ownership and legacy automation state."""
-    connection.require_admin()
     connection.send_result(msg["id"], bridge_status(hass))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/migrate"})
+@websocket_api.require_admin
 @websocket_api.async_response
 async def websocket_bridge_migrate(
     hass: HomeAssistant,
@@ -67,11 +68,11 @@ async def websocket_bridge_migrate(
     msg: dict[str, Any],
 ) -> None:
     """Atomically transfer ownership to the native bridge."""
-    connection.require_admin()
     connection.send_result(msg["id"], await async_migrate_to_native_bridge(hass))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/bridge/rollback"})
+@websocket_api.require_admin
 @websocket_api.async_response
 async def websocket_bridge_rollback(
     hass: HomeAssistant,
@@ -79,11 +80,11 @@ async def websocket_bridge_rollback(
     msg: dict[str, Any],
 ) -> None:
     """Restore generated automations and stop native ownership."""
-    connection.require_admin()
     connection.send_result(msg["id"], await async_rollback_to_automations(hass))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/config/get"})
+@websocket_api.require_admin
 @callback
 def websocket_config_get(
     hass: HomeAssistant,
@@ -91,7 +92,6 @@ def websocket_config_get(
     msg: dict[str, Any],
 ) -> None:
     """Return the current project to the administration panel."""
-    connection.require_admin()
     storage: CydUiStorage = _domain_data(hass)["storage"]
     connection.send_result(msg["id"], storage.data)
 
@@ -103,6 +103,7 @@ def websocket_config_get(
         vol.Required("backend_map"): dict,
     }
 )
+@websocket_api.require_admin
 @websocket_api.async_response
 async def websocket_config_save(
     hass: HomeAssistant,
@@ -110,7 +111,6 @@ async def websocket_config_save(
     msg: dict[str, Any],
 ) -> None:
     """Validate and atomically persist a complete project."""
-    connection.require_admin()
     storage: CydUiStorage = _domain_data(hass)["storage"]
     errors = await storage.async_save(msg["ui"], msg["backend_map"])
     if errors:
@@ -133,6 +133,7 @@ async def websocket_config_save(
         vol.Required("backend_map"): dict,
     }
 )
+@websocket_api.require_admin
 @callback
 def websocket_config_validate(
     hass: HomeAssistant,
@@ -140,12 +141,12 @@ def websocket_config_validate(
     msg: dict[str, Any],
 ) -> None:
     """Validate a draft without persisting it."""
-    connection.require_admin()
     errors = validate_document(msg["ui"], msg["backend_map"])
     connection.send_result(msg["id"], {"valid": not errors, "errors": errors})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/entities/list"})
+@websocket_api.require_admin
 @callback
 def websocket_entities_list(
     hass: HomeAssistant,
@@ -153,7 +154,6 @@ def websocket_entities_list(
     msg: dict[str, Any],
 ) -> None:
     """Return searchable entity metadata without an external access token."""
-    connection.require_admin()
     entities = []
     for state in hass.states.async_all():
         attributes = state.attributes

@@ -4,7 +4,7 @@ Motor declarativo de interfaces LVGL para la pantalla
 **ESP32-2432S028R (Cheap Yellow Display)**, integrado con ESPHome y Home
 Assistant.
 
-> Estado: **versión preliminar 0.1.1**. El firmware fue validado en hardware
+> Estado: **versión preliminar 0.1.2**. El firmware fue validado en hardware
 > real, pero la instalación HACS y la migración del puente nativo todavía deben
 > probarse en una instancia separada antes de considerarse estables.
 

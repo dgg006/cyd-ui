@@ -12,7 +12,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parent.parent
 INTEGRATION = ROOT / "custom_components" / "cyd_ui"
 DIST = ROOT / "dist"
-PACKAGE = DIST / "cyd-ui-ha-0.1.1.zip"
+PACKAGE = DIST / "cyd-ui-ha-0.1.2.zip"
 EXCLUDED_SUFFIXES = {".pyc"}
 PRIVATE_MARKERS = (
     "C:\\Users\\",
