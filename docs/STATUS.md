@@ -108,3 +108,11 @@ La arquitectura completa y las decisiones actualizadas están en `docs/ARCHITECT
 - El límite compartido de descarga HTTP y caché flash se amplió de 8 a 16 KiB después de detectar correctamente el crecimiento de la configuración a 8.407 bytes.
 - `Guardar y aplicar` actualiza ahora la pantalla y regenera las automatizaciones nativas de Home Assistant en una sola operación; los fallos se informan por separado.
 - La activación del calefactor requiere dos toques dentro de tres segundos; apagarlo requiere uno. La generación solo alterna entre `off` y `heat` y no se probó la activación fuera de casa.
+
+# Actualización 2026-07-29 — distribución mediante HACS
+
+- Creado el bootstrap de una integración personalizada `cyd_ui` compatible con la estructura exigida por HACS.
+- La integración dispone de flujo de alta gráfico, traducciones en español e inglés y un panel administrativo inicial en la barra lateral.
+- El recurso web y el comando WebSocket de diagnóstico quedan encapsulados dentro de `custom_components/cyd_ui`.
+- La integración todavía no se instala en el Home Assistant doméstico: primero debe recibir el editor real, almacenamiento administrado y pruebas de carga/descarga.
+- Antes de publicarla se deben definir la URL y el propietario definitivos del repositorio, reemplazando los marcadores `OWNER` del manifiesto.

@@ -942,7 +942,7 @@ La primera interfaz de configuración es una aplicación web local servida desde
 
 La API nativa de ESPHome se utiliza temporalmente como transporte completo cuando el backend de desarrollo no está disponible. Dos automatizaciones generadas desde `backend-map.json` traducen pulsaciones a servicios autorizados y estados de Home Assistant a `update_control`. El firmware conserva identificadores opacos y no incorpora entidades. Esta solución permite validar el uso autónomo real sin convertir todavía el editor local en un complemento, y puede retirarse cuando exista el backend instalable definitivo.
 
-El generador aplica una lista positiva: solo crea ramas para controles con entidad, acción y `allow_control`. El encendido del calefactor queda fuera del contrato; únicamente se permite ajustar su objetivo.
+El generador aplica una lista positiva: solo crea ramas para controles con entidad, acción y `allow_control`. Para la prueba doméstica, el control de potencia del calefactor está incluido de forma explícita y restringida a alternar entre `off` y `heat`; la pantalla exige una confirmación local de dos toques para encender. Fuera de esa prueba no se autoriza accionarlo remotamente sin permiso del usuario.
 
 ### ADR-023: Credenciales conocidas más portal visible para traslado entre redes
 
@@ -963,6 +963,12 @@ Cuando el control de climatización está apagado, el primer toque no emite ning
 Mientras el configurador se ejecuta localmente, `Guardar y aplicar` coordina tres operaciones independientes: escritura atómica de los contratos, recarga de la CYD y regeneración de las automatizaciones nativas de Home Assistant. Un fallo de red no revierte los archivos válidos y se informa indicando qué destino falló. Esta coordinación desaparecerá como dependencia local cuando el configurador se empaquete como integración de Home Assistant.
 
 El tamaño máximo compartido para transporte HTTP y caché flash es 16 KiB. El límite se mantiene único en `config_limits.h` para impedir divergencias entre descarga y persistencia.
+
+### ADR-026: Integración personalizada como destino del configurador
+
+**Estado:** Bootstrap implementado; migración funcional pendiente.
+
+La distribución final de la parte Home Assistant será una integración personalizada instalable mediante HACS. El repositorio conserva una sola carpeta bajo `custom_components`, ofrece alta mediante la interfaz gráfica y registra un panel administrativo propio. El editor local continúa siendo la implementación funcional hasta que el panel de Home Assistant incorpore almacenamiento administrado, acceso directo a entidades y entrega de configuración a los dispositivos. El firmware sigue instalándose de forma independiente mediante ESPHome; HACS no reemplaza esa instalación.
 
 ## Configurador visual v0.1
 

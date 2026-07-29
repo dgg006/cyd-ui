@@ -51,6 +51,10 @@ esphome upload cyd-ui.yaml --device COM57
 La instalación en Home Assistant y el traslado entre redes están explicados en
 [`docs/HOME_ASSISTANT_SETUP.md`](docs/HOME_ASSISTANT_SETUP.md).
 
+La futura integración instalable mediante HACS comenzó en
+[`custom_components/cyd_ui`](custom_components/cyd_ui); su alcance y estado están
+documentados en [`docs/HACS_INTEGRATION.md`](docs/HACS_INTEGRATION.md).
+
 El puente nativo temporal se genera desde el mapa actual con:
 
 ```powershell
