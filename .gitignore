@@ -1,10 +1,8 @@
 .esphome/
-config/
-dist/
 secrets.yaml
 *.bin
+mqtt/passwd
 __pycache__/
 *.pyc
-.venv/
-.vscode/
-
+config/history/
+dist/

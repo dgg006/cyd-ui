@@ -29,15 +29,14 @@ MODEL = load_module("model", "model.py")
 
 class IntegrationModelTests(unittest.TestCase):
     def setUp(self):
-        project = json.loads(
-            (PROJECT_ROOT / "examples" / "project.example.json").read_text(
-                encoding="utf-8"
-            )
+        self.ui = json.loads(
+            (PROJECT_ROOT / "config" / "ui.json").read_text(encoding="utf-8")
         )
-        self.ui = project["ui"]
-        self.backend_map = project["backend_map"]
+        self.backend_map = json.loads(
+            (PROJECT_ROOT / "config" / "backend-map.json").read_text(encoding="utf-8")
+        )
 
-    def test_public_example_is_safe_to_import(self):
+    def test_current_project_is_safe_to_import(self):
         self.assertEqual([], MODEL.validate_document(self.ui, self.backend_map))
 
     def test_duplicate_control_is_rejected(self):

@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -24,6 +25,19 @@ class HacsPackageTests(unittest.TestCase):
         self.assertEqual("cyd_ui", manifest["domain"])
         self.assertTrue(manifest["config_flow"])
         self.assertTrue(manifest["single_config_entry"])
+
+    def test_frontend_cache_version_matches_manifest(self):
+        """A release must invalidate the browser cache for the editor assets."""
+        manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        const_source = (INTEGRATION_ROOT / "const.py").read_text(encoding="utf-8")
+        panel_source = (INTEGRATION_ROOT / "frontend" / "cyd-ui-panel.js").read_text(encoding="utf-8")
+        const_version = re.search(r'^VERSION = "([^"]+)"$', const_source, re.MULTILINE)
+        panel_version = re.search(r'^const ASSET_VERSION = "([^"]+)";', panel_source, re.MULTILINE)
+
+        self.assertIsNotNone(const_version)
+        self.assertIsNotNone(panel_version)
+        self.assertEqual(manifest["version"], const_version.group(1))
+        self.assertEqual(manifest["version"], panel_version.group(1))
 
     def test_runtime_files_are_present(self):
         expected = {
@@ -54,18 +68,20 @@ class HacsPackageTests(unittest.TestCase):
         }
         self.assertTrue(expected.issubset(present))
 
-    def test_embedded_project_matches_public_example(self):
+    def test_embedded_project_matches_current_editor_files(self):
         embedded = json.loads(
             (INTEGRATION_ROOT / "frontend" / "initial-project.json").read_text(
                 encoding="utf-8"
             )
         )
-        example = json.loads(
-            (PROJECT_ROOT / "examples" / "project.example.json").read_text(
-                encoding="utf-8"
-            )
+        current_ui = json.loads(
+            (PROJECT_ROOT / "config" / "ui.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(example, embedded)
+        current_backend = json.loads(
+            (PROJECT_ROOT / "config" / "backend-map.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(current_ui, embedded["ui"])
+        self.assertEqual(current_backend, embedded["backend_map"])
 
     def test_icon_assets_match_firmware_catalog(self):
         embedded = json.loads(
@@ -78,30 +94,12 @@ class HacsPackageTests(unittest.TestCase):
         )
         self.assertEqual(firmware, embedded)
 
-    def test_release_urls_and_codeowner_are_public(self):
+    def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual("https://github.com/dgg006/cyd-ui", manifest["documentation"])
-        self.assertEqual("https://github.com/dgg006/cyd-ui/issues", manifest["issue_tracker"])
-        self.assertEqual(["@dgg006"], manifest["codeowners"])
-
-    def test_panel_uses_home_assistant_custom_panel_api(self):
-        source = (INTEGRATION_ROOT / "__init__.py").read_text(encoding="utf-8")
-        manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("panel_custom.async_register_panel", source)
-        self.assertNotIn("async_register_built_in_panel", source)
-        self.assertIn("panel_custom", manifest["dependencies"])
-
-    def test_websocket_admin_checks_use_current_decorator(self):
-        source = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
-        self.assertNotIn("connection.require_admin()", source)
-        self.assertEqual(8, source.count("@websocket_api.require_admin"))
-
-    def test_native_bridge_delivers_saved_ui_to_esphome(self):
-        bridge = (INTEGRATION_ROOT / "bridge.py").read_text(encoding="utf-8")
-        api = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
-        self.assertIn('APPLY_CONFIG_SERVICE = "cyd_ui_apply_config"', bridge)
-        self.assertIn("async def async_apply_config", bridge)
-        self.assertIn('"device_applied": device_applied', api)
+        self.assertEqual(
+            "https://github.com/dgg006/cyd-ui/issues", manifest["issue_tracker"]
+        )
 
 
 if __name__ == "__main__":

@@ -154,7 +154,7 @@ void ClockWeatherPage::update_clock_() {
   std::snprintf(time_text, sizeof(time_text), "%02u:%02u", now.hour, now.minute);
   lv_label_set_text(this->time_label_, time_text);
 
-  static const char *const DAYS[] = {"", "Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"};
+  static const char *const DAYS[] = {"", "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"};
   static const char *const MONTHS[] = {"", "enero", "febrero", "marzo", "abril", "mayo", "junio",
                                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"};
   char date_text[48];

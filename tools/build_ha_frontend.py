@@ -10,7 +10,6 @@ import shutil
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "configurator" / "static"
 TARGET = ROOT / "custom_components" / "cyd_ui" / "frontend"
-EXAMPLE_PROJECT = ROOT / "examples" / "project.example.json"
 
 
 API_IMPLEMENTATION = '''async function api(path,options={}){
@@ -69,7 +68,9 @@ const document={
     )
     shutil.copyfile(ROOT / "components" / "ui_engine" / "icons.json", TARGET / "icons.json")
 
-    # The catalog is intentionally bundled as JSON for the Home Assistant panel.
+    catalog_source = (ROOT / "configurator" / "server.py").read_text(encoding="utf-8")
+    # The catalog is intentionally duplicated as JSON for the browser bundle. A test
+    # guards its template names against the local configurator.
     catalog = {
         "button_grid": {
             "label": "Botones",
@@ -115,11 +116,18 @@ const document={
             ]},
         },
     }
+    if not all(f'"{name}"' in catalog_source for name in catalog):
+        raise RuntimeError("El catálogo del configurador cambió; actualizá este bundle.")
     (TARGET / "catalog.json").write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
-    initial_project = json.loads(EXAMPLE_PROJECT.read_text(encoding="utf-8"))
+    initial_project = {
+        "ui": json.loads((ROOT / "config" / "ui.json").read_text(encoding="utf-8")),
+        "backend_map": json.loads(
+            (ROOT / "config" / "backend-map.json").read_text(encoding="utf-8")
+        ),
+    }
     (TARGET / "initial-project.json").write_text(
         json.dumps(initial_project, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

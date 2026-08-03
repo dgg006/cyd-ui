@@ -1,103 +1,68 @@
-# CYD UI
+# CYD UI Engine
 
-Motor declarativo de interfaces LVGL para la pantalla
-**ESP32-2432S028R (Cheap Yellow Display)**, integrado con ESPHome y Home
-Assistant.
+Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP32-2432S028R CYD y ESPHome.
 
-> Estado: **versión preliminar 0.2.0**. El firmware fue validado en hardware
-> real. La instalación HACS y la migración reversible al puente nativo fueron
-> verificadas en Home Assistant 2026.7.4.
+## Principios
 
-## Qué resuelve
+1. La interfaz habitual se reconfigura sin recompilar el motor.
+2. El firmware no conoce entidades ni decisiones de Home Assistant.
+3. Los templates crean una cantidad fija de widgets y actualizan sus propiedades.
+4. Una configuración nueva reemplaza la UI activa solo después de validarse por completo.
+5. Una acción táctil requiere confirmación del backend antes de cambiar el estado mostrado.
 
-CYD UI permite cambiar páginas, textos, iconos MDI, colores y entidades desde
-una interfaz gráfica, sin recompilar el firmware por cada modificación normal.
-El firmware no conoce conceptos como luces, escenas o calefactores: recibe
-controles genéricos y emite acciones genéricas.
+## Estado actual
 
-Funciones disponibles:
+- Pantalla, touch, Wi-Fi, MQTT y API nativa cifrada verificados en hardware.
+- `button_grid` con seis botones configurable mediante JSON.
+- Configuración remota por HTTP con caché flash y respaldo embebido.
+- Acciones y estados en tiempo real mediante MQTT.
+- Integración bidireccional real con Home Assistant validada mediante un mapa externo de controles.
+- Proyecto Arduino de validación conservado intacto.
+- Configurador visual local v0.1 para páginas, controles y asociaciones con Home Assistant.
+- Catálogo compacto de iconos MDI configurable sin recompilar mientras el icono ya esté incluido.
+- Configuración general desde el editor: brillo PWM, LDR, reposo, horario nocturno y volumen/sonidos.
+- Integración directa con Home Assistant para brillo, LDR y sonidos, sin depender del puente MQTT.
+- Portal Wi-Fi de emergencia y OTA preparados para trasladar el panel entre redes.
+- Puente nativo temporal instalado en Home Assistant para que los controles y estados actuales funcionen sin la PC de desarrollo.
+- Selección automática entre las redes autorizadas y datos del portal de emergencia visibles en la propia CYD.
 
-- páginas de 2, 4 y 6 botones;
-- climatización, sensores, cortinas y reloj/clima;
-- protector de pantalla y horario nocturno;
-- brillo manual o automático mediante el LDR frontal;
-- sonidos breves mediante el parlante integrado;
-- calibración táctil guiada;
-- caché de configuración en flash;
-- editor visual dentro de Home Assistant;
-- entrega directa y persistente de la configuración mediante la API de ESPHome;
-- migración reversible desde automatizaciones temporales al puente nativo.
+## Configurador visual
 
-## Instalación experimental mediante HACS
+```powershell
+py -3.13 configurator\server.py
+```
 
-1. En HACS, abrí **Repositorios personalizados**.
-2. Añadí `https://github.com/dgg006/cyd-ui` como categoría **Integración**.
-3. Instalá **CYD UI** y reiniciá Home Assistant.
-4. Abrí **Ajustes → Dispositivos y servicios → Añadir integración**.
-5. Buscá **CYD UI** y completá el flujo gráfico.
-6. Abrí el panel lateral **CYD UI**.
+Abrir `http://127.0.0.1:8125`. Antes de guardar valida el contrato, conserva una copia recuperable y, al finalizar, ordena la recarga de la CYD.
 
-No ejecutes **Migrar puente** en una instalación importante sin revisar antes
-las asociaciones y disponer de una copia de seguridad. La migración es
-reversible, pero esta ruta aún está en validación.
+Para iniciar en conjunto el broker, servidor de configuración, puente de Home Assistant y configurador:
 
-## Firmware ESPHome
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\start_development.ps1
+```
 
-El firmware se instala por separado; HACS administra la integración de Home
-Assistant, no el binario de la CYD.
-
-1. Copiá `secrets.example.yaml` como `secrets.yaml`.
-2. Reemplazá todos los valores de ejemplo.
-3. Revisá `cyd-ui.yaml` y `examples/project.example.json`.
-4. Validá y compilá:
+## Comandos locales
 
 ```powershell
 esphome config cyd-ui.yaml
 esphome compile cyd-ui.yaml
+esphome upload cyd-ui.yaml --device COM57
 ```
 
-La configuración utiliza dos buses SPI, tal como requiere la CYD clásica:
-ILI9341 para la pantalla y XPT2046 para el táctil.
+La instalación en Home Assistant y el traslado entre redes están explicados en
+[`docs/HOME_ASSISTANT_SETUP.md`](docs/HOME_ASSISTANT_SETUP.md).
 
-## Estructura
+La futura integración instalable mediante HACS comenzó en
+[`custom_components/cyd_ui`](custom_components/cyd_ui); su alcance y estado están
+documentados en [`docs/HACS_INTEGRATION.md`](docs/HACS_INTEGRATION.md).
 
-```text
-components/ui_engine/       componente externo ESPHome y templates LVGL
-custom_components/cyd_ui/   integración instalable mediante HACS
-configurator/static/        fuentes web reutilizadas por el editor
-examples/                   proyecto genérico sin entidades personales
-docs/                       arquitectura y contrato JSON
-tests/                      pruebas de configuración e integración
+Para actualizar los recursos del panel de Home Assistant desde el configurador local:
+
+```powershell
+py -3.13 tools\build_ha_frontend.py
 ```
 
-## Principios del proyecto
+El puente nativo temporal se genera desde el mapa actual con:
 
-1. Los cambios habituales de interfaz no requieren recompilar.
-2. El firmware no contiene entidades ni decisiones de Home Assistant.
-3. Cada template crea un máximo fijo de widgets y luego actualiza propiedades.
-4. Una configuración nueva se aplica únicamente después de validarse completa.
-5. La pantalla espera confirmación del backend antes de mostrar un comando como
-   ejecutado.
-
-## Limitaciones conocidas
-
-- La fuente LVGL todavía debe ampliarse para mostrar correctamente todos los
-  caracteres españoles, incluida la `ñ`.
-- La publicación inicial no está incluida todavía en el catálogo predeterminado
-  de HACS; se instala como repositorio personalizado.
-- El proyecto está optimizado inicialmente para la CYD clásica sin PSRAM.
-
-Consultá [la arquitectura](docs/ARCHITECTURE.md), el
-[contrato JSON](docs/JSON_SCHEMA_V1.md) y el
-[estado público](docs/ROADMAP.md).
-
-## Privacidad y seguridad
-
-Nunca subas `secrets.yaml`, tokens de Home Assistant ni mapas con entidades
-reales. El ejemplo publicado contiene identificadores genéricos y ninguna
-credencial.
-
-## Licencia
-
-Código distribuido bajo licencia MIT. La fuente Material Design Icons conserva
-su licencia correspondiente en `fonts/MATERIAL_DESIGN_ICONS_LICENSE.txt`.
+```powershell
+py -3.13 tools\install_ha_native_bridge.py --install
+```

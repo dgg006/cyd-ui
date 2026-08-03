@@ -5,11 +5,11 @@
     "settings": {
       "display": {
         "brightness": 80,
-        "auto_brightness": false,
+        "auto_brightness": true,
         "minimum_brightness": 5,
         "maximum_brightness": 100,
-        "ldr_dark_voltage": 3.0,
-        "ldr_bright_voltage": 0.2
+        "ldr_dark_voltage": 1.66,
+        "ldr_bright_voltage": 0.11
       },
       "inactivity": {
         "timeout": 300,
@@ -17,70 +17,188 @@
         "dim_brightness": 10
       },
       "night": {
-        "enabled": false,
-        "start": "23:00",
-        "end": "07:00",
-        "brightness": 10,
+        "enabled": true,
+        "start": "23:30",
+        "end": "08:00",
+        "brightness": 15,
         "mode": "screen_off"
       },
       "sound": {
         "enabled": true,
-        "volume": 5,
+        "volume": 10,
         "touch": true,
         "navigation": true,
         "notifications": true,
-        "mute_at_night": true,
-        "touch_volume": 2,
-        "navigation_volume": 2,
-        "notification_volume": 5
+        "mute_at_night": false,
+        "touch_volume": 1,
+        "navigation_volume": 1,
+        "notification_volume": 10
       },
       "touchscreen": {
-        "x_min": 200,
-        "x_max": 3700,
-        "y_min": 240,
-        "y_max": 3800
+        "x_min": 240,
+        "x_max": 3858,
+        "y_min": 165,
+        "y_max": 3734
       }
     },
     "pages": [
       {
         "template": "button_grid",
-        "variant": "four_buttons",
-        "title": "Inicio",
+        "variant": "six_buttons",
+        "title": "Living",
         "controls": [
           {
             "type": "button",
-            "id": "light_1",
-            "caption": "Luz 1",
-            "icon": "mdi:lightbulb",
+            "id": "living",
+            "caption": "Living",
             "color": "#1976D2",
-            "action": "toggle",
-            "meta": {}
+            "meta": {},
+            "action": "toggle"
           },
           {
             "type": "button",
-            "id": "light_2",
-            "caption": "Luz 2",
-            "icon": "mdi:lightbulb",
+            "id": "kitchen",
+            "caption": "Cocina",
             "color": "#F9A825",
-            "action": "toggle",
+            "meta": {},
+            "action": "toggle"
+          },
+          {
+            "type": "button",
+            "id": "pasillo",
+            "caption": "Pasillo",
+            "color": "#455A64",
+            "meta": {},
+            "action": "toggle"
+          },
+          {
+            "type": "button",
+            "id": "gatos",
+            "caption": "Gatos",
+            "color": "#6A1B9A",
+            "meta": {},
+            "action": "toggle"
+          },
+          {
+            "type": "button",
+            "id": "banoch",
+            "caption": "Baño CH",
+            "color": "#D84315",
+            "meta": {},
+            "action": "toggle"
+          },
+          {
+            "type": "button",
+            "id": "cochera",
+            "caption": "Cochera",
+            "color": "#2E7D32",
+            "meta": {},
+            "action": "toggle"
+          }
+        ]
+      },
+      {
+        "template": "button_grid",
+        "variant": "four_buttons",
+        "title": "Pagina 2",
+        "controls": [
+          {
+            "type": "button",
+            "id": "scene_day",
+            "caption": "Dia",
+            "color": "#F9A825",
             "meta": {}
           },
           {
             "type": "button",
             "id": "scene_night",
             "caption": "Noche",
-            "icon": "mdi:weather-night",
             "color": "#512DA8",
-            "action": "activate",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "outside",
+            "caption": "Exterior",
+            "color": "#00897B",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "pump",
+            "caption": "Bomba",
+            "color": "#0277BD",
+            "meta": {}
+          }
+        ]
+      },
+      {
+        "template": "button_grid",
+        "variant": "two_buttons",
+        "title": "Pagina 3",
+        "controls": [
+          {
+            "type": "button",
+            "id": "all_on",
+            "caption": "Todo ON",
+            "color": "#2E7D32",
             "meta": {}
           },
           {
             "type": "button",
             "id": "all_off",
-            "caption": "Apagar todo",
-            "icon": "mdi:power",
+            "caption": "Todo OFF",
             "color": "#C62828",
-            "action": "activate",
+            "meta": {}
+          }
+        ]
+      },
+      {
+        "template": "climate",
+        "variant": "thermostat",
+        "title": "Clima Living",
+        "controls": [
+          {
+            "type": "value",
+            "role": "current_temperature",
+            "id": "climate_living_current",
+            "caption": "Actual",
+            "color": "#FFFFFF",
+            "meta": {}
+          },
+          {
+            "type": "value",
+            "role": "target_temperature",
+            "id": "climate_living_target",
+            "caption": "Objetivo",
+            "color": "#90CAF9",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "decrease",
+            "id": "climate_living_down",
+            "caption": "-",
+            "action": "decrement",
+            "color": "#455A64",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "power",
+            "id": "climate_living_power",
+            "caption": "Encender",
+            "action": "toggle",
+            "color": "#D84315",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "increase",
+            "id": "climate_living_up",
+            "caption": "+",
+            "action": "increment",
+            "color": "#455A64",
             "meta": {}
           }
         ]
@@ -92,39 +210,119 @@
         "controls": [
           {
             "type": "value",
-            "id": "temperature",
-            "caption": "Temperatura",
-            "icon": "mdi:thermometer",
-            "unit": "°C",
+            "id": "sensor_living_temp",
+            "caption": "Living",
+            "unit": "C",
             "color": "#FFB74D",
             "meta": {}
           },
           {
             "type": "value",
-            "id": "humidity",
-            "caption": "Humedad",
-            "icon": "mdi:water-percent",
+            "id": "sensor_bedroom_temp",
+            "caption": "Dormitorio",
+            "unit": "C",
+            "color": "#FFB74D",
+            "meta": {}
+          },
+          {
+            "type": "value",
+            "id": "sensor_garage_temp",
+            "caption": "Cochera",
+            "unit": "C",
+            "color": "#FFB74D",
+            "meta": {}
+          },
+          {
+            "type": "value",
+            "id": "sensor_bedroom_humidity",
+            "caption": "Hum. dormitorio",
             "unit": "%",
             "color": "#81D4FA",
             "meta": {}
+          }
+        ]
+      },
+      {
+        "template": "cover",
+        "variant": "position_controls",
+        "title": "Cortina ServiCell",
+        "controls": [
+          {
+            "type": "value",
+            "role": "position",
+            "id": "cover_servicell_position",
+            "caption": "Posicion",
+            "color": "#90CAF9",
+            "meta": {}
           },
           {
             "type": "value",
-            "id": "motion",
+            "role": "state",
+            "id": "cover_servicell_state",
+            "caption": "Estado",
+            "color": "#FFFFFF",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "open",
+            "id": "cover_servicell_open",
+            "caption": "Abrir todo",
+            "action": "open",
+            "color": "#2E7D32",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "close",
+            "id": "cover_servicell_close",
+            "caption": "Cerrar todo",
+            "action": "close",
+            "color": "#C62828",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "close_step",
+            "id": "cover_servicell_close_step",
+            "caption": "Cerrar 10%",
+            "action": "close_step",
+            "color": "#8E3B35",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "role": "open_step",
+            "id": "cover_servicell_open_step",
+            "caption": "Abrir 10%",
+            "action": "open_step",
+            "color": "#356E3D",
+            "meta": {}
+          }
+        ]
+      },
+      {
+        "template": "sensor_grid",
+        "variant": "four_values",
+        "title": "Prueba Visual",
+        "controls": [
+          {
+            "type": "value",
+            "id": "sensor_grid_1",
+            "caption": "Luminosidad",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": "%"
+          },
+          {
+            "type": "value",
+            "id": "sensor_grid_2",
             "caption": "Movimiento",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": "",
             "icon_on": "mdi:motion-sensor",
-            "icon_off": "mdi:motion-sensor-off",
-            "color": "#FFFFFF",
-            "meta": {}
-          },
-          {
-            "type": "value",
-            "id": "door",
-            "caption": "Puerta",
-            "icon_on": "mdi:door-open",
-            "icon_off": "mdi:door-closed",
-            "color": "#FFFFFF",
-            "meta": {}
+            "icon_off": "mdi:motion-sensor-off"
           }
         ]
       },
@@ -163,6 +361,208 @@
     ]
   },
   "backend_map": {
-    "controls": {}
+    "controls": {
+      "living": {
+        "entity_id": "light.llave_living_luz_living",
+        "domain": "light",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "climate_living_current": {
+        "entity_id": "climate.calefactor_a_pellet",
+        "attribute": "current_temperature",
+        "decimals": 1
+      },
+      "climate_living_target": {
+        "entity_id": "climate.calefactor_a_pellet",
+        "attribute": "temperature",
+        "decimals": 1
+      },
+      "climate_living_power": {
+        "entity_id": "climate.calefactor_a_pellet",
+        "domain": "climate",
+        "state_active": true,
+        "action": "toggle",
+        "service": "toggle_hvac",
+        "allow_control": true
+      },
+      "climate_living_down": {
+        "entity_id": "climate.calefactor_a_pellet",
+        "domain": "climate",
+        "service": "set_temperature",
+        "action": "decrement",
+        "temperature_delta": -1,
+        "allow_control": true,
+        "publish_state": false
+      },
+      "climate_living_up": {
+        "entity_id": "climate.calefactor_a_pellet",
+        "domain": "climate",
+        "service": "set_temperature",
+        "action": "increment",
+        "temperature_delta": 1,
+        "allow_control": true,
+        "publish_state": false
+      },
+      "weather_condition": {
+        "entity_id": "weather.forecast_casa",
+        "value_only": true
+      },
+      "weather_temperature": {
+        "entity_id": "weather.forecast_casa",
+        "attribute": "temperature",
+        "decimals": 1
+      },
+      "weather_humidity": {
+        "entity_id": "weather.forecast_casa",
+        "attribute": "humidity",
+        "decimals": 0
+      },
+      "sensor_living_temp": {
+        "entity_id": "sensor.temperature_humidity_sensor_4643_temperature",
+        "value_only": true,
+        "decimals": 1,
+        "domain": "sensor"
+      },
+      "sensor_bedroom_temp": {
+        "entity_id": "sensor.sensor_dormitorio_temperatura",
+        "value_only": true,
+        "decimals": 1
+      },
+      "sensor_garage_temp": {
+        "entity_id": "sensor.cochera_temperatura_dht22",
+        "value_only": true,
+        "decimals": 1
+      },
+      "sensor_bedroom_humidity": {
+        "entity_id": "sensor.sensor_dormitorio_humedad",
+        "value_only": true,
+        "decimals": 0
+      },
+      "cover_servicell_position": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "attribute": "current_position",
+        "decimals": 0
+      },
+      "cover_servicell_state": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "value_only": true,
+        "value_map": {
+          "open": "Abierta",
+          "closed": "Cerrada",
+          "opening": "Abriendo",
+          "closing": "Cerrando"
+        }
+      },
+      "cover_servicell_open": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "domain": "cover",
+        "action": "open",
+        "service": "open_cover",
+        "allow_control": true,
+        "publish_state": false
+      },
+      "cover_servicell_close_step": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "domain": "cover",
+        "action": "close_step",
+        "service": "set_cover_position",
+        "position_delta": -10,
+        "allow_control": true,
+        "publish_state": false
+      },
+      "cover_servicell_open_step": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "domain": "cover",
+        "action": "open_step",
+        "service": "set_cover_position",
+        "position_delta": 10,
+        "allow_control": true,
+        "publish_state": false
+      },
+      "cover_servicell_close": {
+        "entity_id": "cover.cortina_servicell_corregida",
+        "domain": "cover",
+        "action": "close",
+        "service": "close_cover",
+        "allow_control": true,
+        "publish_state": false
+      },
+      "kitchen": {
+        "entity_id": "light.llave_cocina_luz_cocina",
+        "action": "toggle",
+        "allow_control": true,
+        "domain": "light"
+      },
+      "sensor_grid_1": {
+        "entity_id": "sensor.cochera_luminosidad",
+        "domain": "sensor",
+        "value_only": true,
+        "decimals": 0
+      },
+      "sensor_grid_2": {
+        "entity_id": "binary_sensor.cochera_movimiento",
+        "domain": "binary_sensor",
+        "value_only": true,
+        "value_map": {
+          "on": " ",
+          "off": " "
+        }
+      },
+      "scene_day": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "scene_night": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "outside": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "pump": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "all_on": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "all_off": {
+        "entity_id": "",
+        "action": "toggle",
+        "allow_control": true
+      },
+      "pasillo": {
+        "entity_id": "light.llave_cocina_luz_pasillo",
+        "action": "toggle",
+        "allow_control": true,
+        "domain": "light"
+      },
+      "gatos": {
+        "entity_id": "light.jaula_gatos",
+        "action": "toggle",
+        "allow_control": true,
+        "domain": "light"
+      },
+      "banoch": {
+        "entity_id": "light.luz_bano_abajo",
+        "action": "toggle",
+        "allow_control": true,
+        "domain": "light"
+      },
+      "cochera": {
+        "entity_id": "light.garaje",
+        "action": "toggle",
+        "allow_control": true,
+        "domain": "light"
+      }
+    }
   }
 }

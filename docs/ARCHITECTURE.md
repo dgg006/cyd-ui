@@ -1009,7 +1009,7 @@ Queda para la siguiente iteración la confirmación explícita de aceptación de
 - Confirmación de aceptación o rechazo enviada por la CYD.
 - Restauración desde el historial.
 - Formularios de backend específicos para climate, cover y otros dominios.
-- Validación física de la incorporación del panel a Home Assistant en una red de producción.
+- Validación física de la incorporación del panel a Home Assistant en `Red_IOT`.
 
 ### Posterior
 

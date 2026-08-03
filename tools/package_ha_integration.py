@@ -12,13 +12,9 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT = Path(__file__).resolve().parent.parent
 INTEGRATION = ROOT / "custom_components" / "cyd_ui"
 DIST = ROOT / "dist"
-PACKAGE = DIST / "cyd-ui-ha-0.2.0.zip"
+PACKAGE = DIST / "cyd-ui-ha-0.1.0.zip"
 EXCLUDED_SUFFIXES = {".pyc"}
-PRIVATE_MARKERS = (
-    "C:\\Users\\",
-    "192.168.",
-    "10.0.",
-)
+PRIVATE_MARKERS = ("Nabu Casa.txt", "secrets.yaml", "19888891", "WR+P2P")
 
 
 def package() -> tuple[Path, str]:

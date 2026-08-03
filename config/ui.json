@@ -1,0 +1,361 @@
+{
+  "schema_version": 1,
+  "screensaver_timeout": 300,
+  "settings": {
+    "display": {
+      "brightness": 80,
+      "auto_brightness": true,
+      "minimum_brightness": 5,
+      "maximum_brightness": 100,
+      "ldr_dark_voltage": 1.66,
+      "ldr_bright_voltage": 0.11
+    },
+    "inactivity": {
+      "timeout": 300,
+      "mode": "clock_weather",
+      "dim_brightness": 10
+    },
+    "night": {
+      "enabled": true,
+      "start": "23:30",
+      "end": "08:00",
+      "brightness": 15,
+      "mode": "screen_off"
+    },
+    "sound": {
+      "enabled": true,
+      "volume": 10,
+      "touch": true,
+      "navigation": true,
+      "notifications": true,
+      "mute_at_night": false,
+      "touch_volume": 1,
+      "navigation_volume": 1,
+      "notification_volume": 10
+    },
+    "touchscreen": {
+      "x_min": 240,
+      "x_max": 3858,
+      "y_min": 165,
+      "y_max": 3734
+    }
+  },
+  "pages": [
+    {
+      "template": "button_grid",
+      "variant": "six_buttons",
+      "title": "Living",
+      "controls": [
+        {
+          "type": "button",
+          "id": "living",
+          "caption": "Living",
+          "color": "#1976D2",
+          "meta": {},
+          "action": "toggle"
+        },
+        {
+          "type": "button",
+          "id": "kitchen",
+          "caption": "Cocina",
+          "color": "#F9A825",
+          "meta": {},
+          "action": "toggle"
+        },
+        {
+          "type": "button",
+          "id": "pasillo",
+          "caption": "Pasillo",
+          "color": "#455A64",
+          "meta": {},
+          "action": "toggle"
+        },
+        {
+          "type": "button",
+          "id": "gatos",
+          "caption": "Gatos",
+          "color": "#6A1B9A",
+          "meta": {},
+          "action": "toggle"
+        },
+        {
+          "type": "button",
+          "id": "banoch",
+          "caption": "Baño CH",
+          "color": "#D84315",
+          "meta": {},
+          "action": "toggle"
+        },
+        {
+          "type": "button",
+          "id": "cochera",
+          "caption": "Cochera",
+          "color": "#2E7D32",
+          "meta": {},
+          "action": "toggle"
+        }
+      ]
+    },
+    {
+      "template": "button_grid",
+      "variant": "four_buttons",
+      "title": "Pagina 2",
+      "controls": [
+        {
+          "type": "button",
+          "id": "scene_day",
+          "caption": "Dia",
+          "color": "#F9A825",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "id": "scene_night",
+          "caption": "Noche",
+          "color": "#512DA8",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "id": "outside",
+          "caption": "Exterior",
+          "color": "#00897B",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "id": "pump",
+          "caption": "Bomba",
+          "color": "#0277BD",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "button_grid",
+      "variant": "two_buttons",
+      "title": "Pagina 3",
+      "controls": [
+        {
+          "type": "button",
+          "id": "all_on",
+          "caption": "Todo ON",
+          "color": "#2E7D32",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "id": "all_off",
+          "caption": "Todo OFF",
+          "color": "#C62828",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "climate",
+      "variant": "thermostat",
+      "title": "Clima Living",
+      "controls": [
+        {
+          "type": "value",
+          "role": "current_temperature",
+          "id": "climate_living_current",
+          "caption": "Actual",
+          "color": "#FFFFFF",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "target_temperature",
+          "id": "climate_living_target",
+          "caption": "Objetivo",
+          "color": "#90CAF9",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "decrease",
+          "id": "climate_living_down",
+          "caption": "-",
+          "action": "decrement",
+          "color": "#455A64",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "power",
+          "id": "climate_living_power",
+          "caption": "Encender",
+          "action": "toggle",
+          "color": "#D84315",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "increase",
+          "id": "climate_living_up",
+          "caption": "+",
+          "action": "increment",
+          "color": "#455A64",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "sensor_grid",
+      "variant": "four_values",
+      "title": "Sensores",
+      "controls": [
+        {
+          "type": "value",
+          "id": "sensor_living_temp",
+          "caption": "Living",
+          "unit": "C",
+          "color": "#FFB74D",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "id": "sensor_bedroom_temp",
+          "caption": "Dormitorio",
+          "unit": "C",
+          "color": "#FFB74D",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "id": "sensor_garage_temp",
+          "caption": "Cochera",
+          "unit": "C",
+          "color": "#FFB74D",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "id": "sensor_bedroom_humidity",
+          "caption": "Hum. dormitorio",
+          "unit": "%",
+          "color": "#81D4FA",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "cover",
+      "variant": "position_controls",
+      "title": "Cortina ServiCell",
+      "controls": [
+        {
+          "type": "value",
+          "role": "position",
+          "id": "cover_servicell_position",
+          "caption": "Posicion",
+          "color": "#90CAF9",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "state",
+          "id": "cover_servicell_state",
+          "caption": "Estado",
+          "color": "#FFFFFF",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "open",
+          "id": "cover_servicell_open",
+          "caption": "Abrir todo",
+          "action": "open",
+          "color": "#2E7D32",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "close",
+          "id": "cover_servicell_close",
+          "caption": "Cerrar todo",
+          "action": "close",
+          "color": "#C62828",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "close_step",
+          "id": "cover_servicell_close_step",
+          "caption": "Cerrar 10%",
+          "action": "close_step",
+          "color": "#8E3B35",
+          "meta": {}
+        },
+        {
+          "type": "button",
+          "role": "open_step",
+          "id": "cover_servicell_open_step",
+          "caption": "Abrir 10%",
+          "action": "open_step",
+          "color": "#356E3D",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "sensor_grid",
+      "variant": "four_values",
+      "title": "Prueba Visual",
+      "controls": [
+        {
+          "type": "value",
+          "id": "sensor_grid_1",
+          "caption": "Luminosidad",
+          "color": "#FFFFFF",
+          "meta": {},
+          "unit": "%"
+        },
+        {
+          "type": "value",
+          "id": "sensor_grid_2",
+          "caption": "Movimiento",
+          "color": "#FFFFFF",
+          "meta": {},
+          "unit": "",
+          "icon_on": "mdi:motion-sensor",
+          "icon_off": "mdi:motion-sensor-off"
+        }
+      ]
+    },
+    {
+      "template": "clock_weather",
+      "variant": "screensaver",
+      "title": "",
+      "screensaver": true,
+      "controls": [
+        {
+          "type": "value",
+          "role": "condition",
+          "id": "weather_condition",
+          "caption": "Estado",
+          "color": "#90CAF9",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "outside_temperature",
+          "id": "weather_temperature",
+          "caption": "Exterior",
+          "color": "#FFFFFF",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "humidity",
+          "id": "weather_humidity",
+          "caption": "Humedad",
+          "color": "#80CBC4",
+          "meta": {}
+        }
+      ]
+    }
+  ]
+}
