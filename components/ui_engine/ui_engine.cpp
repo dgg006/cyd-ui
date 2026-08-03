@@ -135,6 +135,21 @@ void UiEngineComponent::loop() {
   ESP_LOGI(TAG, "Configuracion recargada");
 }
 
+bool UiEngineComponent::apply_config(const std::string &raw_json) {
+  if (!this->try_apply_config(raw_json)) {
+    ESP_LOGE(TAG, "Configuracion recibida por API rechazada; se conserva la UI activa");
+    return false;
+  }
+
+  std::string error;
+  if (!this->flash_storage_.save(raw_json, &error)) {
+    ESP_LOGW(TAG, "Configuracion aplicada, pero no se pudo guardar en flash: %s", error.c_str());
+  } else {
+    ESP_LOGI(TAG, "Configuracion recibida por API aplicada y guardada en flash");
+  }
+  return true;
+}
+
 bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   UiConfig candidate;
   std::string error;
@@ -659,7 +674,15 @@ bool UiEngineComponent::prepare_navigation_sound() {
 
 bool UiEngineComponent::prepare_notification_sound() {
   const auto &sound = this->active_config_.settings.sound;
-  return this->prepare_sound(sound.notifications, sound.notification_volume);
+  // Las notificaciones de Home Assistant son independientes de los sonidos de
+  // interacción local. El horario nocturno sigue siendo la política común.
+  const bool allowed = sound.notifications && sound.notification_volume > 0 &&
+                       !(sound.mute_at_night && this->is_night());
+  if (allowed && this->sound_player_ != nullptr) {
+    this->sound_preview_active_ = false;
+    this->sound_player_->set_gain(this->sound_gain_for_volume(sound.notification_volume));
+  }
+  return allowed;
 }
 
 bool UiEngineComponent::update_control(const std::string &id, bool active, const std::string &value,

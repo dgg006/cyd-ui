@@ -1,52 +1,98 @@
 {
   "schema_version": 1,
+  "screensaver_timeout": 300,
+  "settings": {
+    "display": {
+      "brightness": 80,
+      "auto_brightness": true,
+      "minimum_brightness": 5,
+      "maximum_brightness": 100,
+      "ldr_dark_voltage": 1.66,
+      "ldr_bright_voltage": 0.11
+    },
+    "inactivity": {
+      "timeout": 300,
+      "mode": "clock_weather",
+      "dim_brightness": 10
+    },
+    "night": {
+      "enabled": true,
+      "start": "23:30",
+      "end": "08:00",
+      "brightness": 15,
+      "mode": "screen_off"
+    },
+    "sound": {
+      "enabled": true,
+      "volume": 10,
+      "touch": true,
+      "navigation": true,
+      "notifications": true,
+      "mute_at_night": false,
+      "touch_volume": 1,
+      "navigation_volume": 1,
+      "notification_volume": 10
+    },
+    "touchscreen": {
+      "x_min": 240,
+      "x_max": 3858,
+      "y_min": 165,
+      "y_max": 3734
+    }
+  },
   "pages": [
     {
       "template": "button_grid",
       "variant": "six_buttons",
-      "title": "Reload MQTT OK",
+      "title": "Living",
       "controls": [
         {
           "type": "button",
           "id": "living",
           "caption": "Living",
           "color": "#1976D2",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         },
         {
           "type": "button",
           "id": "kitchen",
           "caption": "Cocina",
           "color": "#F9A825",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         },
         {
           "type": "button",
-          "id": "garage",
-          "caption": "Garaje",
+          "id": "pasillo",
+          "caption": "Pasillo",
           "color": "#455A64",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         },
         {
           "type": "button",
-          "id": "night",
-          "caption": "Noche",
+          "id": "gatos",
+          "caption": "Gatos",
           "color": "#6A1B9A",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         },
         {
           "type": "button",
-          "id": "heater",
-          "caption": "Estufa",
+          "id": "banoch",
+          "caption": "Baño CH",
           "color": "#D84315",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         },
         {
           "type": "button",
-          "id": "garden",
-          "caption": "Jardin",
+          "id": "cochera",
+          "caption": "Cochera",
           "color": "#2E7D32",
-          "meta": {}
+          "meta": {},
+          "action": "toggle"
         }
       ]
     },
@@ -140,7 +186,7 @@
           "type": "button",
           "role": "power",
           "id": "climate_living_power",
-          "caption": "Simulado",
+          "caption": "Encender",
           "action": "toggle",
           "color": "#D84315",
           "meta": {}
@@ -152,38 +198,6 @@
           "caption": "+",
           "action": "increment",
           "color": "#455A64",
-          "meta": {}
-        }
-      ]
-    },
-    {
-      "template": "clock_weather",
-      "variant": "screensaver",
-      "title": "Casa",
-      "screensaver": true,
-      "controls": [
-        {
-          "type": "value",
-          "role": "condition",
-          "id": "weather_condition",
-          "caption": "Estado",
-          "color": "#90CAF9",
-          "meta": {}
-        },
-        {
-          "type": "value",
-          "role": "outside_temperature",
-          "id": "weather_temperature",
-          "caption": "Exterior",
-          "color": "#FFFFFF",
-          "meta": {}
-        },
-        {
-          "type": "value",
-          "role": "humidity",
-          "id": "weather_humidity",
-          "caption": "Humedad",
-          "color": "#80CBC4",
           "meta": {}
         }
       ]
@@ -282,6 +296,63 @@
           "caption": "Abrir 10%",
           "action": "open_step",
           "color": "#356E3D",
+          "meta": {}
+        }
+      ]
+    },
+    {
+      "template": "sensor_grid",
+      "variant": "four_values",
+      "title": "Prueba Visual",
+      "controls": [
+        {
+          "type": "value",
+          "id": "sensor_grid_1",
+          "caption": "Luminosidad",
+          "color": "#FFFFFF",
+          "meta": {},
+          "unit": "%"
+        },
+        {
+          "type": "value",
+          "id": "sensor_grid_2",
+          "caption": "Movimiento",
+          "color": "#FFFFFF",
+          "meta": {},
+          "unit": "",
+          "icon_on": "mdi:motion-sensor",
+          "icon_off": "mdi:motion-sensor-off"
+        }
+      ]
+    },
+    {
+      "template": "clock_weather",
+      "variant": "screensaver",
+      "title": "",
+      "screensaver": true,
+      "controls": [
+        {
+          "type": "value",
+          "role": "condition",
+          "id": "weather_condition",
+          "caption": "Estado",
+          "color": "#90CAF9",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "outside_temperature",
+          "id": "weather_temperature",
+          "caption": "Exterior",
+          "color": "#FFFFFF",
+          "meta": {}
+        },
+        {
+          "type": "value",
+          "role": "humidity",
+          "id": "weather_humidity",
+          "caption": "Humedad",
+          "color": "#80CBC4",
           "meta": {}
         }
       ]

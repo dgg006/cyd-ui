@@ -1,6 +1,14 @@
 # Integración de Home Assistant y distribución por HACS
 
-Estado: bootstrap 0.1.0 con almacenamiento nativo, todavía no instalable para usuarios finales.
+Estado: desarrollo 0.2.1, validado en la instancia doméstica del proyecto; todavía no publicado para usuarios finales.
+
+## Estado actual
+
+La integración ya guarda el editor, aplica la configuración al panel por la
+API nativa de ESPHome y mantiene los estados mediante el puente nativo. La
+versión del recurso web se mantiene sincronizada con `manifest.json`: cada
+actualización cambia esa versión para que Home Assistant y el teléfono no usen
+una copia antigua del editor desde la caché del navegador.
 
 ## Objetivo
 
@@ -31,7 +39,8 @@ La carpeta `custom_components/cyd_ui` contiene:
 - Validación estructural y límite de tamaño antes de cada guardado.
 - Editor visual reutilizado dentro del panel de Home Assistant, aislado mediante Shadow DOM para no alterar el resto de la interfaz.
 - Importación inicial de la configuración de desarrollo incluida en el paquete de prueba.
-- Traductor nativo de acciones y estados implementado con lista positiva de servicios, todavía desactivado para evitar duplicar las automatizaciones temporales.
+- Traductor nativo de acciones y estados implementado con lista positiva de servicios.
+- Puente nativo activo: aplica la configuración guardada y sincroniza los estados actuales al iniciar o reconectar la CYD.
 - Migración reversible: libera primero el procesamiento de comandos, inicia el puente nativo y conserva el estado previo de las automatizaciones para poder restaurarlo.
 - La eliminación permanente de la integración restaura el puente temporal antes de retirar el almacenamiento administrado.
 - Limpieza del panel y del recurso al descargar la entrada.
@@ -48,13 +57,11 @@ El archivo raíz `hacs.json` declara el repositorio como integración y fija Hom
 
 ## Antes de publicar
 
-- Elegir propietario y URL definitiva del repositorio; reemplazar `OWNER` en `manifest.json`.
 - Añadir iconos de marca locales.
-- Conectar guardado, recarga del dispositivo y sincronización de estados sin automatizaciones generadas.
-- Validar físicamente la migración y su reversión en el Home Assistant de prueba antes de retirar el puente temporal.
+- Validar físicamente la resincronización automática tras reiniciar o reconectar la CYD en la red doméstica.
 - Sustituir el proyecto inicial personal por un asistente genérico antes de publicar el repositorio.
 - Incorporar pruebas bajo Home Assistant y ejecutar Hassfest y la validación de HACS.
 - Crear una versión y un GitHub Release.
 - Probar instalación, actualización, descarga y recuperación en una instancia separada.
 
-No se instalará este bootstrap en el Home Assistant doméstico hasta completar como mínimo las pruebas de carga y descarga. La integración ESPHome oficial sigue siendo responsable de la conexión cifrada con la CYD.
+La integración ESPHome oficial sigue siendo responsable de la conexión cifrada con la CYD. Antes de una publicación general faltan pruebas de instalación en una instancia limpia, una configuración inicial genérica y la validación formal de HACS.

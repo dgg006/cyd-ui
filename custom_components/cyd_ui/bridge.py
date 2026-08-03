@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
-from homeassistant.const import EVENT_STATE_CHANGED
+from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
 
 from .bridge_model import command_for_action, update_for_state
@@ -14,8 +15,10 @@ from .storage import CydUiStorage
 
 _LOGGER = logging.getLogger(__name__)
 ACTION_EVENT = "esphome.cyd_ui_action"
+READY_EVENT = "esphome.cyd_ui_ready"
 ESPHOME_DOMAIN = "esphome"
 UPDATE_SERVICE = "cyd_ui_update_control"
+APPLY_CONFIG_SERVICE = "cyd_ui_apply_config"
 
 
 class CydUiBridge:
@@ -30,8 +33,18 @@ class CydUiBridge:
         """Start listeners only after the migration disables old automations."""
         self._unsubscribers = [
             self._hass.bus.async_listen(ACTION_EVENT, self._async_handle_action),
+            self._hass.bus.async_listen(READY_EVENT, self._async_handle_ready),
             self._hass.bus.async_listen(EVENT_STATE_CHANGED, self._async_handle_state),
+            self._hass.bus.async_listen(
+                EVENT_SERVICE_REGISTERED, self._async_handle_service_registered
+            ),
         ]
+        await self.async_apply_config()
+        await self.async_sync_all()
+
+    async def _async_handle_ready(self, _event: Event) -> None:
+        """Restore the stored project and live states after the CYD reconnects."""
+        await self.async_apply_config()
         await self.async_sync_all()
 
     async def async_stop(self) -> None:
@@ -43,6 +56,31 @@ class CydUiBridge:
     def _mappings(self) -> dict[str, dict[str, Any]]:
         backend_map = self._storage.data.get("backend_map", {})
         return backend_map.get("controls", {}) if isinstance(backend_map, dict) else {}
+
+    async def _async_handle_service_registered(self, event: Event) -> None:
+        """Apply the stored project when the CYD reconnects to ESPHome API."""
+        if (
+            event.data.get("domain") == ESPHOME_DOMAIN
+            and event.data.get("service") == APPLY_CONFIG_SERVICE
+        ):
+            await self.async_apply_config()
+            await self.async_sync_all()
+
+    async def async_apply_config(self) -> bool:
+        """Send the complete UI document through the native ESPHome API."""
+        if not self._hass.services.has_service(ESPHOME_DOMAIN, APPLY_CONFIG_SERVICE):
+            return False
+        ui = self._storage.data.get("ui")
+        if not isinstance(ui, dict):
+            return False
+        payload = json.dumps(ui, ensure_ascii=False, separators=(",", ":"))
+        await self._hass.services.async_call(
+            ESPHOME_DOMAIN,
+            APPLY_CONFIG_SERVICE,
+            {"config": payload},
+            blocking=True,
+        )
+        return True
 
     async def _async_handle_action(self, event: Event) -> None:
         control_id = event.data.get("control_id")

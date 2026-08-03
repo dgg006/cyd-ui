@@ -1,6 +1,38 @@
 # Estado del proyecto
 
-Actualizado: 2026-07-29
+Actualizado: 2026-08-03
+
+## Actualización 2026-08-03 — sincronización, móvil e idioma
+
+- El firmware recibió una fuente Roboto con los caracteres españoles necesarios; `Baño` y la letra `ñ` quedaron validados físicamente en la CYD.
+- Se separaron los sonidos de interfaz de las notificaciones de Home Assistant. Desactivar los toques locales ya no bloquea una notificación externa, y cada grupo conserva su volumen propio.
+- El editor recibió una adaptación para teléfono: paneles de una columna, controles más grandes y selección buscable de entidades e iconos sin depender de listas desplegables nativas.
+- Se implementó la señal `esphome.cyd_ui_ready`: cuando la CYD termina de reconectarse a Home Assistant, el puente nativo vuelve a enviar la última configuración guardada y los estados actuales. Esto elimina la necesidad prevista de pulsar **Guardar y aplicar** tras un reinicio.
+- Firmware compilado y cargado por USB en COM57. La validación completa de la resincronización queda pendiente para la próxima conexión de la CYD a la red doméstica y a Home Assistant.
+- La vista previa del editor fue alineada con las medidas LVGL del reloj y ahora dispone de representaciones específicas para las carátulas de climatización y cortina. La siguiente pasada visual debe cubrir sensores y cuadrículas, siempre contrastándolas con la CYD real.
+
+## Pausa de desarrollo — prueba doméstica
+
+El desarrollo queda pausado hasta la renovación de la cuota semanal. Durante esta pausa no se modificará ni cargará firmware y tampoco se harán cambios en Home Assistant.
+
+### Resultado general de la prueba en casa
+
+- La pantalla se conectó correctamente a la red Wi-Fi doméstica.
+- Home Assistant detectó el dispositivo rápidamente.
+- Los botones pudieron controlar sus entidades.
+
+### Pendientes detectados
+
+1. **Sincronización inicial incompleta (prioridad alta).**
+   Al iniciar el panel en la red doméstica, algunos botones funcionaban, pero la sincronización no quedaba completamente correcta hasta entrar al editor y pulsar **Guardar y aplicar**. El comportamiento esperado es que, al arrancar o reconectarse, el panel reciba automáticamente la última configuración guardada y una instantánea completa de los estados, sin intervención manual. Debe revisarse el orden de conexión, registro de servicios y envío inicial de configuración/estados.
+
+2. **Editor poco amigable en teléfonos (prioridad alta).**
+   La interfaz necesita una adaptación específica para pantallas pequeñas. Desde el celular, algunos selectores —especialmente los de entidades e iconos— no despliegan sus opciones correctamente. Deben funcionar mediante toque, permitir búsqueda y mantener un diseño cómodo en una pantalla angosta.
+
+3. **Sonidos de interfaz y notificaciones no son independientes (prioridad media).**
+   Al desactivar el sonido desde Configuración también quedan silenciadas las notificaciones sonoras solicitadas desde Home Assistant. Deben separarse, como mínimo, el sonido de interacción local y el sonido de notificaciones externas, con controles independientes y una política nocturna explícita.
+
+Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: la conexión Wi-Fi, el descubrimiento por Home Assistant y el control básico quedaron confirmados.
 
 ## Plataforma validada
 

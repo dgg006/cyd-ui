@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -24,6 +25,19 @@ class HacsPackageTests(unittest.TestCase):
         self.assertEqual("cyd_ui", manifest["domain"])
         self.assertTrue(manifest["config_flow"])
         self.assertTrue(manifest["single_config_entry"])
+
+    def test_frontend_cache_version_matches_manifest(self):
+        """A release must invalidate the browser cache for the editor assets."""
+        manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        const_source = (INTEGRATION_ROOT / "const.py").read_text(encoding="utf-8")
+        panel_source = (INTEGRATION_ROOT / "frontend" / "cyd-ui-panel.js").read_text(encoding="utf-8")
+        const_version = re.search(r'^VERSION = "([^"]+)"$', const_source, re.MULTILINE)
+        panel_version = re.search(r'^const ASSET_VERSION = "([^"]+)";', panel_source, re.MULTILINE)
+
+        self.assertIsNotNone(const_version)
+        self.assertIsNotNone(panel_version)
+        self.assertEqual(manifest["version"], const_version.group(1))
+        self.assertEqual(manifest["version"], panel_version.group(1))
 
     def test_runtime_files_are_present(self):
         expected = {
@@ -80,10 +94,12 @@ class HacsPackageTests(unittest.TestCase):
         )
         self.assertEqual(firmware, embedded)
 
-    def test_release_urls_are_intentionally_not_published_yet(self):
+    def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
-        self.assertIn("/OWNER/", manifest["documentation"])
-        self.assertIn("/OWNER/", manifest["issue_tracker"])
+        self.assertEqual("https://github.com/dgg006/cyd-ui", manifest["documentation"])
+        self.assertEqual(
+            "https://github.com/dgg006/cyd-ui/issues", manifest["issue_tracker"]
+        )
 
 
 if __name__ == "__main__":

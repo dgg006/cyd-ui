@@ -1,7 +1,7 @@
 """Home Assistant integration for CYD UI."""
 
 from pathlib import Path
-from homeassistant.components import frontend
+from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -40,13 +40,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         async_register_commands(hass)
         data["websocket_registered"] = True
 
-    frontend.add_extra_js_url(hass, module_url)
-    frontend.async_register_built_in_panel(
+    await panel_custom.async_register_panel(
         hass,
-        PANEL_COMPONENT,
+        frontend_url_path=PANEL_PATH,
+        webcomponent_name=PANEL_COMPONENT,
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        frontend_url_path=PANEL_PATH,
+        module_url=module_url,
         require_admin=True,
     )
     data["module_url"] = module_url
@@ -59,8 +59,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the visible CYD UI panel."""
     data = hass.data.get(DOMAIN, {})
     frontend.async_remove_panel(hass, PANEL_PATH)
-    if module_url := data.get("module_url"):
-        frontend.remove_extra_js_url(hass, module_url)
     data.pop("entry_id", None)
     data.pop("module_url", None)
     if bridge := data.pop("bridge", None):

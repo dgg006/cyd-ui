@@ -1,5 +1,16 @@
 const STATIC_ROOT = "/cyd_ui_static";
-const ASSET_VERSION = "0.1.0";
+const ASSET_VERSION = "0.2.1";
+
+function describeError(error) {
+  if (typeof error === "string") return error;
+  if (error?.message) return error.message;
+  if (error?.code) return `${error.code}${error.message ? `: ${error.message}` : ""}`;
+  try {
+    return JSON.stringify(error);
+  } catch (_ignored) {
+    return String(error);
+  }
+}
 
 const EDITOR_MARKUP = `
   <header class="topbar">
@@ -155,7 +166,7 @@ class CydUiPanel extends HTMLElement {
     this._root.innerHTML = `${this._baseStyle()}<main class="bootstrap"><section class="bootstrap-card">
       <h1>No se pudo abrir CYD UI</h1><p id="errorMessage"></p>
     </section></main>`;
-    this._root.querySelector("#errorMessage").textContent = String(error);
+    this._root.querySelector("#errorMessage").textContent = describeError(error);
   }
 }
 
