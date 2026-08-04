@@ -23,6 +23,10 @@ wifi:
   ap:
     ssid: "CYD UI Setup"
     password: !secret fallback_ap_password
+  on_connect:
+    - lambda: id(ui_engine_main).set_startup_status("Wi-Fi conectado");
+  on_disconnect:
+    - lambda: id(ui_engine_main).set_startup_status("Conectando a Wi-Fi...");
 
 captive_portal:
 
@@ -52,6 +56,7 @@ api:
             state_subscription_only: true
         then:
           - lambda: id(ui_engine_main).set_backend_connected(true);
+          - lambda: id(ui_engine_main).set_startup_status("Home Assistant conectado");
           - homeassistant.event:
               event: esphome.cyd_ui_ready
               data:
@@ -71,6 +76,14 @@ api:
         sound: string
       then:
         - lambda: id(ui_engine_main).play_notification_sound(sound);
+    - action: preview_notification_sound
+      variables:
+        volume: int
+      then:
+        - lambda: id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
+    - action: start_touch_calibration
+      then:
+        - lambda: id(ui_engine_main).start_touch_calibration();
     - action: update_control
       variables:
         control_id: string

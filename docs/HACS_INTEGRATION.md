@@ -1,6 +1,6 @@
 # Integración de Home Assistant y distribución por HACS
 
-Estado: desarrollo 0.2.1, validado en la instancia doméstica del proyecto; todavía no publicado para usuarios finales.
+Estado: desarrollo 0.2.2, validado en la instancia doméstica del proyecto; todavía no publicado para usuarios finales.
 
 ## Estado actual
 
