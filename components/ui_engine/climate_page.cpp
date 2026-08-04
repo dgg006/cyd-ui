@@ -184,12 +184,6 @@ void ClimatePage::power_callback(lv_event_t *event) {
   auto *page = static_cast<ClimatePage *>(lv_event_get_user_data(event));
   if (page->power_state_ != ControlState::VALID) return;
 
-  if (page->power_active_) {
-    page->power_confirmation_pending_ = false;
-    page->emit_action(page->power_id_, page->power_action_);
-    return;
-  }
-
   if (page->power_confirmation_pending_ &&
       static_cast<int32_t>(page->power_confirmation_deadline_ms_ - millis()) > 0) {
     page->power_confirmation_pending_ = false;

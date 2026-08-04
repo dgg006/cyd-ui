@@ -154,6 +154,7 @@ class UiEngineComponent : public Component {
   uint32_t startup_overlay_hide_at_ms_{0};
   bool startup_finished_{false};
   lv_obj_t *connection_indicator_{nullptr};
+  lv_obj_t *connection_status_label_{nullptr};
   uint8_t connection_state_{0};
   uint32_t calibration_timeout_at_ms_{0};
   uint32_t calibration_close_at_ms_{0};

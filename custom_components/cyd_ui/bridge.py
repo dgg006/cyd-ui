@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import asyncio
 from typing import Any
 
 from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
@@ -28,6 +29,7 @@ class CydUiBridge:
         self._hass = hass
         self._storage = storage
         self._unsubscribers: list[Any] = []
+        self._ready_generation = 0
 
     async def async_start(self) -> None:
         """Start listeners only after the migration disables old automations."""
@@ -44,7 +46,19 @@ class CydUiBridge:
 
     async def _async_handle_ready(self, _event: Event) -> None:
         """Restore the stored project and live states after the CYD reconnects."""
+        self._ready_generation += 1
+        generation = self._ready_generation
         await self.async_apply_config()
+        await self.async_sync_all()
+        # The ESPHome API accepts the configuration before LVGL has necessarily
+        # finished rebuilding it. Replaying only live states a moment later
+        # closes that startup race without resetting the visible page again.
+        self._hass.async_create_task(self._async_resync_after_ready(generation))
+
+    async def _async_resync_after_ready(self, generation: int) -> None:
+        await asyncio.sleep(3)
+        if generation != self._ready_generation:
+            return
         await self.async_sync_all()
 
     async def async_stop(self) -> None:

@@ -211,6 +211,7 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   this->active_page_.reset();
   this->active_template_name_.clear();
   this->connection_indicator_ = nullptr;
+  this->connection_status_label_ = nullptr;
   if (!this->show_page(0)) {
     return false;
   }
@@ -232,6 +233,7 @@ bool UiEngineComponent::show_page(size_t index) {
       return false;
     }
     this->connection_indicator_ = nullptr;
+    this->connection_status_label_ = nullptr;
     page->set_action_callback([this](const std::string &control_id, const std::string &action) {
       const bool waking = this->idle_active_ || this->wake_pending_ || this->wake_guard_active() ||
                           this->applied_backlight_level_ <= 0.001f;
@@ -635,13 +637,33 @@ void UiEngineComponent::update_connection_indicator_() {
     lv_obj_set_style_pad_all(this->connection_indicator_, 0, LV_PART_MAIN);
     lv_obj_remove_flag(this->connection_indicator_, LV_OBJ_FLAG_CLICKABLE);
   }
+  if (this->connection_status_label_ == nullptr) {
+    this->connection_status_label_ = lv_label_create(lv_screen_active());
+    lv_obj_remove_flag(this->connection_status_label_, LV_OBJ_FLAG_CLICKABLE);
+  }
   uint32_t color = 0xEF5350;  // sin Wi-Fi
+  const char *status = "Sin Wi-Fi";
   if (this->connection_state_ == 1) color = 0xFFB74D;       // Wi-Fi, sin HA
-  else if (this->connection_state_ == 2) color = 0x66BB6A;  // Wi-Fi y HA
-  else if (this->connection_state_ == 3) color = 0x42A5F5;  // portal de configuración
+  if (this->connection_state_ == 1) status = "Sin Home Assistant";
+  else if (this->connection_state_ == 2) {                  // Wi-Fi y HA
+    color = 0x66BB6A;
+    status = nullptr;
+  } else if (this->connection_state_ == 3) {                // portal de configuración
+    color = 0x42A5F5;
+    status = "Configurar Wi-Fi";
+  }
   lv_obj_set_style_bg_color(this->connection_indicator_, lv_color_hex(color), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->connection_indicator_, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_move_foreground(this->connection_indicator_);
+  if (status == nullptr) {
+    lv_obj_add_flag(this->connection_status_label_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_label_set_text(this->connection_status_label_, status);
+    lv_obj_set_style_text_color(this->connection_status_label_, lv_color_hex(color), LV_PART_MAIN);
+    lv_obj_align(this->connection_status_label_, LV_ALIGN_BOTTOM_RIGHT, -20, -6);
+    lv_obj_remove_flag(this->connection_status_label_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(this->connection_status_label_);
+  }
 }
 
 void UiEngineComponent::show_startup_overlay_() {
