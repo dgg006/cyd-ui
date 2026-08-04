@@ -25,16 +25,18 @@ wifi:
     password: !secret fallback_ap_password
   on_connect:
     - lambda: id(ui_engine_main).set_startup_status("Wi-Fi conectado; esperando Home Assistant");
+    - lambda: id(ui_engine_main).set_backend_connected(false);
     - lambda: id(ui_engine_main).set_connection_state(1);
     # Wi-Fi sin Home Assistant todavía es una falla de sincronización: naranja.
     # El LED se apaga cuando la API de Home Assistant se conecta más abajo.
     - light.turn_on:
         id: status_led
         red: 100%
-        green: 35%
+        green: 100%
         blue: 0%
   on_disconnect:
     - lambda: id(ui_engine_main).set_startup_status("Conectando a Wi-Fi...");
+    - lambda: id(ui_engine_main).set_backend_connected(false);
     - lambda: id(ui_engine_main).set_connection_state(0);
     - light.turn_on:
         id: status_led
@@ -62,6 +64,20 @@ interval:
           else:
             - lambda: |-
                 id(ui_engine_main).set_wifi_setup_visible(false, "", "");
+            - if:
+                condition:
+                  wifi.connected:
+                then:
+                  - if:
+                      condition:
+                        lambda: return id(ui_engine_main).backend_connected();
+                      then:
+                        - lambda: id(ui_engine_main).set_connection_state(2);
+                      else:
+                        - lambda: id(ui_engine_main).set_connection_state(1);
+                else:
+                  - lambda: id(ui_engine_main).set_connection_state(0);
+            - script.execute: restore_status_led
 
 api:
   id: cyd_api
@@ -96,7 +112,7 @@ api:
           - light.turn_on:
               id: status_led
               red: 100%
-              green: 35%
+              green: 100%
               blue: 0%
   actions:
     - action: play_sound
@@ -261,7 +277,7 @@ script:
                         - light.turn_on:
                             id: status_led
                             red: 100%
-                            green: 35%
+                            green: 100%
                             blue: 0%
                       else:
                         - light.turn_on:

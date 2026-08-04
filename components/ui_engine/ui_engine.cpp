@@ -643,7 +643,7 @@ void UiEngineComponent::update_connection_indicator_() {
   }
   uint32_t color = 0xEF5350;  // sin Wi-Fi
   const char *status = "Sin Wi-Fi";
-  if (this->connection_state_ == 1) color = 0xFFB74D;       // Wi-Fi, sin HA
+  if (this->connection_state_ == 1) color = 0xFFD600;       // Wi-Fi, sin HA
   if (this->connection_state_ == 1) status = "Sin Home Assistant";
   else if (this->connection_state_ == 2) {                  // Wi-Fi y HA
     color = 0x66BB6A;
@@ -818,6 +818,7 @@ bool UiEngineComponent::update_control(const std::string &id, bool active, const
 }
 
 void UiEngineComponent::set_backend_connected(bool connected) {
+  this->backend_connected_ = connected;
   if (this->active_page_ == nullptr) {
     return;
   }
