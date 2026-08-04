@@ -61,12 +61,18 @@ struct TouchSettings {
   int16_t y_max{3800};
 };
 
+struct AppearanceSettings {
+  bool light_mode{false};
+  std::string accent{"mint"};
+};
+
 struct DeviceSettings {
   DisplaySettings display;
   InactivitySettings inactivity;
   NightSettings night;
   SoundSettings sound;
   TouchSettings touchscreen;
+  AppearanceSettings appearance;
 };
 
 struct ControlConfig {

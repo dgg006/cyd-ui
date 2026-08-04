@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "esphome/core/log.h"
+#include "visual_theme.h"
 
 namespace esphome {
 namespace ui_engine {
@@ -188,6 +189,8 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   }
 
   this->active_config_ = std::move(candidate);
+  visual_theme::configure(this->active_config_.settings.appearance.light_mode,
+                           this->active_config_.settings.appearance.accent);
   const int32_t configured_timeout = this->active_config_.settings.inactivity.timeout_seconds;
   this->screensaver_timeout_ms_ = configured_timeout >= 0
                                      ? static_cast<uint32_t>(configured_timeout) * 1000U
@@ -205,6 +208,9 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
     this->startup_overlay_ = nullptr;
     this->startup_status_label_ = nullptr;
   }
+  this->active_page_.reset();
+  this->active_template_name_.clear();
+  this->connection_indicator_ = nullptr;
   if (!this->show_page(0)) {
     return false;
   }
@@ -225,6 +231,7 @@ bool UiEngineComponent::show_page(size_t index) {
     if (page == nullptr) {
       return false;
     }
+    this->connection_indicator_ = nullptr;
     page->set_action_callback([this](const std::string &control_id, const std::string &action) {
       const bool waking = this->idle_active_ || this->wake_pending_ || this->wake_guard_active() ||
                           this->applied_backlight_level_ <= 0.001f;
@@ -250,6 +257,7 @@ bool UiEngineComponent::show_page(size_t index) {
     }
   }
   this->active_page_index_ = index;
+  this->update_connection_indicator_();
   ESP_LOGI(TAG, "Pagina activa: %u/%u (%s)", static_cast<unsigned>(index + 1),
            static_cast<unsigned>(this->active_config_.pages.size()), page_config.title.c_str());
   return true;
@@ -609,6 +617,31 @@ void UiEngineComponent::set_startup_status(const std::string &status) {
     lv_label_set_text(this->startup_status_label_, status.c_str());
   }
   this->startup_overlay_hide_at_ms_ = millis() + 3500U;
+}
+
+void UiEngineComponent::set_connection_state(uint8_t state) {
+  this->connection_state_ = state;
+  this->update_connection_indicator_();
+}
+
+void UiEngineComponent::update_connection_indicator_() {
+  if (this->active_page_ == nullptr) return;
+  if (this->connection_indicator_ == nullptr) {
+    this->connection_indicator_ = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(this->connection_indicator_, 8, 8);
+    lv_obj_set_pos(this->connection_indicator_, 307, 226);
+    lv_obj_set_style_radius(this->connection_indicator_, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_border_width(this->connection_indicator_, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(this->connection_indicator_, 0, LV_PART_MAIN);
+    lv_obj_remove_flag(this->connection_indicator_, LV_OBJ_FLAG_CLICKABLE);
+  }
+  uint32_t color = 0xEF5350;  // sin Wi-Fi
+  if (this->connection_state_ == 1) color = 0xFFB74D;       // Wi-Fi, sin HA
+  else if (this->connection_state_ == 2) color = 0x66BB6A;  // Wi-Fi y HA
+  else if (this->connection_state_ == 3) color = 0x42A5F5;  // portal de configuración
+  lv_obj_set_style_bg_color(this->connection_indicator_, lv_color_hex(color), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(this->connection_indicator_, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_move_foreground(this->connection_indicator_);
 }
 
 void UiEngineComponent::show_startup_overlay_() {

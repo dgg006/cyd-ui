@@ -1,21 +1,21 @@
 #include "sensor_grid.h"
+#include "visual_theme.h"
 
 namespace esphome {
 namespace ui_engine {
 
 void SensorGrid::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
-  lv_obj_set_style_bg_color(parent, lv_color_hex(0x101820), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
+  visual_theme::page(parent);
 
   this->title_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->title_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  visual_theme::title(this->title_);
   lv_obj_align(this->title_, LV_ALIGN_TOP_MID, 0, 10);
 
   this->previous_button_ = lv_button_create(parent);
   lv_obj_set_size(this->previous_button_, 34, 32);
   lv_obj_set_pos(this->previous_button_, 5, 4);
+  visual_theme::navigation(this->previous_button_);
   lv_obj_t *previous_label = lv_label_create(this->previous_button_);
   lv_label_set_text(previous_label, "<");
   lv_obj_center(previous_label);
@@ -24,6 +24,7 @@ void SensorGrid::create(lv_obj_t *parent) {
   this->next_button_ = lv_button_create(parent);
   lv_obj_set_size(this->next_button_, 34, 32);
   lv_obj_set_pos(this->next_button_, 281, 4);
+  visual_theme::navigation(this->next_button_);
   lv_obj_t *next_label = lv_label_create(this->next_button_);
   lv_label_set_text(next_label, ">");
   lv_obj_center(next_label);
@@ -35,8 +36,7 @@ void SensorGrid::create(lv_obj_t *parent) {
     lv_obj_t *card = lv_obj_create(parent);
     lv_obj_set_size(card, 148, 82);
     lv_obj_set_pos(card, 8 + column * 156, 46 + row * 92);
-    lv_obj_set_style_radius(card, 10, LV_PART_MAIN);
-    lv_obj_set_style_border_width(card, 2, LV_PART_MAIN);
+    visual_theme::card(card);
     lv_obj_set_style_pad_all(card, 7, LV_PART_MAIN);
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -154,7 +154,7 @@ void SensorGrid::apply_state_(size_t index) {
       (this->states_[index] == ControlState::STALE_OR_DISCONNECTED ? 0xD08A00 : 0x6B7C8F);
   lv_obj_set_style_text_color(this->values_[index], lv_color_hex(color), LV_PART_MAIN);
   lv_obj_set_style_border_color(this->cards_[index], lv_color_hex(color), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(this->cards_[index], lv_color_hex(0x182631), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->cards_[index], lv_color_hex(visual_theme::SURFACE), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->cards_[index], valid ? LV_OPA_COVER : LV_OPA_70, LV_PART_MAIN);
 
   const char *glyph = this->active_[index] ? this->icons_on_[index] : this->icons_off_[index];

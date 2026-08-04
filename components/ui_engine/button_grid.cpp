@@ -1,22 +1,21 @@
 #include "button_grid.h"
+#include "visual_theme.h"
 
 namespace esphome {
 namespace ui_engine {
 
 void ButtonGrid::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
-  lv_obj_set_style_bg_color(parent, lv_color_hex(0x101820), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
+  visual_theme::page(parent);
 
   this->title_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->title_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  visual_theme::title(this->title_);
   lv_obj_align(this->title_, LV_ALIGN_TOP_MID, 0, 10);
 
   this->previous_button_ = lv_button_create(parent);
   lv_obj_set_size(this->previous_button_, 34, 32);
   lv_obj_set_pos(this->previous_button_, 5, 4);
-  lv_obj_set_style_radius(this->previous_button_, 8, LV_PART_MAIN);
+  visual_theme::navigation(this->previous_button_);
   lv_obj_t *previous_label = lv_label_create(this->previous_button_);
   lv_label_set_text(previous_label, "<");
   lv_obj_center(previous_label);
@@ -25,7 +24,7 @@ void ButtonGrid::create(lv_obj_t *parent) {
   this->next_button_ = lv_button_create(parent);
   lv_obj_set_size(this->next_button_, 34, 32);
   lv_obj_set_pos(this->next_button_, 281, 4);
-  lv_obj_set_style_radius(this->next_button_, 8, LV_PART_MAIN);
+  visual_theme::navigation(this->next_button_);
   lv_obj_t *next_label = lv_label_create(this->next_button_);
   lv_label_set_text(next_label, ">");
   lv_obj_center(next_label);
@@ -38,9 +37,7 @@ void ButtonGrid::create(lv_obj_t *parent) {
     lv_obj_t *button = lv_button_create(parent);
     lv_obj_set_size(button, 96, 82);
     lv_obj_set_pos(button, 8 + column * 104, 46 + row * 92);
-    lv_obj_set_style_radius(button, 10, LV_PART_MAIN);
-    lv_obj_set_style_border_width(button, 2, LV_PART_MAIN);
-    lv_obj_set_style_border_color(button, lv_color_hex(0x6B7C8F), LV_PART_MAIN);
+    visual_theme::card(button);
 
     lv_obj_t *label = lv_label_create(button);
     lv_obj_center(label);
@@ -227,6 +224,11 @@ void ButtonGrid::apply_state(size_t index) {
 
   lv_obj_set_style_bg_color(this->buttons_[index], color, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->buttons_[index], opacity, LV_PART_MAIN);
+  lv_obj_set_style_border_color(this->buttons_[index],
+                                lv_color_hex(this->states_[index] == ControlState::VALID && this->active_[index]
+                                                 ? this->colors_[index]
+                                                 : visual_theme::BORDER),
+                                LV_PART_MAIN);
 
   const char *glyph = this->active_[index] ? this->icons_on_[index] : this->icons_off_[index];
   if (glyph == nullptr) {
@@ -242,6 +244,7 @@ void ButtonGrid::apply_state(size_t index) {
     lv_obj_add_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
     lv_obj_center(this->labels_[index]);
   }
+  lv_obj_set_style_text_color(this->labels_[index], lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
 }
 
 }  // namespace ui_engine

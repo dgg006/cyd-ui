@@ -25,8 +25,18 @@ wifi:
     password: !secret fallback_ap_password
   on_connect:
     - lambda: id(ui_engine_main).set_startup_status("Wi-Fi conectado");
+    - lambda: id(ui_engine_main).set_connection_state(1);
+    # El punto de estado en pantalla informa la conectividad normal. El LED
+    # trasero queda apagado salvo ante un problema o una notificación puntual.
+    - light.turn_off: status_led
   on_disconnect:
     - lambda: id(ui_engine_main).set_startup_status("Conectando a Wi-Fi...");
+    - lambda: id(ui_engine_main).set_connection_state(0);
+    - light.turn_on:
+        id: status_led
+        red: 100%
+        green: 0%
+        blue: 0%
 
 captive_portal:
 
@@ -39,6 +49,12 @@ interval:
           then:
             - lambda: |-
                 id(ui_engine_main).set_wifi_setup_visible(true, "CYD UI Setup", "12345678");
+            - lambda: id(ui_engine_main).set_connection_state(3);
+            - light.turn_on:
+                id: status_led
+                red: 0%
+                green: 20%
+                blue: 100%
           else:
             - lambda: |-
                 id(ui_engine_main).set_wifi_setup_visible(false, "", "");
@@ -57,6 +73,8 @@ api:
         then:
           - lambda: id(ui_engine_main).set_backend_connected(true);
           - lambda: id(ui_engine_main).set_startup_status("Home Assistant conectado");
+          - lambda: id(ui_engine_main).set_connection_state(2);
+          - light.turn_off: status_led
           - homeassistant.event:
               event: esphome.cyd_ui_ready
               data:
@@ -70,6 +88,8 @@ api:
           - lambda: id(ui_engine_main).set_backend_connected(true);
         else:
           - lambda: id(ui_engine_main).set_backend_connected(false);
+          - lambda: id(ui_engine_main).set_connection_state(1);
+          - light.turn_off: status_led
   actions:
     - action: play_sound
       variables:
@@ -138,6 +158,27 @@ output:
     id: ui_speaker_output
     pin: GPIO26
     channel: 0
+  - platform: ledc
+    id: status_led_red
+    pin:
+      number: GPIO4
+      inverted: true
+    frequency: 1kHz
+    channel: 1
+  - platform: ledc
+    id: status_led_green
+    pin:
+      number: GPIO16
+      inverted: true
+    frequency: 1kHz
+    channel: 3
+  - platform: ledc
+    id: status_led_blue
+    pin:
+      number: GPIO17
+      inverted: true
+    frequency: 1kHz
+    channel: 4
 
 sensor:
   - platform: adc
@@ -215,6 +256,13 @@ button:
       - lambda: id(ui_engine_main).play_notification_sound("error");
 
 light:
+  - platform: rgb
+    id: status_led
+    internal: true
+    red: status_led_red
+    green: status_led_green
+    blue: status_led_blue
+    restore_mode: ALWAYS_OFF
   - platform: monochromatic
     id: backlight
     name: Backlight

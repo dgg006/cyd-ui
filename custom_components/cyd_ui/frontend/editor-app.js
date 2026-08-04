@@ -19,7 +19,7 @@ renderPreview=function renderRichPreview(){
   if(!["button_grid","sensor_grid","clock_weather","climate","cover"].includes(page.template))return defaultRenderPreview();
   const screen=document.createElement("div");
   const label=(role,fallback)=>page.controls.find(control=>control.role===role)?.caption||fallback;
-  screen.className="screen";
+  screen.className=`screen ${state.ui.settings?.appearance?.mode||"dark"} accent-${state.ui.settings?.appearance?.accent||"mint"}`;
   if(page.template==="button_grid"){
     const columns=page.controls.length===2?2:page.controls.length===4?2:3;
     screen.innerHTML='<div class="template-face button-grid-face"><strong class="template-title"></strong><span class="template-arrow previous">&#8249;</span><span class="template-arrow next">&#8250;</span><div class="button-preview-grid"></div></div>';
@@ -34,6 +34,13 @@ renderPreview=function renderRichPreview(){
     page.controls.forEach(control=>{const mapping=state.backendMap.controls[control.id]||{},card=document.createElement("div"),caption=document.createElement("span"),reading=document.createElement("div"),icon=document.createElement("i"),value=document.createElement("b"),iconName=mapping.domain==="binary_sensor"?(control.icon_off||control.icon):(control.icon||"");card.className="sensor-preview-cell";card.style.borderColor=control.color;caption.textContent=control.caption;icon.className="preview-mdi";icon.textContent=iconGlyph(iconName);icon.classList.toggle("hidden",!icon.textContent);value.textContent=mapping.domain==="binary_sensor"?(mapping.value_map?.off||"Inactivo"):`--${control.unit?` ${control.unit}`:""}`;reading.append(icon,value);card.append(caption,reading);grid.append(card)});
   }else if(page.template==="clock_weather"){
     screen.innerHTML='<div class="clock-face"><div class="clock-time">10:42</div><div class="clock-date">Miércoles 29 de julio</div><div class="clock-condition">Despejado</div><div class="clock-temperature">21.5 C</div><div class="clock-humidity">Humedad 58 %</div><small>Toca para volver</small></div>';
+    // Keep the editor preview aligned with the actual screensaver: it has no
+    // interaction hint and includes the same small weather glyph.
+    screen.querySelector("small")?.remove();
+    const weatherIcon=document.createElement("i");
+    weatherIcon.className="preview-mdi clock-weather-icon";
+    weatherIcon.textContent=iconGlyph("mdi:weather-sunny");
+    screen.querySelector(".clock-face").append(weatherIcon);
   }else if(page.template==="climate"){
     screen.innerHTML='<div class="template-face climate-face"><strong class="template-title"></strong><span class="template-arrow previous">&#8249;</span><span class="template-arrow next">&#8250;</span><div class="climate-current">Actual: 21.0 C</div><div class="climate-target">Objetivo: 22.0 C</div><button class="climate-decrease"></button><button class="climate-power"></button><button class="climate-increase"></button></div>';
     screen.querySelector(".template-title").textContent=page.title||"Sin titulo";
@@ -64,6 +71,7 @@ function ensureSettings(){
   state.ui.settings||={};
   const fill=(target,defaults)=>{for(const[key,value]of Object.entries(defaults))if(target[key]===undefined)target[key]=value};
   state.ui.settings.display||={};fill(state.ui.settings.display,{brightness:100,auto_brightness:false,minimum_brightness:15,maximum_brightness:100,ldr_dark_voltage:3,ldr_bright_voltage:.2});
+  state.ui.settings.appearance||={};fill(state.ui.settings.appearance,{mode:"dark",accent:"mint"});
   state.ui.settings.inactivity||={};fill(state.ui.settings.inactivity,{timeout:legacy,mode:"clock_weather",dim_brightness:10});
   state.ui.settings.night||={};fill(state.ui.settings.night,{enabled:false,start:"23:00",end:"07:00",brightness:15,mode:"screen_off"});
   state.ui.settings.sound||={};fill(state.ui.settings.sound,{enabled:true,volume:5,touch:true,navigation:true,notifications:true,mute_at_night:false});fill(state.ui.settings.sound,{touch_volume:state.ui.settings.sound.volume,navigation_volume:state.ui.settings.sound.volume,notification_volume:state.ui.settings.sound.volume});
@@ -128,12 +136,16 @@ const idleModeChoices=[{value:"clock_weather",label:"Mostrar reloj y clima"},{va
 function settingsGroup(title,description,fields){const group=document.createElement("section");group.className="settings-section";const header=document.createElement("div");header.className="settings-section-heading";header.innerHTML="<h3></h3><p></p>";header.querySelector("h3").textContent=title;header.querySelector("p").textContent=description;const grid=document.createElement("div");grid.className="settings-grid";grid.append(...fields);group.append(header,grid);return group}
 function renderSettings(){
   ensureSettings();
-  const {display,inactivity,night,sound,touchscreen}=state.ui.settings;
+  const {display,appearance,inactivity,night,sound,touchscreen}=state.ui.settings;
   $("#editorTitle").textContent="Configuración del dispositivo";
   $("#duplicateButton").classList.add("hidden");$("#deleteButton").classList.add("hidden");
   $("#controlsHeading").classList.add("hidden");controlList.classList.add("hidden");
   pageForm.classList.add("settings-form");pageForm.replaceChildren();
-  pageForm.append(
+  const appearanceSection=settingsGroup("Aspecto","Modo base y acento para detalles de navegación.",[
+    inputField("Modo",appearance.mode,v=>{appearance.mode=v;renderSettings();renderPreview();validate()},{choices:[{value:"dark",label:"Oscuro"},{value:"light",label:"Claro"}],event:"change"}),
+    inputField("Color de acento",appearance.accent,v=>{appearance.accent=v;renderPreview();validate()},{choices:[{value:"mint",label:"Menta"},{value:"blue",label:"Azul"},{value:"violet",label:"Violeta"},{value:"amber",label:"Ámbar"},{value:"rose",label:"Rosa"}],event:"change"})
+  ]);
+  pageForm.append(appearanceSection,
     settingsGroup("Pantalla","Brillo normal y adaptación al ambiente con el LDR frontal.",[
       inputField("Brillo manual",display.brightness,v=>{display.brightness=v;renderPreview();validate()},{type:"number",min:0,max:100}),
       inputField("Brillo automático",display.auto_brightness?"yes":"no",v=>{display.auto_brightness=v==="yes";renderSettings();renderPreview();validate()},{choices:yesNoChoices,event:"change"}),

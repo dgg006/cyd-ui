@@ -1,4 +1,5 @@
 #include "clock_weather_page.h"
+#include "visual_theme.h"
 
 #include <cstdio>
 #include <set>
@@ -8,7 +9,7 @@ namespace ui_engine {
 
 void ClockWeatherPage::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
-  lv_obj_set_style_bg_color(parent, lv_color_hex(0x071521), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(parent, lv_color_hex(visual_theme::BACKGROUND), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
 
@@ -31,29 +32,37 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
   this->time_label_ = lv_label_create(parent);
   lv_label_set_text(this->time_label_, "--:--");
   lv_obj_set_style_text_font(this->time_label_, &lv_font_montserrat_48, LV_PART_MAIN);
-  lv_obj_set_style_text_color(this->time_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->time_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
   lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 25);
 
   this->date_label_ = lv_label_create(parent);
   lv_label_set_text(this->date_label_, "Esperando hora...");
-  lv_obj_set_style_text_color(this->date_label_, lv_color_hex(0x9FB6C5), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->date_label_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_obj_set_style_text_font(this->date_label_, &lv_font_montserrat_20, LV_PART_MAIN);
   lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 88);
 
   this->condition_label_ = lv_label_create(parent);
   lv_label_set_text(this->condition_label_, "Sin clima");
   lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 0, 122);
+  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 13, 123);
+
+  this->condition_icon_label_ = lv_label_create(parent);
+  if (this->icon_font_ != nullptr) {
+    lv_obj_set_style_text_font(this->condition_icon_label_, this->icon_font_->get_lv_font(), LV_PART_MAIN);
+  }
+  lv_obj_set_style_text_color(this->condition_icon_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
+  lv_obj_align(this->condition_icon_label_, LV_ALIGN_TOP_MID, -73, 119);
+  lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
 
   this->temperature_label_ = lv_label_create(parent);
   lv_label_set_text(this->temperature_label_, "--.- C");
   lv_obj_set_style_text_font(this->temperature_label_, &lv_font_montserrat_32, LV_PART_MAIN);
-  lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 143);
+  lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
+  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 153);
 
   this->humidity_label_ = lv_label_create(parent);
   lv_label_set_text(this->humidity_label_, "Humedad -- %");
-  lv_obj_set_style_text_color(this->humidity_label_, lv_color_hex(0x80CBC4), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->humidity_label_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
   lv_obj_align(this->humidity_label_, LV_ALIGN_BOTTOM_MID, 0, -15);
 }
 
@@ -76,7 +85,16 @@ void ClockWeatherPage::apply(const PageConfig &config) {
 bool ClockWeatherPage::update_control(const std::string &id, bool active, const std::string &value,
                                       ControlState state) {
   if (id == this->condition_id_) {
-    lv_label_set_text(this->condition_label_, state == ControlState::VALID ? translate_condition_(value) : "Sin clima");
+    if (state != ControlState::VALID) {
+      lv_label_set_text(this->condition_label_, "Sin clima");
+      lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+      return true;
+    }
+    lv_label_set_text(this->condition_label_, translate_condition_(value));
+    lv_label_set_text(this->condition_icon_label_, condition_glyph_(value));
+    lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(condition_color_(value)), LV_PART_MAIN);
+    lv_obj_set_style_text_color(this->condition_icon_label_, lv_color_hex(condition_color_(value)), LV_PART_MAIN);
+    if (this->icon_font_ != nullptr) lv_obj_remove_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
     return true;
   }
   if (id == this->temperature_id_) {
@@ -95,6 +113,7 @@ bool ClockWeatherPage::update_control(const std::string &id, bool active, const 
 void ClockWeatherPage::set_all_states(ControlState state) {
   if (state != ControlState::VALID) {
     lv_label_set_text(this->condition_label_, "Sin clima");
+    lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
     lv_label_set_text(this->temperature_label_, "--.- C");
     lv_label_set_text(this->humidity_label_, "Humedad -- %");
   }
@@ -160,15 +179,32 @@ void ClockWeatherPage::update_clock_() {
 }
 
 const char *ClockWeatherPage::translate_condition_(const std::string &condition) {
-  if (condition == "sunny" || condition == "clear-night") return "Despejado";
+  if (condition == "sunny") return "Despejado";
+  if (condition == "clear-night") return "Noche despejada";
   if (condition == "cloudy") return "Nublado";
-  if (condition == "partlycloudy") return "Parcial nublado";
+  if (condition == "partlycloudy") return "Parcialmente nublado";
   if (condition == "rainy" || condition == "pouring") return "Lluvia";
   if (condition == "lightning" || condition == "lightning-rainy") return "Tormenta";
   if (condition == "fog") return "Niebla";
   if (condition == "windy" || condition == "windy-variant") return "Ventoso";
   if (condition == "snowy" || condition == "snowy-rainy") return "Nieve";
+  if (condition == "hail") return "Granizo";
+  if (condition == "exceptional") return "Condiciones extremas";
   return condition.empty() ? "Sin clima" : condition.c_str();
+}
+
+const char *ClockWeatherPage::condition_glyph_(const std::string &condition) {
+  if (condition == "sunny") return "\U000F0599";
+  if (condition == "clear-night") return "\U000F0594";
+  if (condition == "rainy" || condition == "pouring" || condition == "lightning" || condition == "lightning-rainy") return "\U000F0597";
+  return "\U000F0590";
+}
+
+uint32_t ClockWeatherPage::condition_color_(const std::string &condition) {
+  if (condition == "sunny") return 0xFFD166;
+  if (condition == "clear-night") return 0x90CAF9;
+  if (condition == "rainy" || condition == "pouring" || condition == "lightning" || condition == "lightning-rainy") return 0x64B5F6;
+  return 0xB0BEC5;
 }
 
 }  // namespace ui_engine
