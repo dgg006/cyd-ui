@@ -26,9 +26,13 @@ wifi:
   on_connect:
     - lambda: id(ui_engine_main).set_startup_status("Wi-Fi conectado");
     - lambda: id(ui_engine_main).set_connection_state(1);
-    # El punto de estado en pantalla informa la conectividad normal. El LED
-    # trasero queda apagado salvo ante un problema o una notificación puntual.
-    - light.turn_off: status_led
+    # Wi-Fi sin Home Assistant todavía es una falla de sincronización: naranja.
+    # El LED se apaga cuando la API de Home Assistant se conecta más abajo.
+    - light.turn_on:
+        id: status_led
+        red: 100%
+        green: 35%
+        blue: 0%
   on_disconnect:
     - lambda: id(ui_engine_main).set_startup_status("Conectando a Wi-Fi...");
     - lambda: id(ui_engine_main).set_connection_state(0);
@@ -89,7 +93,11 @@ api:
         else:
           - lambda: id(ui_engine_main).set_backend_connected(false);
           - lambda: id(ui_engine_main).set_connection_state(1);
-          - light.turn_off: status_led
+          - light.turn_on:
+              id: status_led
+              red: 100%
+              green: 35%
+              blue: 0%
   actions:
     - action: play_sound
       variables:
