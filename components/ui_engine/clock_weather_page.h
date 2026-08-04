@@ -27,11 +27,14 @@ class ClockWeatherPage : public PageTemplate {
   static void next_callback(lv_event_t *event);
   void update_clock_();
   static const char *translate_condition_(const std::string &condition);
+  static const char *condition_glyph_(const std::string &condition);
+  static uint32_t condition_color_(const std::string &condition);
 
   time::RealTimeClock *clock_{nullptr};
   lv_obj_t *time_label_{nullptr};
   lv_obj_t *date_label_{nullptr};
   lv_obj_t *condition_label_{nullptr};
+  lv_obj_t *condition_icon_label_{nullptr};
   lv_obj_t *temperature_label_{nullptr};
   lv_obj_t *humidity_label_{nullptr};
   lv_obj_t *previous_button_{nullptr};

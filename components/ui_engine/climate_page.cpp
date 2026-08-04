@@ -1,4 +1,5 @@
 #include "climate_page.h"
+#include "visual_theme.h"
 
 #include <set>
 
@@ -17,17 +18,16 @@ void ClimatePage::loop() {
 
 void ClimatePage::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
-  lv_obj_set_style_bg_color(parent, lv_color_hex(0x101820), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
+  visual_theme::page(parent);
 
   this->title_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->title_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  visual_theme::title(this->title_);
   lv_obj_align(this->title_, LV_ALIGN_TOP_MID, 0, 10);
 
   this->previous_button_ = lv_button_create(parent);
   lv_obj_set_size(this->previous_button_, 34, 32);
   lv_obj_set_pos(this->previous_button_, 5, 4);
+  visual_theme::navigation(this->previous_button_);
   lv_obj_t *previous_label = lv_label_create(this->previous_button_);
   lv_label_set_text(previous_label, "<");
   lv_obj_center(previous_label);
@@ -36,6 +36,7 @@ void ClimatePage::create(lv_obj_t *parent) {
   this->next_button_ = lv_button_create(parent);
   lv_obj_set_size(this->next_button_, 34, 32);
   lv_obj_set_pos(this->next_button_, 281, 4);
+  visual_theme::navigation(this->next_button_);
   lv_obj_t *next_label = lv_label_create(this->next_button_);
   lv_label_set_text(next_label, ">");
   lv_obj_center(next_label);
@@ -43,17 +44,18 @@ void ClimatePage::create(lv_obj_t *parent) {
 
   this->current_label_ = lv_label_create(parent);
   lv_label_set_text(this->current_label_, "Actual: --.- C");
-  lv_obj_set_style_text_color(this->current_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->current_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
   lv_obj_align(this->current_label_, LV_ALIGN_TOP_MID, 0, 58);
 
   this->target_label_ = lv_label_create(parent);
   lv_label_set_text(this->target_label_, "Objetivo: --.- C");
-  lv_obj_set_style_text_color(this->target_label_, lv_color_hex(0x9FD3FF), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->target_label_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
   lv_obj_align(this->target_label_, LV_ALIGN_TOP_MID, 0, 102);
 
   this->decrease_button_ = lv_button_create(parent);
   lv_obj_set_size(this->decrease_button_, 88, 62);
   lv_obj_set_pos(this->decrease_button_, 8, 158);
+  visual_theme::card(this->decrease_button_);
   this->decrease_label_ = lv_label_create(this->decrease_button_);
   lv_label_set_text(this->decrease_label_, "-");
   lv_obj_center(this->decrease_label_);
@@ -62,6 +64,7 @@ void ClimatePage::create(lv_obj_t *parent) {
   this->power_button_ = lv_button_create(parent);
   lv_obj_set_size(this->power_button_, 112, 62);
   lv_obj_set_pos(this->power_button_, 104, 158);
+  visual_theme::card(this->power_button_);
   this->power_label_ = lv_label_create(this->power_button_);
   lv_label_set_text(this->power_label_, "Encender");
   lv_obj_center(this->power_label_);
@@ -70,6 +73,7 @@ void ClimatePage::create(lv_obj_t *parent) {
   this->increase_button_ = lv_button_create(parent);
   lv_obj_set_size(this->increase_button_, 88, 62);
   lv_obj_set_pos(this->increase_button_, 224, 158);
+  visual_theme::card(this->increase_button_);
   this->increase_label_ = lv_label_create(this->increase_button_);
   lv_label_set_text(this->increase_label_, "+");
   lv_obj_center(this->increase_label_);

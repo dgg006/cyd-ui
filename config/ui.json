@@ -10,6 +10,10 @@
       "ldr_dark_voltage": 1.66,
       "ldr_bright_voltage": 0.11
     },
+    "appearance": {
+      "mode": "dark",
+      "accent": "mint"
+    },
     "inactivity": {
       "timeout": 300,
       "mode": "clock_weather",

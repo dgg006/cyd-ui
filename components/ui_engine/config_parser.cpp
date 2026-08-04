@@ -99,6 +99,24 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
       }
     }
 
+    JsonObject appearance = settings["appearance"].as<JsonObject>();
+    if (!appearance.isNull()) {
+      const char *mode = appearance["mode"] | "dark";
+      if (std::strcmp(mode, "dark") == 0) candidate.settings.appearance.light_mode = false;
+      else if (std::strcmp(mode, "light") == 0) candidate.settings.appearance.light_mode = true;
+      else {
+        *error = "settings.appearance.mode debe ser dark o light";
+        return false;
+      }
+      const char *accent = appearance["accent"] | "mint";
+      if (std::strcmp(accent, "mint") && std::strcmp(accent, "blue") && std::strcmp(accent, "violet") &&
+          std::strcmp(accent, "amber") && std::strcmp(accent, "rose")) {
+        *error = "settings.appearance.accent no es valido";
+        return false;
+      }
+      candidate.settings.appearance.accent = accent;
+    }
+
     JsonObject inactivity = settings["inactivity"].as<JsonObject>();
     if (!inactivity.isNull()) {
       if (inactivity.containsKey("timeout")) {

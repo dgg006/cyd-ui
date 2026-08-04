@@ -34,6 +34,18 @@ El desarrollo queda pausado hasta la renovación de la cuota semanal. Durante es
 
 Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: la conexión Wi-Fi, el descubrimiento por Home Assistant y el control básico quedaron confirmados.
 
+## Pendiente de diseño: LED RGB y conectividad
+
+- Incorporar el LED RGB trasero como indicador de conectividad: verde (Wi-Fi y Home Assistant), naranja (Wi-Fi sin Home Assistant), rojo (sin Wi-Fi), azul (portal de configuración) y apagado en horario nocturno.
+- Preferencia de uso: mantener el LED apagado durante el funcionamiento normal; reservar la luz continua para problemas y los destellos breves para notificaciones.
+- Permitir que una notificación iniciada desde Home Assistant use también el LED RGB: destello o color breve configurable por tipo de evento, independiente del sonido.
+- Mantener un indicador discreto equivalente en la interfaz LVGL; no se adoptará una pantalla de estado permanente. El detalle de conexión se abrirá solo al tocar ese indicador.
+
+## Pendiente de diseño: temas visuales
+
+- Ofrecer modo claro u oscuro y una selección acotada de hasta cinco colores de acento.
+- El acento afecta navegación, bordes, selección y detalles decorativos; no cambia colores semánticos de estado ni permite elegir colores libres por control.
+
 ## Plataforma validada
 
 - ESP32-2432S028R CYD por COM57.

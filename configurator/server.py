@@ -160,13 +160,18 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
         errors.append("Configuración: settings debe ser un objeto.")
         settings = {}
     display = settings.get("display", {})
+    appearance = settings.get("appearance", {})
     inactivity = settings.get("inactivity", {})
     night = settings.get("night", {})
     sound = settings.get("sound", {})
-    for name, section in (("pantalla", display), ("inactividad", inactivity), ("noche", night), ("sonido", sound)):
+    for name, section in (("pantalla", display), ("aspecto", appearance), ("inactividad", inactivity), ("noche", night), ("sonido", sound)):
         if not isinstance(section, dict):
             errors.append(f"Configuración de {name}: debe ser un objeto.")
-    if all(isinstance(section, dict) for section in (display, inactivity, night, sound)):
+    if all(isinstance(section, dict) for section in (display, appearance, inactivity, night, sound)):
+        if appearance.get("mode", "dark") not in {"dark", "light"}:
+            errors.append("Aspecto: el modo debe ser dark o light.")
+        if appearance.get("accent", "mint") not in {"mint", "blue", "violet", "amber", "rose"}:
+            errors.append("Aspecto: el color de acento no es válido.")
         for key in ("brightness", "minimum_brightness", "maximum_brightness"):
             value = display.get(key)
             if value is not None and (not isinstance(value, int) or isinstance(value, bool) or not 0 <= value <= 100):

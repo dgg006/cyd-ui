@@ -64,6 +64,14 @@ def validate_device_settings(document):
             not 0 <= dark <= 3.3 or not 0 <= bright <= 3.3 or dark == bright):
         raise cv.Invalid("la calibracion LDR debe usar valores distintos entre 0.0 y 3.3 V")
 
+    appearance = settings.get("appearance", {})
+    if not isinstance(appearance, dict):
+        raise cv.Invalid("settings.appearance debe ser un objeto")
+    if appearance.get("mode", "dark") not in {"dark", "light"}:
+        raise cv.Invalid("settings.appearance.mode debe ser dark o light")
+    if appearance.get("accent", "mint") not in {"mint", "blue", "violet", "amber", "rose"}:
+        raise cv.Invalid("settings.appearance.accent no es valido")
+
     inactivity = settings.get("inactivity", {})
     if not isinstance(inactivity, dict):
         raise cv.Invalid("settings.inactivity debe ser un objeto")

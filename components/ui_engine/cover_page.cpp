@@ -1,4 +1,5 @@
 #include "cover_page.h"
+#include "visual_theme.h"
 
 #include <set>
 
@@ -7,17 +8,16 @@ namespace ui_engine {
 
 void CoverPage::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
-  lv_obj_set_style_bg_color(parent, lv_color_hex(0x101820), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, LV_PART_MAIN);
-  lv_obj_set_style_pad_all(parent, 0, LV_PART_MAIN);
+  visual_theme::page(parent);
 
   this->title_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->title_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  visual_theme::title(this->title_);
   lv_obj_align(this->title_, LV_ALIGN_TOP_MID, 0, 10);
 
   this->previous_button_ = lv_button_create(parent);
   lv_obj_set_size(this->previous_button_, 34, 32);
   lv_obj_set_pos(this->previous_button_, 5, 4);
+  visual_theme::navigation(this->previous_button_);
   lv_obj_t *previous_label = lv_label_create(this->previous_button_);
   lv_label_set_text(previous_label, "<");
   lv_obj_center(previous_label);
@@ -26,6 +26,7 @@ void CoverPage::create(lv_obj_t *parent) {
   this->next_button_ = lv_button_create(parent);
   lv_obj_set_size(this->next_button_, 34, 32);
   lv_obj_set_pos(this->next_button_, 281, 4);
+  visual_theme::navigation(this->next_button_);
   lv_obj_t *next_label = lv_label_create(this->next_button_);
   lv_label_set_text(next_label, ">");
   lv_obj_center(next_label);
@@ -36,12 +37,13 @@ void CoverPage::create(lv_obj_t *parent) {
   lv_obj_align(this->position_label_, LV_ALIGN_TOP_MID, 0, 43);
 
   this->state_label_ = lv_label_create(parent);
-  lv_obj_set_style_text_color(this->state_label_, lv_color_hex(0x9FB6C5), LV_PART_MAIN);
+  lv_obj_set_style_text_color(this->state_label_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_obj_align(this->state_label_, LV_ALIGN_TOP_MID, 0, 101);
 
   this->open_button_ = lv_button_create(parent);
   lv_obj_set_size(this->open_button_, 148, 42);
   lv_obj_set_pos(this->open_button_, 8, 128);
+  visual_theme::card(this->open_button_);
   this->open_label_ = lv_label_create(this->open_button_);
   lv_obj_center(this->open_label_);
   lv_obj_add_event_cb(this->open_button_, open_callback, LV_EVENT_CLICKED, this);
@@ -49,6 +51,7 @@ void CoverPage::create(lv_obj_t *parent) {
   this->close_button_ = lv_button_create(parent);
   lv_obj_set_size(this->close_button_, 148, 42);
   lv_obj_set_pos(this->close_button_, 164, 128);
+  visual_theme::card(this->close_button_);
   this->close_label_ = lv_label_create(this->close_button_);
   lv_obj_center(this->close_label_);
   lv_obj_add_event_cb(this->close_button_, close_callback, LV_EVENT_CLICKED, this);
@@ -56,6 +59,7 @@ void CoverPage::create(lv_obj_t *parent) {
   this->close_step_button_ = lv_button_create(parent);
   lv_obj_set_size(this->close_step_button_, 148, 42);
   lv_obj_set_pos(this->close_step_button_, 8, 180);
+  visual_theme::card(this->close_step_button_);
   this->close_step_label_ = lv_label_create(this->close_step_button_);
   lv_obj_center(this->close_step_label_);
   lv_obj_add_event_cb(this->close_step_button_, close_step_callback, LV_EVENT_CLICKED, this);
@@ -63,6 +67,7 @@ void CoverPage::create(lv_obj_t *parent) {
   this->open_step_button_ = lv_button_create(parent);
   lv_obj_set_size(this->open_step_button_, 148, 42);
   lv_obj_set_pos(this->open_step_button_, 164, 180);
+  visual_theme::card(this->open_step_button_);
   this->open_step_label_ = lv_label_create(this->open_step_button_);
   lv_obj_center(this->open_step_label_);
   lv_obj_add_event_cb(this->open_step_button_, open_step_callback, LV_EVENT_CLICKED, this);
