@@ -68,6 +68,7 @@ class UiEngineComponent : public Component {
   }
   bool update_control(const std::string &id, bool active, const std::string &value, const std::string &reliability);
   void set_backend_connected(bool connected);
+  bool backend_connected() const { return this->backend_connected_; }
   void set_startup_status(const std::string &status);
   void set_connection_state(uint8_t state);
 
@@ -156,6 +157,7 @@ class UiEngineComponent : public Component {
   lv_obj_t *connection_indicator_{nullptr};
   lv_obj_t *connection_status_label_{nullptr};
   uint8_t connection_state_{0};
+  bool backend_connected_{false};
   uint32_t calibration_timeout_at_ms_{0};
   uint32_t calibration_close_at_ms_{0};
 };
