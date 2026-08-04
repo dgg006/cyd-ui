@@ -46,12 +46,19 @@ void UiEngineComponent::setup() {
     }
     ESP_LOGI(TAG, "Configuracion embebida aplicada como respaldo seguro");
   }
+  this->show_startup_overlay_();
   ESP_LOGI(TAG, "UI Engine inicializado");
 }
 
 void UiEngineComponent::loop() {
   if (this->active_page_ != nullptr) {
     this->active_page_->loop();
+  }
+
+  if (!this->startup_finished_ && this->startup_overlay_ != nullptr &&
+      static_cast<int32_t>(millis() - this->startup_overlay_hide_at_ms_) >= 0) {
+    lv_obj_add_flag(this->startup_overlay_, LV_OBJ_FLAG_HIDDEN);
+    this->startup_finished_ = true;
   }
 
   if (this->calibration_active_ &&
@@ -192,10 +199,17 @@ bool UiEngineComponent::try_apply_config(const std::string &raw_json) {
   this->wake_pending_ = false;
   this->wake_guard_until_ms_ = 0;
   this->last_activity_ms_ = millis();
+  const bool restore_startup_overlay = !this->startup_finished_ && this->startup_overlay_ != nullptr;
+  if (restore_startup_overlay) {
+    lv_obj_delete(this->startup_overlay_);
+    this->startup_overlay_ = nullptr;
+    this->startup_status_label_ = nullptr;
+  }
   if (!this->show_page(0)) {
     return false;
   }
   this->apply_device_settings();
+  if (restore_startup_overlay) this->show_startup_overlay_();
   ESP_LOGI(TAG, "Configuracion JSON aplicada atomicamente");
   return true;
 }
@@ -586,6 +600,45 @@ void UiEngineComponent::set_wifi_setup_visible(bool visible, const std::string &
 
   lv_obj_remove_flag(this->wifi_setup_overlay_, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_foreground(this->wifi_setup_overlay_);
+}
+
+void UiEngineComponent::set_startup_status(const std::string &status) {
+  if (this->startup_finished_) return;
+  this->startup_status_ = status;
+  if (this->startup_status_label_ != nullptr) {
+    lv_label_set_text(this->startup_status_label_, status.c_str());
+  }
+  this->startup_overlay_hide_at_ms_ = millis() + 3500U;
+}
+
+void UiEngineComponent::show_startup_overlay_() {
+  lv_obj_t *screen = lv_screen_active();
+  this->startup_overlay_ = lv_obj_create(screen);
+  lv_obj_set_size(this->startup_overlay_, 320, 240);
+  lv_obj_set_pos(this->startup_overlay_, 0, 0);
+  lv_obj_set_style_bg_color(this->startup_overlay_, lv_color_hex(0x071521), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(this->startup_overlay_, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->startup_overlay_, 0, LV_PART_MAIN);
+  lv_obj_set_style_radius(this->startup_overlay_, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(this->startup_overlay_, 0, LV_PART_MAIN);
+
+  lv_obj_t *title = lv_label_create(this->startup_overlay_);
+  lv_label_set_text(title, "CYD UI");
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_32, LV_PART_MAIN);
+  lv_obj_set_style_text_color(title, lv_color_hex(0x50D5AD), LV_PART_MAIN);
+  lv_obj_align(title, LV_ALIGN_CENTER, 0, -34);
+
+  this->startup_status_label_ = lv_label_create(this->startup_overlay_);
+  lv_label_set_text(this->startup_status_label_, this->startup_status_.c_str());
+  lv_obj_set_style_text_color(this->startup_status_label_, lv_color_hex(0xC7D6DE), LV_PART_MAIN);
+  lv_obj_align(this->startup_status_label_, LV_ALIGN_CENTER, 0, 12);
+
+  lv_obj_t *subtitle = lv_label_create(this->startup_overlay_);
+  lv_label_set_text(subtitle, "Preparando tu panel");
+  lv_obj_set_style_text_color(subtitle, lv_color_hex(0x6F8796), LV_PART_MAIN);
+  lv_obj_align(subtitle, LV_ALIGN_CENTER, 0, 42);
+  lv_obj_move_foreground(this->startup_overlay_);
+  this->startup_overlay_hide_at_ms_ = millis() + 3500U;
 }
 
 float UiEngineComponent::base_brightness_percent() const {

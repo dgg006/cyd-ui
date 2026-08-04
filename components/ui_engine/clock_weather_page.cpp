@@ -32,33 +32,29 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
   lv_label_set_text(this->time_label_, "--:--");
   lv_obj_set_style_text_font(this->time_label_, &lv_font_montserrat_48, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->time_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 32);
+  lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 25);
 
   this->date_label_ = lv_label_create(parent);
   lv_label_set_text(this->date_label_, "Esperando hora...");
   lv_obj_set_style_text_color(this->date_label_, lv_color_hex(0x9FB6C5), LV_PART_MAIN);
-  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 94);
+  lv_obj_set_style_text_font(this->date_label_, &lv_font_montserrat_20, LV_PART_MAIN);
+  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 88);
 
   this->condition_label_ = lv_label_create(parent);
   lv_label_set_text(this->condition_label_, "Sin clima");
   lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 0, 124);
+  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 0, 122);
 
   this->temperature_label_ = lv_label_create(parent);
   lv_label_set_text(this->temperature_label_, "--.- C");
   lv_obj_set_style_text_font(this->temperature_label_, &lv_font_montserrat_32, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
-  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 146);
+  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 143);
 
   this->humidity_label_ = lv_label_create(parent);
   lv_label_set_text(this->humidity_label_, "Humedad -- %");
   lv_obj_set_style_text_color(this->humidity_label_, lv_color_hex(0x80CBC4), LV_PART_MAIN);
-  lv_obj_align(this->humidity_label_, LV_ALIGN_BOTTOM_MID, 0, -30);
-
-  lv_obj_t *hint = lv_label_create(parent);
-  lv_label_set_text(hint, "Toca para volver");
-  lv_obj_set_style_text_color(hint, lv_color_hex(0x526A79), LV_PART_MAIN);
-  lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -8);
+  lv_obj_align(this->humidity_label_, LV_ALIGN_BOTTOM_MID, 0, -15);
 }
 
 void ClockWeatherPage::loop() {

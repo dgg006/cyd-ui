@@ -68,6 +68,7 @@ class UiEngineComponent : public Component {
   }
   bool update_control(const std::string &id, bool active, const std::string &value, const std::string &reliability);
   void set_backend_connected(bool connected);
+  void set_startup_status(const std::string &status);
 
  private:
   bool try_apply_config(const std::string &raw_json);
@@ -90,6 +91,7 @@ class UiEngineComponent : public Component {
   bool is_night() const;
   IdleMode effective_idle_mode() const;
   float base_brightness_percent() const;
+  void show_startup_overlay_();
 
   struct RuntimeControlState {
     bool active{false};
@@ -144,6 +146,11 @@ class UiEngineComponent : public Component {
   lv_obj_t *calibration_target_{nullptr};
   lv_obj_t *calibration_label_{nullptr};
   lv_obj_t *wifi_setup_overlay_{nullptr};
+  lv_obj_t *startup_overlay_{nullptr};
+  lv_obj_t *startup_status_label_{nullptr};
+  std::string startup_status_{"Conectando a Wi-Fi..."};
+  uint32_t startup_overlay_hide_at_ms_{0};
+  bool startup_finished_{false};
   uint32_t calibration_timeout_at_ms_{0};
   uint32_t calibration_close_at_ms_{0};
 };

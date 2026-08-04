@@ -100,7 +100,12 @@ def update_for_state(
     else:
         value = str(source)
 
-    if mapping.get("state_active"):
+    # Binary sensors are value-only controls, but their icon still needs the
+    # boolean state. Older saved projects did not carry state_active, so keep
+    # this inference here instead of requiring every user to re-save a page.
+    if mapping.get("state_active") or (
+        mapping.get("domain") == "binary_sensor" and mapping.get("value_only")
+    ):
         active = not unreliable and entity_state != "off"
     elif mapping.get("attribute") or mapping.get("value_only"):
         active = False

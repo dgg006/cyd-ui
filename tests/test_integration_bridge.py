@@ -96,6 +96,26 @@ class NativeBridgeModelTests(unittest.TestCase):
         )
         self.assertEqual("Libre", update["value"])
 
+    def test_binary_sensor_uses_its_on_off_state_for_the_icon(self):
+        active = MODEL.update_for_state(
+            "motion",
+            {
+                "domain": "binary_sensor",
+                "value_only": True,
+                "value_map": {"on": "Movimiento", "off": "Libre"},
+            },
+            "on",
+            {},
+        )
+        inactive = MODEL.update_for_state(
+            "motion",
+            {"domain": "binary_sensor", "value_only": True},
+            "off",
+            {},
+        )
+        self.assertTrue(active["active"])
+        self.assertFalse(inactive["active"])
+
 
 if __name__ == "__main__":
     unittest.main()
