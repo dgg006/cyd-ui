@@ -7,6 +7,14 @@
 namespace esphome {
 namespace ui_engine {
 
+// UTF-8 bytes are explicit so this source remains stable even if a Windows
+// editor changes its text encoding.
+static const char *weekday_name(uint8_t day) {
+  static const char *const DAYS[] = {"", "Domingo", "Lunes", "Martes", "Mi\xC3\xA9rcoles", "Jueves", "Viernes",
+                                     "S\xC3\xA1" "bado"};
+  return day <= 7 ? DAYS[day] : "";
+}
+
 void ClockWeatherPage::create(lv_obj_t *parent) {
   lv_obj_clean(parent);
   lv_obj_set_style_bg_color(parent, lv_color_hex(visual_theme::BACKGROUND), LV_PART_MAIN);
@@ -38,27 +46,28 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
   this->date_label_ = lv_label_create(parent);
   lv_label_set_text(this->date_label_, "Esperando hora...");
   lv_obj_set_style_text_color(this->date_label_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
-  lv_obj_set_style_text_font(this->date_label_, &lv_font_montserrat_20, LV_PART_MAIN);
-  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 88);
+  // No fijar Montserrat aquí: el font por defecto de ESPHome contiene ñ y
+  // acentos, mientras que la fuente numérica integrada se reserva para la hora.
+  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 91);
 
   this->condition_label_ = lv_label_create(parent);
   lv_label_set_text(this->condition_label_, "Sin clima");
   lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 13, 123);
+  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 13, 126);
 
   this->condition_icon_label_ = lv_label_create(parent);
   if (this->icon_font_ != nullptr) {
     lv_obj_set_style_text_font(this->condition_icon_label_, this->icon_font_->get_lv_font(), LV_PART_MAIN);
   }
   lv_obj_set_style_text_color(this->condition_icon_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_icon_label_, LV_ALIGN_TOP_MID, -73, 119);
+  lv_obj_align(this->condition_icon_label_, LV_ALIGN_TOP_MID, -73, 122);
   lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
 
   this->temperature_label_ = lv_label_create(parent);
   lv_label_set_text(this->temperature_label_, "--.- C");
   lv_obj_set_style_text_font(this->temperature_label_, &lv_font_montserrat_32, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
-  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 153);
+  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 156);
 
   this->humidity_label_ = lv_label_create(parent);
   lv_label_set_text(this->humidity_label_, "Humedad -- %");
@@ -173,7 +182,7 @@ void ClockWeatherPage::update_clock_() {
   static const char *const MONTHS[] = {"", "enero", "febrero", "marzo", "abril", "mayo", "junio",
                                       "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"};
   char date_text[48];
-  std::snprintf(date_text, sizeof(date_text), "%s %u de %s", DAYS[now.day_of_week], now.day_of_month,
+  std::snprintf(date_text, sizeof(date_text), "%s %u de %s", weekday_name(now.day_of_week), now.day_of_month,
                 MONTHS[now.month]);
   lv_label_set_text(this->date_label_, date_text);
 }

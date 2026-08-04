@@ -232,6 +232,77 @@ function renderAll(){state.selectedPage=Math.max(0,Math.min(state.selectedPage,s
 async function loadEntities(){$("#entityCount").textContent="Consultando Home Assistant…";try{const result=await api("/api/entities");state.entities=result.entities;normalizeEntityMappings();$("#entityCount").textContent=`${state.entities.length} entidades totales`;renderControls();renderPreview();validate()}catch(error){$("#entityCount").textContent="Home Assistant no disponible";showToast(error.message,true)}}
 async function initialize(){try{const[catalog,icons,project]=await Promise.all([api("/api/catalog"),api("/api/icons"),api("/api/project")]);state.catalog=catalog;state.icons=icons.icons;state.ui=project.ui;state.backendMap=project.backend_map;ensureSettings();$("#connectionState").textContent="Proyecto cargado";$("#connectionState").className="status ok";renderAll();loadEntities()}catch(error){$("#connectionState").textContent="Error de carga";$("#connectionState").className="status bad";showToast(error.message,true)}}
 
+// Searchable choices use real touch buttons instead of a multi-row <select>.
+// Android/iOS handle those reliably, while a size=5 select is inconsistent.
+function inputField(label,value,onChange,options={}){
+  const field=document.createElement("div");
+  field.className=`field${options.wide?" wide":""}`;
+  const caption=document.createElement("label");
+  caption.textContent=label;
+  let input,extra=null;
+  if(options.choices&&options.searchable){
+    input=document.createElement("input");
+    input.type="search";
+    input.value=value??"";
+    input.placeholder=options.placeholder||"Escribí para buscar…";
+    input.autocomplete="off";
+    const results=document.createElement("div");
+    results.className="search-results search-result-buttons";
+    const renderResults=()=>{
+      const query=input.value.trim().toLocaleLowerCase();
+      results.replaceChildren();
+      if(!query){
+        const hint=document.createElement("div");
+        hint.className="search-hint";
+        hint.textContent=value?"Escribí para cambiar la selección.":"Escribí al menos una parte del nombre o ID.";
+        results.append(hint);
+        return;
+      }
+      const matches=options.choices.filter(choice=>`${choice.label} ${choice.value}`.toLocaleLowerCase().includes(query));
+      if(!matches.length){
+        const empty=document.createElement("div");
+        empty.className="search-hint";
+        empty.textContent="Sin coincidencias";
+        results.append(empty);
+        return;
+      }
+      matches.slice(0,24).forEach(choice=>{
+        const result=document.createElement("button");
+        result.type="button";
+        result.className="search-result";
+        result.textContent=choice.label;
+        result.onclick=()=>{input.value=choice.value;onChange(choice.value)};
+        results.append(result);
+      });
+    };
+    input.addEventListener("input",renderResults);
+    input.addEventListener("change",()=>{const exact=options.choices.find(choice=>choice.value===input.value);if(exact||input.value==="")onChange(input.value)});
+    renderResults();
+    extra=results;
+  }else if(options.choices){
+    input=document.createElement("select");
+    options.choices.forEach(o=>{const option=document.createElement("option");option.value=o.value;option.textContent=o.label;option.selected=String(o.value)===String(value);input.append(option)});
+  }else{
+    input=document.createElement("input");
+    input.type=options.type||"text";
+    input.value=value??"";
+    if(options.placeholder)input.placeholder=options.placeholder;
+    if(options.min!==undefined)input.min=options.min;
+    if(options.max!==undefined)input.max=options.max;
+    if(options.step!==undefined)input.step=options.step;
+  }
+  input.disabled=Boolean(options.disabled);
+  if(!input.disabled&&!options.searchable){
+    const eventName=options.event||"input";
+    const handler=()=>onChange(options.type==="number"&&input.value!==""?Number(input.value):input.value);
+    input.addEventListener(eventName,handler);
+    if(eventName!=="change")input.addEventListener("change",handler);
+  }
+  field.append(caption,input);
+  if(extra)field.append(extra);
+  return field;
+}
+
 $("#addPageButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);state.ui.pages.push(makePage());state.selectedPage=state.ui.pages.length-1;state.editingSettings=false;renderAll()};
 $("#deviceSettingsButton").onclick=()=>{state.editingSettings=true;renderAll()};
 $("#duplicateButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);const source=state.ui.pages[state.selectedPage],copy=clone(source);copy.title=`${copy.title} copia`;copy.controls.forEach(control=>{const oldId=control.id;control.id=uniqueId(`${control.id}_copia`);state.backendMap.controls[control.id]=clone(state.backendMap.controls[oldId]||defaultMapping(control))});state.ui.pages.splice(state.selectedPage+1,0,copy);state.selectedPage++;renderAll()};
