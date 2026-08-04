@@ -31,12 +31,21 @@ def _domain_data(hass: HomeAssistant) -> dict[str, Any]:
 
 def _state_by_friendly_name(hass: HomeAssistant, friendly_name: str):
     """Find one of the panel's diagnostic entities without hard-coding its slug."""
-    return next(
+    exact = next(
         (
             state
             for state in hass.states.async_all()
             if state.attributes.get("friendly_name") == friendly_name
         ),
+        None,
+    )
+    if exact is not None:
+        return exact
+    # ESPHome can prefix the friendly name with the device name. Keep a stable
+    # fallback for the LDR even when the user renames the device in Home Assistant.
+    slug = friendly_name.casefold().replace(" ", "_")
+    return next(
+        (state for state in hass.states.async_all() if state.entity_id.casefold().endswith(slug)),
         None,
     )
 
