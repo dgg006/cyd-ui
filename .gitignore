@@ -6,3 +6,5 @@ __pycache__/
 *.pyc
 config/history/
 dist/
+.lab-gateway*.log
+.lab-gateway.pid

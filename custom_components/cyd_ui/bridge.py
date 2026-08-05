@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from .bridge_model import command_for_action, update_for_state
 from .storage import CydUiStorage
@@ -41,15 +42,15 @@ class CydUiBridge:
                 EVENT_SERVICE_REGISTERED, self._async_handle_service_registered
             ),
         ]
-        await self.async_apply_config()
-        await self.async_sync_all()
+        if await self.async_apply_config():
+            await self.async_sync_all()
 
     async def _async_handle_ready(self, _event: Event) -> None:
         """Restore the stored project and live states after the CYD reconnects."""
         self._ready_generation += 1
         generation = self._ready_generation
-        await self.async_apply_config()
-        await self.async_sync_all()
+        if await self.async_apply_config():
+            await self.async_sync_all()
         # The ESPHome API accepts the configuration before LVGL has necessarily
         # finished rebuilding it. Replaying only live states a moment later
         # closes that startup race without resetting the visible page again.
@@ -77,8 +78,8 @@ class CydUiBridge:
             event.data.get("domain") == ESPHOME_DOMAIN
             and event.data.get("service") == APPLY_CONFIG_SERVICE
         ):
-            await self.async_apply_config()
-            await self.async_sync_all()
+            if await self.async_apply_config():
+                await self.async_sync_all()
 
     async def async_apply_config(self) -> bool:
         """Send the complete UI document through the native ESPHome API."""
@@ -88,12 +89,19 @@ class CydUiBridge:
         if not isinstance(ui, dict):
             return False
         payload = json.dumps(ui, ensure_ascii=False, separators=(",", ":"))
-        await self._hass.services.async_call(
-            ESPHOME_DOMAIN,
-            APPLY_CONFIG_SERVICE,
-            {"config": payload},
-            blocking=True,
-        )
+        try:
+            await self._hass.services.async_call(
+                ESPHOME_DOMAIN,
+                APPLY_CONFIG_SERVICE,
+                {"config": payload},
+                blocking=True,
+            )
+        except HomeAssistantError as error:
+            _LOGGER.info(
+                "CYD unavailable for direct config delivery; saved project remains pending: %s",
+                error,
+            )
+            return False
         return True
 
     async def _async_handle_action(self, event: Event) -> None:
@@ -149,6 +157,9 @@ class CydUiBridge:
             state.state if state else None,
             dict(state.attributes) if state else None,
         )
-        await self._hass.services.async_call(
-            ESPHOME_DOMAIN, UPDATE_SERVICE, update, blocking=False
-        )
+        try:
+            await self._hass.services.async_call(
+                ESPHOME_DOMAIN, UPDATE_SERVICE, update, blocking=False
+            )
+        except HomeAssistantError as error:
+            _LOGGER.debug("CYD unavailable for state update: %s", error)

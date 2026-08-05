@@ -2,6 +2,24 @@
 
 Runtime declarativo para interfaces LVGL, desarrollado inicialmente para la ESP32-2432S028R CYD y ESPHome.
 
+## Desarrollo remoto desde el trabajo
+
+`tools/start_lab_gateway.ps1` conecta una CYD presente en la red local con el
+Home Assistant de casa a través de WireGuard. Usa la API nativa de ESPHome: no
+requiere MQTT, no cambia el firmware y no interviene cuando la pantalla vuelve
+a casa.
+
+Con WireGuard activo y la pantalla encendida, ejecutar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/start_lab_gateway.ps1
+```
+
+El puente carga automáticamente el proyecto guardado por la integración CYD UI,
+sincroniza estados en tiempo real y traduce las pulsaciones a servicios de Home
+Assistant. Por seguridad, el encendido y apagado remoto de climatización queda
+bloqueado en modo laboratorio.
+
 ## Principios
 
 1. La interfaz habitual se reconfigura sin recompilar el motor.
