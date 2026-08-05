@@ -1,6 +1,24 @@
 # Estado del proyecto
 
-Actualizado: 2026-08-03
+Actualizado: 2026-08-05
+
+## Actualización 2026-08-05 — laboratorio remoto por API nativa
+
+- Implementado `CYD Lab Gateway`: conecta la pantalla presente en la red del
+  taller con el Home Assistant doméstico a través de WireGuard.
+- Ambos enlaces salen desde la PC, por lo que Home Assistant no necesita una
+  ruta inversa hacia la red `192.168.31.0/24`.
+- El gateway usa la API cifrada de ESPHome, la misma configuración almacenada
+  por la integración HACS y el mismo modelo de traducción de acciones/estados
+  que el puente nativo de producción. No restaura MQTT ni modifica el firmware.
+- Validados en vivo: Home Assistant `192.168.68.77:8123`, CYD
+  `192.168.31.150:6053`, revisión 47, 8 páginas y 34 controles.
+- La configuración se revisa automáticamente cada cinco segundos y los cambios
+  de estado llegan mediante WebSocket en tiempo real.
+- Por seguridad, el laboratorio bloquea el encendido/apagado del calefactor;
+  los ajustes de temperatura y los demás controles conservan su contrato.
+- Se agregó el iniciador `Iniciar puente CYD.cmd` y protección contra dos
+  instancias simultáneas.
 
 ## Actualización 2026-08-03 — sincronización, móvil e idioma
 

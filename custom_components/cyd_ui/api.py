@@ -156,7 +156,8 @@ async def websocket_config_save(
     device_applied = False
     if bridge is not None:
         device_applied = await bridge.async_apply_config()
-        await bridge.async_sync_all()
+        if device_applied:
+            await bridge.async_sync_all()
     connection.send_result(
         msg["id"],
         {
