@@ -24,6 +24,99 @@ TEMPLATE_VARIANTS: dict[str, dict[str, tuple[int, int]]] = {
     "sensor_grid": {"four_values": (1, 4)},
     "cover": {"position_controls": (6, 6)},
 }
+IDLE_MODES = {"clock_weather", "screen_off", "dim", "none"}
+ACCENTS = {"mint", "blue", "violet", "amber", "rose"}
+
+
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _valid_time(value: Any) -> bool:
+    if not isinstance(value, str) or not re.fullmatch(r"\d{2}:\d{2}", value):
+        return False
+    hour, minute = (int(part) for part in value.split(":"))
+    return 0 <= hour <= 23 and 0 <= minute <= 59
+
+
+def _validate_settings(ui: dict[str, Any], errors: list[str]) -> None:
+    settings = ui.get("settings", {})
+    if not isinstance(settings, dict):
+        errors.append("Configuración: settings debe ser un objeto.")
+        return
+    sections = {
+        name: settings.get(name, {})
+        for name in ("display", "appearance", "inactivity", "night", "sound", "touchscreen")
+    }
+    for name, section in sections.items():
+        if not isinstance(section, dict):
+            errors.append(f"Configuración: {name} debe ser un objeto.")
+    if errors:
+        return
+
+    display = sections["display"]
+    for key in ("brightness", "minimum_brightness", "maximum_brightness"):
+        value = display.get(key)
+        if not _is_int(value) or not 0 <= value <= 100:
+            errors.append(f"Pantalla: {key} debe ser un entero entre 0 y 100.")
+    if not isinstance(display.get("auto_brightness"), bool):
+        errors.append("Pantalla: auto_brightness debe ser sí o no.")
+    if all(_is_int(display.get(key)) for key in ("minimum_brightness", "maximum_brightness")):
+        if display["minimum_brightness"] > display["maximum_brightness"]:
+            errors.append("Pantalla: el brillo mínimo no puede superar el máximo.")
+    for key in ("ldr_dark_voltage", "ldr_bright_voltage"):
+        value = display.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 3.3:
+            errors.append(f"Pantalla: {key} debe estar entre 0.0 y 3.3 V.")
+    if display.get("ldr_dark_voltage") == display.get("ldr_bright_voltage"):
+        errors.append("Pantalla: los extremos de calibración LDR deben ser distintos.")
+
+    appearance = sections["appearance"]
+    if appearance.get("mode") not in {"dark", "light"}:
+        errors.append("Aspecto: el modo debe ser dark o light.")
+    if appearance.get("accent") not in ACCENTS:
+        errors.append("Aspecto: el color de acento no es válido.")
+
+    inactivity = sections["inactivity"]
+    timeout = inactivity.get("timeout")
+    if not _is_int(timeout) or not 0 <= timeout <= 3600:
+        errors.append("Inactividad: el tiempo debe estar entre 0 y 3600 segundos.")
+    if inactivity.get("mode") not in IDLE_MODES:
+        errors.append("Inactividad: el modo seleccionado no es válido.")
+    dim = inactivity.get("dim_brightness")
+    if not _is_int(dim) or not 0 <= dim <= 100:
+        errors.append("Inactividad: el brillo tenue debe estar entre 0 y 100.")
+
+    night = sections["night"]
+    if not isinstance(night.get("enabled"), bool):
+        errors.append("Horario nocturno: enabled debe ser sí o no.")
+    for key in ("start", "end"):
+        if not _valid_time(night.get(key)):
+            errors.append(f"Horario nocturno: {key} debe usar HH:MM.")
+    night_brightness = night.get("brightness")
+    if not _is_int(night_brightness) or not 0 <= night_brightness <= 100:
+        errors.append("Horario nocturno: el brillo debe estar entre 0 y 100.")
+    if night.get("mode") not in IDLE_MODES:
+        errors.append("Horario nocturno: el modo seleccionado no es válido.")
+
+    sound = sections["sound"]
+    for key in ("enabled", "touch", "navigation", "notifications", "mute_at_night"):
+        if not isinstance(sound.get(key), bool):
+            errors.append(f"Sonido: {key} debe ser sí o no.")
+    for key in ("volume", "touch_volume", "navigation_volume", "notification_volume"):
+        value = sound.get(key)
+        if not _is_int(value) or not 0 <= value <= 10:
+            errors.append(f"Sonido: {key} debe estar entre 0 y 10.")
+
+    touch = sections["touchscreen"]
+    for key in ("x_min", "x_max", "y_min", "y_max"):
+        if not _is_int(touch.get(key)):
+            errors.append(f"Pantalla táctil: {key} debe ser entero.")
+    if all(_is_int(touch.get(key)) for key in ("x_min", "x_max", "y_min", "y_max")):
+        if not (0 <= touch["x_min"] < touch["x_max"] <= 4095):
+            errors.append("Pantalla táctil: el rango X no es válido.")
+        if not (0 <= touch["y_min"] < touch["y_max"] <= 4095):
+            errors.append("Pantalla táctil: el rango Y no es válido.")
 
 
 def validate_document(ui: Any, backend_map: Any) -> list[str]:
@@ -33,6 +126,11 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
         return ["La interfaz debe ser un objeto."]
     if ui.get("schema_version") != 1:
         errors.append("schema_version debe ser 1.")
+
+    timeout = ui.get("screensaver_timeout")
+    if not _is_int(timeout) or not 0 <= timeout <= 3600:
+        errors.append("El tiempo del protector debe estar entre 0 y 3600 segundos.")
+    _validate_settings(ui, errors)
 
     pages = ui.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= 8:

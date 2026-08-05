@@ -45,6 +45,15 @@ class IntegrationModelTests(unittest.TestCase):
             any("repetido" in error for error in MODEL.validate_document(self.ui, self.backend_map))
         )
 
+    def test_corrupted_device_settings_are_rejected(self):
+        self.ui["settings"]["display"]["brightness"] = None
+        self.ui["settings"]["inactivity"]["mode"] = "0"
+        self.ui["settings"]["night"]["end"] = "no"
+        errors = MODEL.validate_document(self.ui, self.backend_map)
+        self.assertTrue(any("brightness" in error for error in errors))
+        self.assertTrue(any("Inactividad" in error for error in errors))
+        self.assertTrue(any("Horario nocturno" in error for error in errors))
+
     def test_revision_history_is_bounded_and_immutable(self):
         current = {
             "revision": 10,
