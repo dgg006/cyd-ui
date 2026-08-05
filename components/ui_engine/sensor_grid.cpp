@@ -41,7 +41,7 @@ void SensorGrid::create(lv_obj_t *parent) {
     lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *caption = lv_label_create(card);
-    lv_obj_set_style_text_color(caption, lv_color_hex(0x9FB6C5), LV_PART_MAIN);
+    lv_obj_set_style_text_color(caption, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
     lv_obj_align(caption, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t *value = lv_label_create(card);

@@ -208,7 +208,7 @@ void ButtonGrid::apply_state(size_t index) {
 
   switch (this->states_[index]) {
     case ControlState::VALID:
-      color = this->active_[index] ? lv_color_hex(this->colors_[index]) : lv_color_hex(0x27313B);
+      color = this->active_[index] ? lv_color_hex(this->colors_[index]) : lv_color_hex(visual_theme::SURFACE_MUTED);
       opacity = LV_OPA_COVER;
       break;
     case ControlState::STALE_OR_DISCONNECTED:
@@ -217,7 +217,7 @@ void ButtonGrid::apply_state(size_t index) {
       break;
     case ControlState::UNKNOWN:
     default:
-      color = lv_color_hex(0x3B4652);
+      color = lv_color_hex(visual_theme::SURFACE_MUTED);
       opacity = LV_OPA_70;
       break;
   }
@@ -225,7 +225,7 @@ void ButtonGrid::apply_state(size_t index) {
   lv_obj_set_style_bg_color(this->buttons_[index], color, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(this->buttons_[index], opacity, LV_PART_MAIN);
   lv_obj_set_style_border_color(this->buttons_[index],
-                                lv_color_hex(this->states_[index] == ControlState::VALID && this->active_[index]
+                                lv_color_hex(this->states_[index] == ControlState::VALID
                                                  ? this->colors_[index]
                                                  : visual_theme::BORDER),
                                 LV_PART_MAIN);
@@ -236,7 +236,7 @@ void ButtonGrid::apply_state(size_t index) {
   }
   if (glyph != nullptr && this->icon_font_ != nullptr) {
     lv_label_set_text(this->icon_labels_[index], glyph);
-    lv_obj_set_style_text_color(this->icon_labels_[index], lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_text_color(this->icon_labels_[index], lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
     lv_obj_remove_flag(this->icon_labels_[index], LV_OBJ_FLAG_HIDDEN);
     lv_obj_align(this->icon_labels_[index], LV_ALIGN_CENTER, 0, -12);
     lv_obj_align(this->labels_[index], LV_ALIGN_BOTTOM_MID, 0, -5);

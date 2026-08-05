@@ -47,7 +47,7 @@ inline void page(lv_obj_t *parent) {
 
 inline void title(lv_obj_t *label) {
   lv_obj_set_style_text_font(label, &lv_font_montserrat_20, LV_PART_MAIN);
-  lv_obj_set_style_text_color(label, lv_color_hex(TEXT), LV_PART_MAIN);
+  lv_obj_set_style_text_color(label, lv_color_hex(ACCENT), LV_PART_MAIN);
 }
 
 inline void navigation(lv_obj_t *button) {
