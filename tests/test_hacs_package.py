@@ -94,6 +94,16 @@ class HacsPackageTests(unittest.TestCase):
         )
         self.assertEqual(firmware, embedded)
 
+    def test_settings_calibration_does_not_depend_on_field_positions(self):
+        """Adding or reordering settings sections must not corrupt calibration."""
+        editor = (INTEGRATION_ROOT / "frontend" / "editor-app.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("pageForm.firstElementChild", editor)
+        self.assertNotIn('displayGrid.querySelectorAll("input")', editor)
+        self.assertIn('ldrDarkField.querySelector("input")', editor)
+        self.assertIn('ldrBrightField.querySelector("input")', editor)
+
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual("https://github.com/dgg006/cyd-ui", manifest["documentation"])

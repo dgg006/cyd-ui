@@ -1,5 +1,5 @@
 const STATIC_ROOT = "/cyd_ui_static";
-const ASSET_VERSION = "0.2.5";
+const ASSET_VERSION = "0.2.6";
 
 function describeError(error) {
   if (typeof error === "string") return error;
@@ -14,7 +14,7 @@ function describeError(error) {
 
 const EDITOR_MARKUP = `
   <header class="topbar">
-    <div><div class="eyebrow">CYD UI ENGINE</div><h1>Configurador</h1></div>
+    <div><div class="eyebrow">CYD UI ENGINE · v${ASSET_VERSION}</div><h1>Configurador</h1></div>
     <div class="top-actions">
       <span id="connectionState" class="status neutral">Iniciando…</span>
       <button id="nativeBridgeButton" class="button secondary">Puente</button>
