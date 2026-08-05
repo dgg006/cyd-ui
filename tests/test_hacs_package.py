@@ -104,6 +104,16 @@ class HacsPackageTests(unittest.TestCase):
         self.assertIn('ldrDarkField.querySelector("input")', editor)
         self.assertIn('ldrBrightField.querySelector("input")', editor)
 
+    def test_remote_delivery_is_not_reported_as_a_save_failure(self):
+        editor = (INTEGRATION_ROOT / "frontend" / "editor-app.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("delivery_note", editor)
+        self.assertNotIn(
+            'reload_error:result.device_applied?null:"la pantalla no está conectada',
+            editor,
+        )
+
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual("https://github.com/dgg006/cyd-ui", manifest["documentation"])
