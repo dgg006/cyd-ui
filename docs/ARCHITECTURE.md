@@ -790,7 +790,7 @@ Los sonidos deben ser breves, sutiles y no bloquear el loop principal. No se pre
 
 ## API nativa y portabilidad de red
 
-La API nativa de ESPHome se incorporó para capacidades fijas de la placa, sin romper la frontera que mantiene a los controles dinámicos separados de Home Assistant. Expone retroiluminación, porcentaje de luz ambiental, botones de sonido y tres acciones genéricas (`play_sound`, `update_control`, `reload_ui`). Una pulsación también puede emitir `esphome.cyd_ui_action`; el payload sigue usando `control_id` opaco y `action`, nunca `entity_id`.
+La API nativa de ESPHome se incorporó para capacidades fijas de la placa, sin romper la frontera que mantiene a los controles dinámicos separados de Home Assistant. Expone retroiluminación, porcentaje de luz ambiental, botones de sonido y acciones genéricas (`play_sound`, `update_control`, `reload_ui`, `show_reminder` y `dismiss_reminder`). Una pulsación o la aceptación de un recordatorio también puede emitir `esphome.cyd_ui_action`; el payload sigue usando un identificador opaco y `action`, nunca `entity_id`.
 
 La coexistencia de MQTT y API es deliberada:
 

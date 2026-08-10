@@ -56,6 +56,9 @@ class UiEngineComponent : public Component {
   bool prepare_notification_sound();
   bool play_notification_sound(const std::string &sound);
   void preview_notification_sound(uint8_t volume);
+  void show_reminder(const std::string &reminder_id, const std::string &title,
+                     const std::string &message, const std::string &level);
+  bool dismiss_reminder(const std::string &reminder_id = "");
   float ambient_light_percent() const;
   void set_wifi_setup_visible(bool visible, const std::string &ssid, const std::string &password);
   void start_touch_calibration();
@@ -161,6 +164,8 @@ class UiEngineComponent : public Component {
   bool startup_finished_{false};
   lv_obj_t *connection_indicator_{nullptr};
   lv_obj_t *connection_status_label_{nullptr};
+  lv_obj_t *reminder_overlay_{nullptr};
+  std::string reminder_id_;
   uint8_t connection_state_{0};
   bool backend_connected_{false};
   uint32_t calibration_timeout_at_ms_{0};

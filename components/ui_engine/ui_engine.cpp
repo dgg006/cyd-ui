@@ -538,6 +538,119 @@ void UiEngineComponent::preview_notification_sound(uint8_t volume) {
   this->sound_preview_restore_at_ms_ = millis() + 500U;
 }
 
+void UiEngineComponent::show_reminder(const std::string &reminder_id, const std::string &title,
+                                      const std::string &message, const std::string &level) {
+  if (this->reminder_overlay_ != nullptr) {
+    lv_obj_delete(this->reminder_overlay_);
+    this->reminder_overlay_ = nullptr;
+  }
+
+  // A reminder always wakes the display and takes priority over the
+  // screensaver, but it does not change the page the user was viewing.
+  this->last_activity_ms_ = millis();
+  if (this->idle_active_) {
+    const bool was_screensaver = this->screensaver_active_;
+    this->idle_active_ = false;
+    this->screensaver_active_ = false;
+    this->active_idle_mode_ = IdleMode::NONE;
+    this->wake_pending_ = false;
+    if (was_screensaver) this->show_page(this->page_before_screensaver_);
+  }
+  this->applied_backlight_level_ = -1.0f;
+  this->apply_backlight();
+
+  uint32_t accent = 0x42A5F5;
+  if (level == "reminder") accent = 0x50D5AD;
+  else if (level == "warning") accent = 0xFFB300;
+  else if (level == "urgent") accent = 0xEF5350;
+
+  this->reminder_id_ = reminder_id.empty() ? "reminder" : reminder_id;
+  this->reminder_overlay_ = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(this->reminder_overlay_, 320, 240);
+  lv_obj_set_pos(this->reminder_overlay_, 0, 0);
+  lv_obj_set_style_radius(this->reminder_overlay_, 0, 0);
+  lv_obj_set_style_border_width(this->reminder_overlay_, 0, 0);
+  lv_obj_set_style_pad_all(this->reminder_overlay_, 0, 0);
+  lv_obj_set_style_bg_color(this->reminder_overlay_, lv_color_hex(0x020609), 0);
+  lv_obj_set_style_bg_opa(this->reminder_overlay_, LV_OPA_80, 0);
+  lv_obj_add_flag(this->reminder_overlay_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_clear_flag(this->reminder_overlay_, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *card = lv_obj_create(this->reminder_overlay_);
+  lv_obj_set_size(card, 292, 210);
+  lv_obj_align(card, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_set_style_radius(card, 14, 0);
+  lv_obj_set_style_border_width(card, 2, 0);
+  lv_obj_set_style_border_color(card, lv_color_hex(accent), 0);
+  lv_obj_set_style_bg_color(card, lv_color_hex(0x101820), 0);
+  lv_obj_set_style_bg_opa(card, LV_OPA_COVER, 0);
+  lv_obj_set_style_pad_all(card, 0, 0);
+  lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *marker = lv_obj_create(card);
+  lv_obj_set_size(marker, 5, 166);
+  lv_obj_align(marker, LV_ALIGN_LEFT_MID, 10, -10);
+  lv_obj_set_style_radius(marker, LV_RADIUS_CIRCLE, 0);
+  lv_obj_set_style_border_width(marker, 0, 0);
+  lv_obj_set_style_bg_color(marker, lv_color_hex(accent), 0);
+
+  lv_obj_t *title_label = lv_label_create(card);
+  lv_obj_set_width(title_label, 244);
+  lv_label_set_long_mode(title_label, LV_LABEL_LONG_DOT);
+  lv_label_set_text(title_label, title.empty() ? "Recordatorio" : title.c_str());
+  if (this->clock_date_font_ != nullptr) {
+    // Reuse the 18 px Spanish-capable font so reminder titles can contain
+    // accented characters and ñ without adding another font to flash.
+    lv_obj_set_style_text_font(title_label, this->clock_date_font_->get_lv_font(), 0);
+  }
+  lv_obj_set_style_text_color(title_label, lv_color_hex(accent), 0);
+  lv_obj_set_pos(title_label, 28, 16);
+
+  lv_obj_t *message_label = lv_label_create(card);
+  lv_obj_set_size(message_label, 244, 86);
+  lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
+  lv_label_set_text(message_label, message.empty() ? "Tienes un aviso pendiente." : message.c_str());
+  lv_obj_set_style_text_color(message_label, lv_color_hex(0xE8F0F4), 0);
+  lv_obj_set_style_text_line_space(message_label, 3, 0);
+  lv_obj_set_pos(message_label, 28, 53);
+
+  lv_obj_t *accept = lv_button_create(card);
+  lv_obj_set_size(accept, 164, 46);
+  lv_obj_align(accept, LV_ALIGN_BOTTOM_MID, 0, -12);
+  lv_obj_set_style_radius(accept, 10, 0);
+  lv_obj_set_style_bg_color(accept, lv_color_hex(accent), 0);
+  lv_obj_set_style_bg_color(accept, lv_color_hex(0xFFFFFF), LV_STATE_PRESSED);
+  lv_obj_add_event_cb(
+      accept,
+      [](lv_event_t *event) {
+        auto *engine = static_cast<UiEngineComponent *>(lv_event_get_user_data(event));
+        if (engine != nullptr) engine->dismiss_reminder();
+      },
+      LV_EVENT_CLICKED, this);
+
+  lv_obj_t *accept_label = lv_label_create(accept);
+  lv_label_set_text(accept_label, "ACEPTAR");
+  lv_obj_set_style_text_color(accept_label, lv_color_hex(0x071015), 0);
+  lv_obj_center(accept_label);
+
+  lv_obj_move_foreground(this->reminder_overlay_);
+  ESP_LOGI(TAG, "Recordatorio mostrado: id=%s level=%s", this->reminder_id_.c_str(), level.c_str());
+}
+
+bool UiEngineComponent::dismiss_reminder(const std::string &reminder_id) {
+  if (this->reminder_overlay_ == nullptr) return false;
+  if (!reminder_id.empty() && reminder_id != this->reminder_id_) return false;
+
+  const std::string acknowledged_id = this->reminder_id_;
+  lv_obj_delete_async(this->reminder_overlay_);
+  this->reminder_overlay_ = nullptr;
+  this->reminder_id_.clear();
+  this->last_activity_ms_ = millis();
+  this->action_trigger_.trigger(acknowledged_id, "acknowledge");
+  ESP_LOGI(TAG, "Recordatorio aceptado: id=%s", acknowledged_id.c_str());
+  return true;
+}
+
 bool UiEngineComponent::play_notification_sound(const std::string &sound) {
   if (this->sound_player_ == nullptr || !this->prepare_notification_sound()) return false;
   if (sound == "attention") {
