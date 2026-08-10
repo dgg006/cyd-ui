@@ -116,6 +116,31 @@ class NativeBridgeModelTests(unittest.TestCase):
         self.assertTrue(active["active"])
         self.assertFalse(inactive["active"])
 
+    def test_media_player_actions_and_values_are_standardized(self):
+        command = MODEL.command_for_action(
+            "media_play", "play_pause",
+            {
+                "entity_id": "media_player.living",
+                "domain": "media_player",
+                "action": "play_pause",
+                "service": "media_play_pause",
+                "allow_control": True,
+            },
+            "playing", {},
+        )
+        self.assertEqual("media_play_pause", command["service"])
+        update = MODEL.update_for_state(
+            "media_volume",
+            {"attribute": "volume_level", "scale": 100, "decimals": 0},
+            "playing", {"volume_level": 0.42},
+        )
+        self.assertEqual("42", update["value"])
+
+    def test_media_play_state_uses_explicit_active_states(self):
+        mapping = {"value_only": True, "active_states": ["playing", "buffering"]}
+        self.assertTrue(MODEL.update_for_state("play", mapping, "playing", {})["active"])
+        self.assertFalse(MODEL.update_for_state("play", mapping, "paused", {})["active"])
+
 
 if __name__ == "__main__":
     unittest.main()

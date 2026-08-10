@@ -15,6 +15,10 @@ ALLOWED_SERVICES: dict[str, set[str]] = {
     "script": {"turn_on"},
     "button": {"press"},
     "cover": {"open_cover", "close_cover"},
+    "media_player": {
+        "media_play_pause", "media_previous_track", "media_next_track",
+        "volume_down", "volume_up", "volume_mute",
+    },
 }
 
 
@@ -90,6 +94,11 @@ def update_for_state(
 
     if value_map := mapping.get("value_map"):
         source = value_map.get(str(source), source)
+    if source is not None and isinstance(mapping.get("scale"), (int, float)):
+        try:
+            source = float(source) * float(mapping["scale"])
+        except (TypeError, ValueError):
+            pass
     if source is None:
         value = ""
     elif "decimals" in mapping:
@@ -103,7 +112,9 @@ def update_for_state(
     # Binary sensors are value-only controls, but their icon still needs the
     # boolean state. Older saved projects did not carry state_active, so keep
     # this inference here instead of requiring every user to re-save a page.
-    if mapping.get("state_active") or (
+    if isinstance(mapping.get("active_states"), list):
+        active = not unreliable and entity_state in mapping["active_states"]
+    elif mapping.get("state_active") or (
         mapping.get("domain") == "binary_sensor" and mapping.get("value_only")
     ):
         active = not unreliable and entity_state != "off"

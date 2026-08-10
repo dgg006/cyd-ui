@@ -16,10 +16,26 @@ inline uint32_t TEXT_MUTED = 0x9FB2C1;
 inline uint32_t BORDER = 0x2A3A48;
 inline uint32_t ACCENT = 0x50D5AD;
 
+inline uint8_t luminance(uint32_t color) {
+  const uint8_t red = (color >> 16) & 0xFF;
+  const uint8_t green = (color >> 8) & 0xFF;
+  const uint8_t blue = color & 0xFF;
+  return static_cast<uint8_t>((red * 299U + green * 587U + blue * 114U) / 1000U);
+}
+
+inline uint32_t contrasting_text(uint32_t background) {
+  return luminance(background) >= 150 ? 0x17212B : 0xF7FAFC;
+}
+
+inline uint32_t ensure_visible(uint32_t foreground, uint32_t background) {
+  const int difference = static_cast<int>(luminance(foreground)) - static_cast<int>(luminance(background));
+  return (difference > -65 && difference < 65) ? TEXT : foreground;
+}
+
 inline void configure(bool light_mode, const std::string &accent) {
   if (light_mode) {
     BACKGROUND = 0xEAF0F4;
-    SURFACE = 0xFFFFFF;
+    SURFACE = 0xF7F9FA;
     SURFACE_MUTED = 0xD9E2E8;
     TEXT = 0x17212B;
     TEXT_MUTED = 0x536575;

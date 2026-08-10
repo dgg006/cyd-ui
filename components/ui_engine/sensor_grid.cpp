@@ -150,7 +150,7 @@ void SensorGrid::apply_state_(size_t index) {
   const bool valid = this->states_[index] == ControlState::VALID;
   const std::string text = valid ? this->raw_values_[index] + (this->units_[index].empty() ? "" : " " + this->units_[index]) : "--";
   lv_label_set_text(this->values_[index], text.c_str());
-  const uint32_t color = valid ? this->colors_[index] :
+  const uint32_t color = valid ? visual_theme::ensure_visible(this->colors_[index], visual_theme::SURFACE) :
       (this->states_[index] == ControlState::STALE_OR_DISCONNECTED ? 0xD08A00 : 0x6B7C8F);
   lv_obj_set_style_text_color(this->values_[index], lv_color_hex(color), LV_PART_MAIN);
   lv_obj_set_style_border_color(this->cards_[index], lv_color_hex(color), LV_PART_MAIN);

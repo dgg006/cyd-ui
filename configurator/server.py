@@ -94,6 +94,21 @@ TEMPLATE_CATALOG: dict[str, dict[str, Any]] = {
             {"role": "open_step", "type": "button", "caption": "Abrir 10%", "action": "open_step"},
         ]},
     },
+    "media": {
+        "label": "Multimedia", "variants": {"full_controls": 10},
+        "controls": {"kind": "fixed", "roles": [
+            {"role": "player", "type": "value", "caption": "Reproductor"},
+            {"role": "title", "type": "value", "caption": "Canción"},
+            {"role": "artist", "type": "value", "caption": "Artista"},
+            {"role": "station", "type": "value", "caption": "Emisora"},
+            {"role": "volume", "type": "value", "caption": "Volumen"},
+            {"role": "previous", "type": "button", "caption": "|<", "action": "previous"},
+            {"role": "play_pause", "type": "button", "caption": "Play", "action": "play_pause"},
+            {"role": "next", "type": "button", "caption": ">|", "action": "next"},
+            {"role": "volume_down", "type": "button", "caption": "-", "action": "volume_down"},
+            {"role": "volume_up", "type": "button", "caption": "+", "action": "volume_up"},
+        ]},
+    },
 }
 
 
@@ -258,8 +273,8 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
             if template_name != "clock_weather":
                 errors.append(f"{prefix}: solo clock_weather puede ser protector de pantalla.")
         controls = page.get("controls")
-        if not isinstance(controls, list) or not 1 <= len(controls) <= 6:
-            errors.append(f"{prefix}: debe contener entre 1 y 6 controles.")
+        if not isinstance(controls, list) or not 1 <= len(controls) <= 10:
+            errors.append(f"{prefix}: debe contener entre 1 y 10 controles.")
             continue
         kind = catalog["controls"]["kind"]
         if kind in {"fixed", "repeated"} and expected_count is not None and len(controls) != expected_count:
@@ -316,6 +331,12 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
         entity_id = mapping.get("entity_id", "")
         if entity_id and not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", str(entity_id)):
             errors.append(f"La entidad de '{control_id}' no es un ID válido de Home Assistant.")
+        for extra_id in mapping.get("entity_ids", []):
+            if not isinstance(extra_id, str) or not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", extra_id):
+                errors.append(f"Un reproductor de '{control_id}' no es un ID válido.")
+        fallback_id = mapping.get("fallback_entity_id", "")
+        if fallback_id and not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", str(fallback_id)):
+            errors.append(f"La fuente alternativa de '{control_id}' no es un ID válido.")
     return errors
 
 

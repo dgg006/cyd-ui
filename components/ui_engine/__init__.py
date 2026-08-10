@@ -25,6 +25,8 @@ CONF_CONFIG_URL = "config_url"
 CONF_HTTP_REQUEST_ID = "http_request_id"
 CONF_SCREENSAVER_TIMEOUT = "screensaver_timeout"
 CONF_ICON_FONT_ID = "icon_font_id"
+CONF_CLOCK_TIME_FONT_ID = "clock_time_font_id"
+CONF_CLOCK_DATE_FONT_ID = "clock_date_font_id"
 CONF_BACKLIGHT_OUTPUT_ID = "backlight_output_id"
 CONF_SOUND_ID = "sound_id"
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -153,7 +155,7 @@ def validate_ui_document(document):
         if not isinstance(page, dict):
             raise cv.Invalid(f"{page_prefix} debe ser un objeto")
         template = page.get("template")
-        if template not in ("button_grid", "climate", "clock_weather", "sensor_grid", "cover"):
+        if template not in ("button_grid", "climate", "clock_weather", "sensor_grid", "cover", "media"):
             raise cv.Invalid(f"{page_prefix}.template no esta registrado")
         variant = page.get("variant")
         capacities = {"two_buttons": 2, "four_buttons": 4, "six_buttons": 6}
@@ -167,6 +169,8 @@ def validate_ui_document(document):
             raise cv.Invalid(f"{page_prefix}.variant debe ser four_values")
         if template == "cover" and variant != "position_controls":
             raise cv.Invalid(f"{page_prefix}.variant debe ser position_controls")
+        if template == "media" and variant != "full_controls":
+            raise cv.Invalid(f"{page_prefix}.variant debe ser full_controls")
         is_screensaver = page.get("screensaver", False)
         if not isinstance(is_screensaver, bool):
             raise cv.Invalid(f"{page_prefix}.screensaver debe ser booleano")
@@ -180,8 +184,10 @@ def validate_ui_document(document):
 
         controls = page.get("controls")
         maximum = capacities[variant] if template == "button_grid" else (
-            (6 if template == "cover" else 5) if template in ("climate", "cover") else (
-                3 if template == "clock_weather" else 4
+            10 if template == "media" else (
+                (6 if template == "cover" else 5) if template in ("climate", "cover") else (
+                    3 if template == "clock_weather" else 4
+                )
             )
         )
         if not isinstance(controls, list) or not 1 <= len(controls) <= maximum:
@@ -203,6 +209,8 @@ def validate_ui_document(document):
             if template == "sensor_grid" and control_type != "value":
                 raise cv.Invalid(f"{prefix}.type debe ser value")
             if template == "cover" and control_type not in ("button", "value"):
+                raise cv.Invalid(f"{prefix}.type debe ser button o value")
+            if template == "media" and control_type not in ("button", "value"):
                 raise cv.Invalid(f"{prefix}.type debe ser button o value")
             control_id = control.get("id")
             if not isinstance(control_id, str) or not control_id.strip():
@@ -237,6 +245,15 @@ def validate_ui_document(document):
                 if role not in ("position", "state", "open", "close", "close_step", "open_step"):
                     raise cv.Invalid(f"{prefix}.role no es valido para cover")
                 roles.add(role)
+            elif template == "media":
+                role = control.get("role")
+                value_roles = {"player", "title", "artist", "station", "volume"}
+                button_roles = {"previous", "play_pause", "next", "volume_down", "volume_up"}
+                if role not in value_roles | button_roles:
+                    raise cv.Invalid(f"{prefix}.role no es valido para media")
+                if (role in value_roles and control_type != "value") or (role in button_roles and control_type != "button"):
+                    raise cv.Invalid(f"{prefix}.type no coincide con el role multimedia")
+                roles.add(role)
 
         if template == "climate" and roles != {
             "current_temperature", "target_temperature", "decrease", "power", "increase"
@@ -246,6 +263,11 @@ def validate_ui_document(document):
             raise cv.Invalid(f"{page_prefix} requiere los tres roles de clock_weather")
         if template == "cover" and roles != {"position", "state", "open", "close", "close_step", "open_step"}:
             raise cv.Invalid(f"{page_prefix} requiere los seis roles de cover")
+        if template == "media" and roles != {
+            "player", "title", "artist", "station", "volume",
+            "previous", "play_pause", "next", "volume_down", "volume_up",
+        }:
+            raise cv.Invalid(f"{page_prefix} requiere los diez roles de media")
 
     if screensaver_count > 1:
         raise cv.Invalid("solo puede existir una pagina screensaver")
@@ -275,6 +297,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_HTTP_REQUEST_ID): cv.use_id(http_request.HttpRequestComponent),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         cv.Required(CONF_ICON_FONT_ID): validate_icon_font,
+        cv.Required(CONF_CLOCK_TIME_FONT_ID): validate_icon_font,
+        cv.Required(CONF_CLOCK_DATE_FONT_ID): validate_icon_font,
         cv.Required(CONF_BACKLIGHT_OUTPUT_ID): cv.use_id(output.FloatOutput),
         cv.Required(CONF_SOUND_ID): cv.use_id(rtttl.Rtttl),
         cv.Required(CONF_TOUCHSCREEN_ID): cv.use_id(touchscreen.Touchscreen),
@@ -304,11 +328,15 @@ async def to_code(config):
     await cg.register_component(var, config)
     clock = await cg.get_variable(config[CONF_TIME_ID])
     icon_font = await cg.get_variable(config[CONF_ICON_FONT_ID])
+    clock_time_font = await cg.get_variable(config[CONF_CLOCK_TIME_FONT_ID])
+    clock_date_font = await cg.get_variable(config[CONF_CLOCK_DATE_FONT_ID])
     backlight_output = await cg.get_variable(config[CONF_BACKLIGHT_OUTPUT_ID])
     sound_player = await cg.get_variable(config[CONF_SOUND_ID])
     touchscreen_component = await cg.get_variable(config[CONF_TOUCHSCREEN_ID])
     cg.add(var.set_clock(clock))
     cg.add(var.set_icon_font(icon_font))
+    cg.add(var.set_clock_time_font(clock_time_font))
+    cg.add(var.set_clock_date_font(clock_date_font))
     cg.add(var.set_backlight_output(backlight_output))
     cg.add(var.set_sound_player(sound_player))
     cg.add(var.set_touchscreen(touchscreen_component))
