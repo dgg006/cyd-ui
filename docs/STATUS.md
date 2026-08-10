@@ -120,6 +120,8 @@ Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: 
 - `clock_weather`: reloj y clima como protector de pantalla.
 - `sensor_grid`: cuatro valores con unidad y precisión.
 - `cover`: posición, apertura/cierre total y pasos de 10 %.
+- `media`: selector de reproductor, metadatos, reproducción y volumen.
+- Overlay de recordatorios: título, mensaje, prioridad, sonido opcional y confirmación obligatoria.
 
 ## Integración de laboratorio
 
@@ -129,13 +131,13 @@ Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: 
 - Evento de Home Assistant `cyd_ui_sound` validado de extremo a extremo.
 - API nativa validada desde un cliente real: descubrimiento de entidades, lectura del LDR y ejecución de sonidos.
 - Entidades nativas para Home Assistant: retroiluminación, luz ambiental y cinco botones de sonido.
-- Acciones nativas `play_sound`, `update_control` y `reload_ui` disponibles para automatizaciones.
+- Acciones nativas de sonido, actualización, recarga y recordatorios disponibles para automatizaciones.
 - Las pulsaciones del panel emiten también el evento `esphome.cyd_ui_action` cuando Home Assistant está conectado.
 - El encendido del calefactor permanece bloqueado; solo se permite leer y cambiar su objetivo.
 
 ## Memoria de referencia
 
-- DRAM estática: 53.412 bytes (29,6 %).
+- DRAM estática: 53.612 bytes (29,7 %).
 - Firmware con API cifrada, portal cautivo, OTA, MDI, telemetría, selector de dos redes y confirmación del calefactor: 1.552.419 bytes (84,6 % de la partición de aplicación).
 - Margen de firmware restante: 16 %. Antes de sumar dependencias grandes debe revisarse nuevamente el tamaño.
 

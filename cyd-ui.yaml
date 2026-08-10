@@ -130,6 +130,28 @@ api:
         volume: int
       then:
         - lambda: id(ui_engine_main).preview_notification_sound(static_cast<uint8_t>(volume));
+    - action: show_reminder
+      variables:
+        reminder_id: string
+        title: string
+        message: string
+        level: string
+        sound: bool
+      then:
+        - lambda: |-
+            id(ui_engine_main).show_reminder(reminder_id, title, message, level);
+        - if:
+            condition:
+              lambda: return sound;
+            then:
+              - lambda: |-
+                  id(ui_engine_main).play_notification_sound(
+                    level == "urgent" ? "warning" : "notification");
+    - action: dismiss_reminder
+      variables:
+        reminder_id: string
+      then:
+        - lambda: id(ui_engine_main).dismiss_reminder(reminder_id);
     - action: flash_notification_led
       variables:
         color: string

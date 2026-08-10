@@ -73,9 +73,28 @@ El firmware expone mediante la API cifrada de ESPHome:
 - Acción `esphome.cyd_ui_play_sound` con el argumento `sound`.
 - Acción `esphome.cyd_ui_update_control` para actualizar un control genérico.
 - Acción `esphome.cyd_ui_reload_ui` para solicitar una recarga.
+- Acción `esphome.cyd_ui_show_reminder` para mostrar un aviso persistente con
+  `reminder_id`, `title`, `message`, `level` y `sound`.
+- Acción `esphome.cyd_ui_dismiss_reminder` para retirar un aviso por su identificador.
 - Evento `esphome.cyd_ui_action` con `control_id` y `action` al tocar un control.
 
 Los nombres de servicios pueden incluir el nombre del dispositivo cuando Home Assistant los registra.
+
+Ejemplo de una automatización o script:
+
+```yaml
+action: esphome.cyd_ui_show_reminder
+data:
+  reminder_id: medicacion_noche
+  title: Recordatorio
+  message: Tomar la medicación de la noche
+  level: reminder
+  sound: true
+```
+
+El aviso enciende la pantalla, queda por encima de cualquier página y no se
+retira hasta pulsar **ACEPTAR**. La confirmación emite `esphome.cyd_ui_action`
+con el identificador del recordatorio y `action: acknowledge`.
 
 ## Recuperación
 
