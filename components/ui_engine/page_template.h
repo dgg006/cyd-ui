@@ -26,9 +26,11 @@ class PageTemplate {
   virtual void set_navigation_callback(NavigationCallback callback) = 0;
   virtual void set_navigation_enabled(bool enabled) = 0;
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
+  void set_text_font(font::Font *font) { this->text_font_ = font; }
 
  protected:
   font::Font *icon_font_{nullptr};
+  font::Font *text_font_{nullptr};
 };
 
 }  // namespace ui_engine

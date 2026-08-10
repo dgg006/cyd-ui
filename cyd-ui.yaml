@@ -454,6 +454,10 @@ font:
       - "\U000F0054" # arrow-right
       - "\U000F040A" # play
       - "\U000F03E4" # pause
+      - "\U000F04AE" # skip-previous
+      - "\U000F04AD" # skip-next
+      - "\U000F075E" # volume-minus
+      - "\U000F075D" # volume-plus
       - "\U000F04DB" # stop
       - "\U000F02FC" # information
       - "\U000F029A" # gauge

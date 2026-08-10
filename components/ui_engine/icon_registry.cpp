@@ -10,7 +10,7 @@ struct IconEntry {
   const char *glyph;
 };
 
-static constexpr std::array<IconEntry, 50> ICONS{{
+static constexpr std::array<IconEntry, 54> ICONS{{
     {"mdi:motion-sensor", "\U000F0D91"},
     {"mdi:motion-sensor-off", "\U000F1435"},
     {"mdi:lightbulb", "\U000F0335"},
@@ -57,6 +57,10 @@ static constexpr std::array<IconEntry, 50> ICONS{{
     {"mdi:play", "\U000F040A"},
     {"mdi:pause", "\U000F03E4"},
     {"mdi:stop", "\U000F04DB"},
+    {"mdi:skip-previous", "\U000F04AE"},
+    {"mdi:skip-next", "\U000F04AD"},
+    {"mdi:volume-minus", "\U000F075E"},
+    {"mdi:volume-plus", "\U000F075D"},
     {"mdi:information", "\U000F02FC"},
     {"mdi:gauge", "\U000F029A"},
     {"mdi:fire", "\U000F0238"},

@@ -10,6 +10,21 @@ namespace ui_engine {
 namespace {
 constexpr const char *VALUE_ROLES[] = {"player", "title", "artist", "station", "volume"};
 constexpr const char *BUTTON_ROLES[] = {"previous", "play_pause", "next", "volume_down", "volume_up"};
+constexpr const char *ICON_PREVIOUS = "\U000F04AE";
+constexpr const char *ICON_PLAY = "\U000F040A";
+constexpr const char *ICON_PAUSE = "\U000F03E4";
+constexpr const char *ICON_NEXT = "\U000F04AD";
+constexpr const char *ICON_VOLUME_DOWN = "\U000F075E";
+constexpr const char *ICON_VOLUME_UP = "\U000F075D";
+
+const char *button_icon(const std::string &role) {
+  if (role == "previous") return ICON_PREVIOUS;
+  if (role == "play_pause") return ICON_PLAY;
+  if (role == "next") return ICON_NEXT;
+  if (role == "volume_down") return ICON_VOLUME_DOWN;
+  if (role == "volume_up") return ICON_VOLUME_UP;
+  return "";
+}
 }
 
 void MediaPage::create(lv_obj_t *parent) {
@@ -48,7 +63,8 @@ void MediaPage::create(lv_obj_t *parent) {
 
   this->media_title_ = lv_label_create(parent);
   lv_obj_set_width(this->media_title_, 286);
-  lv_obj_set_style_text_font(this->media_title_, &lv_font_montserrat_20, LV_PART_MAIN);
+  if (this->text_font_ != nullptr)
+    lv_obj_set_style_text_font(this->media_title_, this->text_font_->get_lv_font(), LV_PART_MAIN);
   lv_obj_set_style_text_align(this->media_title_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
   lv_label_set_long_mode(this->media_title_, LV_LABEL_LONG_DOT);
   lv_obj_set_pos(this->media_title_, 17, 72);
@@ -73,6 +89,8 @@ void MediaPage::create(lv_obj_t *parent) {
     lv_obj_set_pos(button, x, y);
     visual_theme::card(button);
     lv_obj_t *label = lv_label_create(button);
+    if (this->icon_font_ != nullptr)
+      lv_obj_set_style_text_font(label, this->icon_font_->get_lv_font(), LV_PART_MAIN);
     lv_obj_center(label);
     lv_obj_add_event_cb(button, action_callback, LV_EVENT_CLICKED, this);
     this->buttons_[role] = button;
@@ -101,7 +119,7 @@ void MediaPage::apply(const PageConfig &config) {
     this->actions_[control.role] = control.action;
     this->states_[control.role] = ControlState::UNKNOWN;
     if (auto it = this->button_labels_.find(control.role); it != this->button_labels_.end()) {
-      lv_label_set_text(it->second, control.caption.c_str());
+      lv_label_set_text(it->second, button_icon(control.role));
       lv_obj_set_style_bg_color(this->buttons_[control.role], lv_color_hex(control.color), LV_PART_MAIN);
       lv_obj_set_style_text_color(this->buttons_[control.role],
                                   lv_color_hex(visual_theme::contrasting_text(control.color)), LV_PART_MAIN);
@@ -117,7 +135,7 @@ bool MediaPage::update_control(const std::string &id, bool active, const std::st
     this->states_[item.first] = state;
     this->refresh_value(item.first);
     if (item.first == "play_pause") {
-      lv_label_set_text(this->button_labels_[item.first], active ? "Pausa" : "Play");
+      lv_label_set_text(this->button_labels_[item.first], active ? ICON_PAUSE : ICON_PLAY);
       lv_obj_set_style_border_color(this->buttons_[item.first],
                                     lv_color_hex(active ? visual_theme::ACCENT : visual_theme::BORDER), LV_PART_MAIN);
       lv_obj_set_style_border_width(this->buttons_[item.first], active ? 3 : 1, LV_PART_MAIN);

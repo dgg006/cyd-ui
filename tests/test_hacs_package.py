@@ -114,6 +114,20 @@ class HacsPackageTests(unittest.TestCase):
             editor,
         )
 
+    def test_reminder_center_is_packaged_end_to_end(self):
+        api_source = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
+        panel_source = (INTEGRATION_ROOT / "frontend" / "cyd-ui-panel.js").read_text(
+            encoding="utf-8"
+        )
+        editor_source = (INTEGRATION_ROOT / "frontend" / "editor-app.js").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('"cyd_ui/reminder/send"', api_source)
+        self.assertIn('"cyd_ui/reminder/dismiss"', api_source)
+        self.assertIn('id="reminderCenterButton"', panel_source)
+        self.assertIn('"/api/reminder/send"', editor_source)
+        self.assertIn('"/api/reminder/dismiss"', editor_source)
+
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual("https://github.com/dgg006/cyd-ui", manifest["documentation"])
