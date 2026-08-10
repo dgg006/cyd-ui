@@ -23,6 +23,8 @@ ESPHOME_DOMAIN = "esphome"
 PREVIEW_NOTIFICATION_SERVICE = "cyd_ui_preview_notification_sound"
 START_TOUCH_CALIBRATION_SERVICE = "cyd_ui_start_touch_calibration"
 RELOAD_UI_SERVICE = "cyd_ui_reload_ui"
+SHOW_REMINDER_SERVICE = "cyd_ui_show_reminder"
+DISMISS_REMINDER_SERVICE = "cyd_ui_dismiss_reminder"
 
 
 def _domain_data(hass: HomeAssistant) -> dict[str, Any]:
@@ -278,6 +280,63 @@ async def websocket_sound_preview(
     connection.send_result(msg["id"], {"sent": True})
 
 
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/reminder/send",
+        vol.Required("reminder_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("title"): vol.All(str, vol.Length(max=80)),
+        vol.Required("message"): vol.All(str, vol.Length(min=1, max=280)),
+        vol.Required("level"): vol.In(("info", "reminder", "warning", "urgent")),
+        vol.Required("sound"): bool,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_reminder_send(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Show a persistent reminder using the native ESPHome action."""
+    data = {
+        "reminder_id": msg["reminder_id"],
+        "title": msg["title"],
+        "message": msg["message"],
+        "level": msg["level"],
+        "sound": msg["sound"],
+    }
+    try:
+        await _async_call_panel_service(hass, SHOW_REMINDER_SERVICE, data)
+    except RuntimeError as error:
+        connection.send_error(msg["id"], "device_unavailable", str(error))
+        return
+    connection.send_result(msg["id"], {"sent": True})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/reminder/dismiss",
+        vol.Required("reminder_id"): vol.All(str, vol.Length(max=64)),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_reminder_dismiss(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Dismiss the matching reminder, or the visible one when the ID is empty."""
+    try:
+        await _async_call_panel_service(
+            hass, DISMISS_REMINDER_SERVICE, {"reminder_id": msg["reminder_id"]}
+        )
+    except RuntimeError as error:
+        connection.send_error(msg["id"], "device_unavailable", str(error))
+        return
+    connection.send_result(msg["id"], {"dismissed": True})
+
+
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/touch_calibration/start"})
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -324,5 +383,7 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_entities_list)
     websocket_api.async_register_command(hass, websocket_device_status)
     websocket_api.async_register_command(hass, websocket_sound_preview)
+    websocket_api.async_register_command(hass, websocket_reminder_send)
+    websocket_api.async_register_command(hass, websocket_reminder_dismiss)
     websocket_api.async_register_command(hass, websocket_touch_calibration_start)
     websocket_api.async_register_command(hass, websocket_device_reload)

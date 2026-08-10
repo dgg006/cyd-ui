@@ -29,6 +29,8 @@ API_IMPLEMENTATION = '''async function api(path,options={}){
   }
   if(path==="/api/device-status")return hass.callWS({type:"cyd_ui/device/status"});
   if(path==="/api/test-sound")return hass.callWS({type:"cyd_ui/sound/preview",volume:Number(body.volume)});
+  if(path==="/api/reminder/send")return hass.callWS({type:"cyd_ui/reminder/send",reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound:body.sound===true});
+  if(path==="/api/reminder/dismiss")return hass.callWS({type:"cyd_ui/reminder/dismiss",reminder_id:body.reminder_id||""});
   if(path==="/api/touch-calibration/start")return hass.callWS({type:"cyd_ui/touch_calibration/start"});
   if(path==="/api/reload")return hass.callWS({type:"cyd_ui/device/reload"});
   throw new Error("Esta acción estará disponible al conectar el panel directamente con la CYD.");

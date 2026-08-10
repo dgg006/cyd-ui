@@ -1,5 +1,19 @@
 # Estado del proyecto
 
+## Actualización 2026-08-10 — recordatorios y controles multimedia
+
+- La integración CYD UI v0.4.0 incorpora un centro de recordatorios en su panel:
+  permite escribir título y mensaje, elegir prioridad y sonido, enviar el aviso
+  persistente a la pantalla y retirarlo manualmente.
+- El formulario fue validado tanto en escritorio como en un ancho de celular de
+  375 px, sin desplazamiento horizontal ni controles inaccesibles.
+- La pantalla Multimedia reemplaza los textos de transporte por iconos MDI para
+  pista anterior/siguiente, play/pausa y volumen. Los metadatos conservan la
+  fuente de texto con caracteres españoles.
+- Firmware compilado y cargado por USB en COM57. Validación: 46 pruebas
+  automáticas, DRAM estática 53.612 bytes (29,7 %) y firmware 1.525.071 bytes
+  (83,1 % de la partición de aplicación).
+
 ## Multimedia (en desarrollo)
 
 - Template `media/full_controls` implementado y compilado para la CYD.
@@ -110,7 +124,7 @@ Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: 
 - Acciones genéricas y confirmación del backend.
 - Navegación circular, conservación de estado y protector de pantalla.
 - Estados `UNKNOWN`, `VALID` y `STALE_OR_DISCONNECTED`.
-- Catálogo reducido de 50 iconos MDI con estados activo/inactivo; compilación
+- Catálogo reducido de 54 iconos MDI con estados activo/inactivo; compilación
   verificada y pendiente de validación física en la próxima carga.
 
 ## Templates verificados físicamente
