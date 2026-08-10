@@ -257,8 +257,8 @@ bool ConfigParser::parse(const std::string &raw_json, UiConfig *output, std::str
     }
 
     JsonArray controls = page_json["controls"].as<JsonArray>();
-    if (controls.isNull() || controls.size() < 1 || controls.size() > 6) {
-      *error = "cada pagina debe contener entre 1 y 6 controles";
+    if (controls.isNull() || controls.size() < 1 || controls.size() > 10) {
+      *error = "cada pagina debe contener entre 1 y 10 controles";
       return false;
     }
 

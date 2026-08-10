@@ -25,10 +25,12 @@ from aioesphomeapi import APIClient, HomeassistantServiceCall, UserService
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SECRETS_PATH = PROJECT_ROOT / "secrets.yaml"
-DEFAULT_DEVICE_HOST = "cyd-ui.local"
+DEFAULT_DEVICE_HOST = "192.168.31.150"
 DEFAULT_DEVICE_PORT = 6053
 DEFAULT_HOME_ASSISTANT_URL = "http://192.168.68.77:8123"
 CONFIG_POLL_SECONDS = 5.0
+DEVICE_CONNECT_TIMEOUT_SECONDS = 15.0
+DEVICE_DISCONNECT_TIMEOUT_SECONDS = 2.0
 RECONNECT_SECONDS = 3.0
 REMOTE_BLOCKED_COMMANDS = {("climate", "set_hvac_mode")}
 SINGLE_INSTANCE_PORT = 45957
@@ -406,6 +408,11 @@ class LabGateway:
             self.project = next_project
             await self._apply_project()
 
+    async def _check_device_health(self) -> None:
+        """Detect a socket already marked closed without extra device traffic."""
+        if self.client is None or self.client.connected_address is None:
+            raise ConnectionError("la conexión API con la pantalla se cerró")
+
     async def _connect_device(self) -> None:
         self.device_lost.clear()
         self.client = APIClient(
@@ -415,7 +422,10 @@ class LabGateway:
             client_info="CYD Lab Gateway",
             expected_name="cyd-ui",
         )
-        await self.client.connect(on_stop=self._device_stopped, login=True)
+        await asyncio.wait_for(
+            self.client.connect(on_stop=self._device_stopped, login=True),
+            timeout=DEVICE_CONNECT_TIMEOUT_SECONDS,
+        )
         info = await self.client.device_info()
         _, available_services = await self.client.list_entities_services()
         self.services = {service.name: service for service in available_services}
@@ -464,6 +474,7 @@ class LabGateway:
                             self.events.get(), timeout=1.0
                         )
                     except asyncio.TimeoutError:
+                        await self._check_device_health()
                         await self._poll_project()
                         continue
                     if event_type == "ha_state":
@@ -491,7 +502,10 @@ class LabGateway:
             finally:
                 if self.client is not None:
                     try:
-                        await self.client.disconnect()
+                        await asyncio.wait_for(
+                            self.client.disconnect(),
+                            timeout=DEVICE_DISCONNECT_TIMEOUT_SECONDS,
+                        )
                     except Exception:
                         pass
                     self.client = None

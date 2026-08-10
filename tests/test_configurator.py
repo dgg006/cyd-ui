@@ -40,6 +40,30 @@ class ConfiguratorValidationTests(unittest.TestCase):
         self.ui["pages"][0]["controls"][0]["icon"] = "mdi:no-existe"
         self.assertTrue(any("icon" in error.lower() for error in SERVER.validate_project(self.ui, self.backend_map)))
 
+    def test_media_template_with_standard_player_is_valid(self):
+        roles = SERVER.TEMPLATE_CATALOG["media"]["controls"]["roles"]
+        controls = []
+        mappings = {}
+        for item in roles:
+            control_id = f"media_{item['role']}"
+            control = {
+                "type": item["type"], "id": control_id,
+                "caption": item["caption"], "role": item["role"],
+                "color": "#1976D2" if item["type"] == "button" else "#FFFFFF",
+                "meta": {},
+            }
+            if "action" in item:
+                control["action"] = item["action"]
+            controls.append(control)
+            mappings[control_id] = {"entity_id": "media_player.test", "domain": "media_player"}
+        mappings["media_player"]["entity_ids"] = ["media_player.test", "media_player.kitchen"]
+        self.ui["pages"] = [{
+            "template": "media", "variant": "full_controls",
+            "title": "Multimedia", "controls": controls,
+        }]
+        self.backend_map["controls"] = mappings
+        self.assertEqual([], SERVER.validate_project(self.ui, self.backend_map))
+
     def test_icon_catalog_matches_firmware_registry(self):
         import re
 

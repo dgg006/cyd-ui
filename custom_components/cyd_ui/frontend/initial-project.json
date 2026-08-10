@@ -306,27 +306,99 @@
         ]
       },
       {
-        "template": "sensor_grid",
-        "variant": "four_values",
-        "title": "Prueba Visual",
+        "template": "media",
+        "variant": "full_controls",
+        "title": "Multimedia",
         "controls": [
           {
             "type": "value",
-            "id": "sensor_grid_1",
-            "caption": "Luminosidad",
+            "id": "media_player",
+            "caption": "Reproductor",
+            "role": "player",
             "color": "#FFFFFF",
             "meta": {},
-            "unit": "%"
+            "unit": ""
           },
           {
             "type": "value",
-            "id": "sensor_grid_2",
-            "caption": "Movimiento",
+            "id": "media_title",
+            "caption": "Canción",
+            "role": "title",
             "color": "#FFFFFF",
             "meta": {},
-            "unit": "",
-            "icon_on": "mdi:motion-sensor",
-            "icon_off": "mdi:motion-sensor-off"
+            "unit": ""
+          },
+          {
+            "type": "value",
+            "id": "media_artist",
+            "caption": "Artista",
+            "role": "artist",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": ""
+          },
+          {
+            "type": "value",
+            "id": "media_station",
+            "caption": "Emisora",
+            "role": "station",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": ""
+          },
+          {
+            "type": "value",
+            "id": "media_volume",
+            "caption": "Volumen",
+            "role": "volume",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": ""
+          },
+          {
+            "type": "button",
+            "id": "media_previous",
+            "caption": "|<",
+            "role": "previous",
+            "action": "previous",
+            "color": "#1976D2",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "media_play_pause",
+            "caption": "Play",
+            "role": "play_pause",
+            "action": "play_pause",
+            "color": "#1976D2",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "media_next",
+            "caption": ">|",
+            "role": "next",
+            "action": "next",
+            "color": "#1976D2",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "media_volume_down",
+            "caption": "-",
+            "role": "volume_down",
+            "action": "volume_down",
+            "color": "#455A64",
+            "meta": {}
+          },
+          {
+            "type": "button",
+            "id": "media_volume_up",
+            "caption": "+",
+            "role": "volume_up",
+            "action": "volume_up",
+            "color": "#455A64",
+            "meta": {}
           }
         ]
       },
@@ -498,20 +570,96 @@
         "allow_control": true,
         "domain": "light"
       },
-      "sensor_grid_1": {
-        "entity_id": "sensor.cochera_luminosidad",
-        "domain": "sensor",
-        "value_only": true,
+      "media_player": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "entity_ids": [
+          "media_player.jarvis_assist_parlante",
+          "media_player.nest_mini",
+          "media_player.mi_box_2"
+        ],
+        "domain": "media_player",
+        "attribute": "friendly_name",
+        "media_selector_id": "media_player"
+      },
+      "media_title": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "attribute": "media_title",
+        "media_selector_id": "media_player",
+        "fallback_entity_id": "text.jarvis_assist_pantalla_cancion",
+        "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
+      },
+      "media_artist": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "attribute": "media_artist",
+        "media_selector_id": "media_player",
+        "fallback_entity_id": "text.jarvis_assist_pantalla_artista",
+        "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
+      },
+      "media_station": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "attribute": "media_album_name",
+        "media_selector_id": "media_player",
+        "fallback_entity_id": "text.jarvis_assist_pantalla_emisora",
+        "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
+      },
+      "media_volume": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "attribute": "volume_level",
+        "media_selector_id": "media_player",
+        "scale": 100,
         "decimals": 0
       },
-      "sensor_grid_2": {
-        "entity_id": "binary_sensor.cochera_movimiento",
-        "domain": "binary_sensor",
-        "value_only": true,
-        "value_map": {
-          "on": " ",
-          "off": " "
-        }
+      "media_previous": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "media_selector_id": "media_player",
+        "action": "previous",
+        "service": "media_previous_track",
+        "allow_control": true,
+        "publish_state": false
+      },
+      "media_play_pause": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "media_selector_id": "media_player",
+        "action": "play_pause",
+        "service": "media_play_pause",
+        "allow_control": true,
+        "active_states": [
+          "playing",
+          "buffering"
+        ]
+      },
+      "media_next": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "media_selector_id": "media_player",
+        "action": "next",
+        "service": "media_next_track",
+        "allow_control": true,
+        "publish_state": false
+      },
+      "media_volume_down": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "media_selector_id": "media_player",
+        "action": "volume_down",
+        "service": "volume_down",
+        "allow_control": true,
+        "publish_state": false
+      },
+      "media_volume_up": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "media_selector_id": "media_player",
+        "action": "volume_up",
+        "service": "volume_up",
+        "allow_control": true,
+        "publish_state": false
       },
       "scene_day": {
         "entity_id": "",

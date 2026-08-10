@@ -23,6 +23,7 @@ TEMPLATE_VARIANTS: dict[str, dict[str, tuple[int, int]]] = {
     "clock_weather": {"screensaver": (3, 3)},
     "sensor_grid": {"four_values": (1, 4)},
     "cover": {"position_controls": (6, 6)},
+    "media": {"full_controls": (10, 10)},
 }
 IDLE_MODES = {"clock_weather", "screen_off", "dim", "none"}
 ACCENTS = {"mint", "blue", "violet", "amber", "rose"}
@@ -158,8 +159,8 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
         elif template in TEMPLATE_VARIANTS and variant not in TEMPLATE_VARIANTS[template]:
             errors.append(f"Página {page_number}: variante desconocida.")
         controls = page.get("controls")
-        if not isinstance(controls, list) or not 1 <= len(controls) <= 6:
-            errors.append(f"Página {page_number}: debe tener entre 1 y 6 controles.")
+        if not isinstance(controls, list) or not 1 <= len(controls) <= 10:
+            errors.append(f"Página {page_number}: debe tener entre 1 y 10 controles.")
             continue
         if template in TEMPLATE_VARIANTS and variant in TEMPLATE_VARIANTS[template]:
             minimum, maximum = TEMPLATE_VARIANTS[template][variant]
@@ -205,6 +206,12 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
         entity_id = mapping.get("entity_id", "")
         if entity_id and not ENTITY_ID_PATTERN.fullmatch(str(entity_id)):
             errors.append(f"La entidad de {control_id} no es un ID válido.")
+        for extra_id in mapping.get("entity_ids", []):
+            if not isinstance(extra_id, str) or not ENTITY_ID_PATTERN.fullmatch(extra_id):
+                errors.append(f"Un reproductor de {control_id} no es un ID válido.")
+        fallback_id = mapping.get("fallback_entity_id", "")
+        if fallback_id and not ENTITY_ID_PATTERN.fullmatch(str(fallback_id)):
+            errors.append(f"La fuente alternativa de {control_id} no es un ID válido.")
 
     try:
         encoded_size = len(

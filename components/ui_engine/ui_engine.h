@@ -14,6 +14,7 @@
 #include "climate_page.h"
 #include "clock_weather_page.h"
 #include "cover_page.h"
+#include "media_page.h"
 #include "sensor_grid.h"
 #include "config_parser.h"
 #include "config_provider.h"
@@ -44,6 +45,8 @@ class UiEngineComponent : public Component {
   void notify_touch_released();
   void set_clock(time::RealTimeClock *clock) { this->clock_ = clock; }
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
+  void set_clock_time_font(font::Font *font) { this->clock_time_font_ = font; }
+  void set_clock_date_font(font::Font *font) { this->clock_date_font_ = font; }
   void set_backlight_output(output::FloatOutput *output) { this->backlight_output_ = output; }
   void set_sound_player(rtttl::Rtttl *sound_player) { this->sound_player_ = sound_player; }
   void set_touchscreen(touchscreen::Touchscreen *touchscreen) { this->touchscreen_ = touchscreen; }
@@ -121,6 +124,8 @@ class UiEngineComponent : public Component {
   std::string config_url_;
   time::RealTimeClock *clock_{nullptr};
   font::Font *icon_font_{nullptr};
+  font::Font *clock_time_font_{nullptr};
+  font::Font *clock_date_font_{nullptr};
   uint32_t screensaver_timeout_ms_{0};
   uint32_t default_screensaver_timeout_ms_{0};
   uint32_t last_activity_ms_{0};

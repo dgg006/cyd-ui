@@ -25,7 +25,7 @@ API_IMPLEMENTATION = '''async function api(path,options={}){
   if(path==="/api/validate")return hass.callWS({type:"cyd_ui/config/validate",ui:body.ui,backend_map:body.backend_map});
   if(path==="/api/save"){
     const result=await hass.callWS({type:"cyd_ui/config/save",ui:body.ui,backend_map:body.backend_map});
-    return {...result,backup:`revisión ${result.revision}`,reload_error:result.device_applied?null:"la pantalla no está conectada; se aplicará al reconectar"};
+    return {...result,backup:`revisión ${result.revision}`,delivery_note:result.device_applied?"Aplicado directamente en la pantalla.":"Entrega pendiente o realizada por el puente remoto."};
   }
   if(path==="/api/device-status")return hass.callWS({type:"cyd_ui/device/status"});
   if(path==="/api/test-sound")return hass.callWS({type:"cyd_ui/sound/preview",volume:Number(body.volume)});
@@ -116,6 +116,22 @@ const document={
                 {"role": "close", "type": "button", "caption": "Cerrar todo", "action": "close"},
                 {"role": "close_step", "type": "button", "caption": "Cerrar 10%", "action": "close_step"},
                 {"role": "open_step", "type": "button", "caption": "Abrir 10%", "action": "open_step"},
+            ]},
+        },
+        "media": {
+            "label": "Multimedia",
+            "variants": {"full_controls": 10},
+            "controls": {"kind": "fixed", "roles": [
+                {"role": "player", "type": "value", "caption": "Reproductor"},
+                {"role": "title", "type": "value", "caption": "Canción"},
+                {"role": "artist", "type": "value", "caption": "Artista"},
+                {"role": "station", "type": "value", "caption": "Emisora"},
+                {"role": "volume", "type": "value", "caption": "Volumen"},
+                {"role": "previous", "type": "button", "caption": "|<", "action": "previous"},
+                {"role": "play_pause", "type": "button", "caption": "Play", "action": "play_pause"},
+                {"role": "next", "type": "button", "caption": ">|", "action": "next"},
+                {"role": "volume_down", "type": "button", "caption": "-", "action": "volume_down"},
+                {"role": "volume_up", "type": "button", "caption": "+", "action": "volume_up"},
             ]},
         },
     }

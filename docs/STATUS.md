@@ -1,6 +1,32 @@
 # Estado del proyecto
 
-Actualizado: 2026-08-05
+## Multimedia (en desarrollo)
+
+- Template `media/full_controls` implementado y compilado para la CYD.
+- Incluye selector de hasta tres reproductores, metadatos estándar, pista anterior/siguiente, play/pausa y volumen.
+- Admite una fuente alternativa para título, artista y emisora cuando un reproductor no publica atributos estándar.
+- La carátula está reservada para una segunda etapa: primero se medirá el coste real de descargar, decodificar y mostrar imágenes en una ESP32 sin PSRAM.
+
+Actualizado: 2026-08-08
+
+## Actualización 2026-08-08 — pasada visual y LED de notificaciones
+
+- Firmware compilado y cargado por USB en COM57; el arranque de ESPHome y del
+  `ui_engine` fue verificado por el registro serie.
+- El modo claro ahora usa una superficie ligeramente gris y contraste calculado
+  para valores, iconos y textos. Los colores blancos o muy claros ya no quedan
+  invisibles sobre tarjetas claras.
+- Los botones activos eligen automáticamente texto claro u oscuro según el color
+  de fondo configurado.
+- El indicador de conexión en pantalla se redujo de 8 × 8 a 4 × 4 píxeles.
+- El protector de pantalla usa una hora de 60 px y una fecha de 18 px. El icono y
+  el texto meteorológico se miden y centran como un único grupo.
+- El LED RGB trasero se expone como la entidad **LED de notificaciones**, con
+  color, brillo y efectos de pulso controlables desde Home Assistant. Mientras la
+  conexión es saludable, el control manual ya no es anulado por la supervisión
+  periódica; una falla de Wi-Fi o Home Assistant conserva prioridad visual.
+- Validación: configuración ESPHome correcta, 42 pruebas automáticas superadas,
+  DRAM estática 53.420 bytes (29,6 %) y firmware 1.513.575 bytes (82,5 %).
 
 ## Actualización 2026-08-05 — laboratorio remoto por API nativa
 
@@ -52,12 +78,16 @@ El desarrollo queda pausado hasta la renovación de la cuota semanal. Durante es
 
 Estos puntos quedan registrados para la próxima etapa. No invalidan la prueba: la conexión Wi-Fi, el descubrimiento por Home Assistant y el control básico quedaron confirmados.
 
-## Pendiente de diseño: LED RGB y conectividad
+## LED RGB y conectividad
 
-- Incorporar el LED RGB trasero como indicador de conectividad: verde (Wi-Fi y Home Assistant), naranja (Wi-Fi sin Home Assistant), rojo (sin Wi-Fi), azul (portal de configuración) y apagado en horario nocturno.
-- Preferencia de uso: mantener el LED apagado durante el funcionamiento normal; reservar la luz continua para problemas y los destellos breves para notificaciones.
-- Permitir que una notificación iniciada desde Home Assistant use también el LED RGB: destello o color breve configurable por tipo de evento, independiente del sonido.
-- Mantener un indicador discreto equivalente en la interfaz LVGL; no se adoptará una pantalla de estado permanente. El detalle de conexión se abrirá solo al tocar ese indicador.
+- Implementado como indicador de conectividad: rojo sin Wi-Fi, amarillo con
+  Wi-Fi pero sin Home Assistant, azul durante el portal de configuración y
+  apagado durante el funcionamiento normal.
+- Expuesto también como luz RGB de Home Assistant para notificaciones manuales,
+  con efectos de pulso. Los estados de falla tienen prioridad sobre el uso
+  decorativo o de notificación.
+- La interfaz LVGL mantiene un indicador equivalente de 4 × 4 píxeles y muestra
+  texto únicamente cuando existe un problema de conexión.
 
 ## Pendiente de diseño: temas visuales
 

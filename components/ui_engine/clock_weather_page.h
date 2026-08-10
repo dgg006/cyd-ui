@@ -11,7 +11,8 @@ namespace ui_engine {
 
 class ClockWeatherPage : public PageTemplate {
  public:
-  explicit ClockWeatherPage(time::RealTimeClock *clock) : clock_(clock) {}
+  ClockWeatherPage(time::RealTimeClock *clock, font::Font *time_font, font::Font *date_font)
+      : clock_(clock), time_font_(time_font), date_font_(date_font) {}
   void loop() override;
   void create(lv_obj_t *parent) override;
   void apply(const PageConfig &config) override;
@@ -26,13 +27,17 @@ class ClockWeatherPage : public PageTemplate {
   static void previous_callback(lv_event_t *event);
   static void next_callback(lv_event_t *event);
   void update_clock_();
+  void layout_condition_();
   static const char *translate_condition_(const std::string &condition);
   static const char *condition_glyph_(const std::string &condition);
   static uint32_t condition_color_(const std::string &condition);
 
   time::RealTimeClock *clock_{nullptr};
+  font::Font *time_font_{nullptr};
+  font::Font *date_font_{nullptr};
   lv_obj_t *time_label_{nullptr};
   lv_obj_t *date_label_{nullptr};
+  lv_obj_t *condition_container_{nullptr};
   lv_obj_t *condition_label_{nullptr};
   lv_obj_t *condition_icon_label_{nullptr};
   lv_obj_t *temperature_label_{nullptr};

@@ -14,9 +14,12 @@ static const char *const TAG = "ui_engine";
 void UiEngineComponent::setup() {
   this->registry_.register_template("button_grid", []() { return std::make_unique<ButtonGrid>(); });
   this->registry_.register_template("climate", []() { return std::make_unique<ClimatePage>(); });
-  this->registry_.register_template("clock_weather", [this]() { return std::make_unique<ClockWeatherPage>(this->clock_); });
+  this->registry_.register_template("clock_weather", [this]() {
+    return std::make_unique<ClockWeatherPage>(this->clock_, this->clock_time_font_, this->clock_date_font_);
+  });
   this->registry_.register_template("sensor_grid", []() { return std::make_unique<SensorGrid>(); });
   this->registry_.register_template("cover", []() { return std::make_unique<CoverPage>(); });
+  this->registry_.register_template("media", []() { return std::make_unique<MediaPage>(); });
   this->last_activity_ms_ = millis();
   this->flash_storage_.begin();
   auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(this->initial_config_);
@@ -630,8 +633,8 @@ void UiEngineComponent::update_connection_indicator_() {
   if (this->active_page_ == nullptr) return;
   if (this->connection_indicator_ == nullptr) {
     this->connection_indicator_ = lv_obj_create(lv_screen_active());
-    lv_obj_set_size(this->connection_indicator_, 8, 8);
-    lv_obj_set_pos(this->connection_indicator_, 307, 226);
+    lv_obj_set_size(this->connection_indicator_, 4, 4);
+    lv_obj_align(this->connection_indicator_, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
     lv_obj_set_style_radius(this->connection_indicator_, LV_RADIUS_CIRCLE, LV_PART_MAIN);
     lv_obj_set_style_border_width(this->connection_indicator_, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(this->connection_indicator_, 0, LV_PART_MAIN);
@@ -660,7 +663,7 @@ void UiEngineComponent::update_connection_indicator_() {
   } else {
     lv_label_set_text(this->connection_status_label_, status);
     lv_obj_set_style_text_color(this->connection_status_label_, lv_color_hex(color), LV_PART_MAIN);
-    lv_obj_align(this->connection_status_label_, LV_ALIGN_BOTTOM_RIGHT, -20, -6);
+    lv_obj_align(this->connection_status_label_, LV_ALIGN_BOTTOM_RIGHT, -12, -3);
     lv_obj_remove_flag(this->connection_status_label_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(this->connection_status_label_);
   }

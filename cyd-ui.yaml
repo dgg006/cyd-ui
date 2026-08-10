@@ -15,6 +15,7 @@ time:
     timezone: America/Montevideo
 
 wifi:
+  power_save_mode: none
   networks:
     - ssid: !secret wifi_ssid
       password: !secret wifi_password
@@ -77,7 +78,11 @@ interval:
                         - lambda: id(ui_engine_main).set_connection_state(1);
                 else:
                   - lambda: id(ui_engine_main).set_connection_state(0);
-            - script.execute: restore_status_led
+            - if:
+                condition:
+                  lambda: return !id(ui_engine_main).backend_connected();
+                then:
+                  - script.execute: restore_status_led
 
 api:
   id: cyd_api
@@ -332,11 +337,21 @@ button:
 light:
   - platform: rgb
     id: status_led
-    internal: true
+    name: "LED de notificaciones"
+    icon: mdi:led-outline
     red: status_led_red
     green: status_led_green
     blue: status_led_blue
     restore_mode: ALWAYS_OFF
+    effects:
+      - pulse:
+          name: "Pulso lento"
+          transition_length: 1s
+          update_interval: 1s
+      - pulse:
+          name: "Pulso rapido"
+          transition_length: 250ms
+          update_interval: 250ms
   - platform: monochromatic
     id: backlight
     name: Backlight
@@ -354,6 +369,19 @@ font:
       - " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
       - "áéíóúüñÁÉÍÓÚÜÑ¿¡°‹›"
   # Catálogo MDI deliberadamente reducido: se compilan solo estos glifos.
+  - file: "gfonts://Roboto"
+    id: clock_time_font_60
+    size: 60
+    bpp: 4
+    glyphs:
+      - "0123456789:"
+  - file: "gfonts://Roboto"
+    id: clock_date_font_18
+    size: 18
+    bpp: 4
+    glyphs:
+      - " 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+      - "áéíóúüñÁÉÍÓÚÜÑ"
   - file: fonts/materialdesignicons-webfont.ttf
     id: mdi_icons_28
     size: 28
@@ -468,6 +496,8 @@ ui_engine:
   config_file: config/ui.json
   time_id: system_time
   icon_font_id: mdi_icons_28
+  clock_time_font_id: clock_time_font_60
+  clock_date_font_id: clock_date_font_18
   backlight_output_id: backlight_output
   sound_id: ui_sound
   touchscreen_id: cyd_touch

@@ -39,35 +39,45 @@ void ClockWeatherPage::create(lv_obj_t *parent) {
 
   this->time_label_ = lv_label_create(parent);
   lv_label_set_text(this->time_label_, "--:--");
-  lv_obj_set_style_text_font(this->time_label_, &lv_font_montserrat_48, LV_PART_MAIN);
+  if (this->time_font_ != nullptr) {
+    lv_obj_set_style_text_font(this->time_label_, this->time_font_->get_lv_font(), LV_PART_MAIN);
+  }
   lv_obj_set_style_text_color(this->time_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
-  lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 25);
+  lv_obj_align(this->time_label_, LV_ALIGN_TOP_MID, 0, 7);
 
   this->date_label_ = lv_label_create(parent);
   lv_label_set_text(this->date_label_, "Esperando hora...");
+  if (this->date_font_ != nullptr) {
+    lv_obj_set_style_text_font(this->date_label_, this->date_font_->get_lv_font(), LV_PART_MAIN);
+  }
   lv_obj_set_style_text_color(this->date_label_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   // No fijar Montserrat aquí: el font por defecto de ESPHome contiene ñ y
   // acentos, mientras que la fuente numérica integrada se reserva para la hora.
-  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 91);
+  lv_obj_align(this->date_label_, LV_ALIGN_TOP_MID, 0, 82);
 
-  this->condition_label_ = lv_label_create(parent);
-  lv_label_set_text(this->condition_label_, "Sin clima");
-  lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_label_, LV_ALIGN_TOP_MID, 13, 126);
+  this->condition_container_ = lv_obj_create(parent);
+  lv_obj_remove_style_all(this->condition_container_);
+  lv_obj_set_size(this->condition_container_, 280, 36);
+  lv_obj_set_pos(this->condition_container_, 20, 111);
+  lv_obj_remove_flag(this->condition_container_, LV_OBJ_FLAG_SCROLLABLE);
 
-  this->condition_icon_label_ = lv_label_create(parent);
+  this->condition_icon_label_ = lv_label_create(this->condition_container_);
   if (this->icon_font_ != nullptr) {
     lv_obj_set_style_text_font(this->condition_icon_label_, this->icon_font_->get_lv_font(), LV_PART_MAIN);
   }
   lv_obj_set_style_text_color(this->condition_icon_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
-  lv_obj_align(this->condition_icon_label_, LV_ALIGN_TOP_MID, -73, 122);
   lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+
+  this->condition_label_ = lv_label_create(this->condition_container_);
+  lv_label_set_text(this->condition_label_, "Sin clima");
+  lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(0x90CAF9), LV_PART_MAIN);
+  this->layout_condition_();
 
   this->temperature_label_ = lv_label_create(parent);
   lv_label_set_text(this->temperature_label_, "--.- C");
   lv_obj_set_style_text_font(this->temperature_label_, &lv_font_montserrat_32, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->temperature_label_, lv_color_hex(visual_theme::TEXT), LV_PART_MAIN);
-  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 156);
+  lv_obj_align(this->temperature_label_, LV_ALIGN_TOP_MID, 0, 150);
 
   this->humidity_label_ = lv_label_create(parent);
   lv_label_set_text(this->humidity_label_, "Humedad -- %");
@@ -97,6 +107,7 @@ bool ClockWeatherPage::update_control(const std::string &id, bool active, const 
     if (state != ControlState::VALID) {
       lv_label_set_text(this->condition_label_, "Sin clima");
       lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+      this->layout_condition_();
       return true;
     }
     lv_label_set_text(this->condition_label_, translate_condition_(value));
@@ -104,6 +115,7 @@ bool ClockWeatherPage::update_control(const std::string &id, bool active, const 
     lv_obj_set_style_text_color(this->condition_label_, lv_color_hex(condition_color_(value)), LV_PART_MAIN);
     lv_obj_set_style_text_color(this->condition_icon_label_, lv_color_hex(condition_color_(value)), LV_PART_MAIN);
     if (this->icon_font_ != nullptr) lv_obj_remove_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+    this->layout_condition_();
     return true;
   }
   if (id == this->temperature_id_) {
@@ -123,6 +135,7 @@ void ClockWeatherPage::set_all_states(ControlState state) {
   if (state != ControlState::VALID) {
     lv_label_set_text(this->condition_label_, "Sin clima");
     lv_obj_add_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+    this->layout_condition_();
     lv_label_set_text(this->temperature_label_, "--.- C");
     lv_label_set_text(this->humidity_label_, "Humedad -- %");
   }
@@ -185,6 +198,23 @@ void ClockWeatherPage::update_clock_() {
   std::snprintf(date_text, sizeof(date_text), "%s %u de %s", weekday_name(now.day_of_week), now.day_of_month,
                 MONTHS[now.month]);
   lv_label_set_text(this->date_label_, date_text);
+}
+
+void ClockWeatherPage::layout_condition_() {
+  if (this->condition_container_ == nullptr || this->condition_label_ == nullptr) return;
+  lv_obj_update_layout(this->condition_container_);
+  const bool icon_visible = this->condition_icon_label_ != nullptr &&
+                            !lv_obj_has_flag(this->condition_icon_label_, LV_OBJ_FLAG_HIDDEN);
+  const int32_t icon_width = icon_visible ? lv_obj_get_width(this->condition_icon_label_) : 0;
+  const int32_t gap = icon_visible ? 6 : 0;
+  const int32_t label_width = lv_obj_get_width(this->condition_label_);
+  const int32_t total_width = icon_width + gap + label_width;
+  int32_t x = (280 - total_width) / 2;
+  if (icon_visible) {
+    lv_obj_set_pos(this->condition_icon_label_, x, (36 - lv_obj_get_height(this->condition_icon_label_)) / 2);
+    x += icon_width + gap;
+  }
+  lv_obj_set_pos(this->condition_label_, x, (36 - lv_obj_get_height(this->condition_label_)) / 2);
 }
 
 const char *ClockWeatherPage::translate_condition_(const std::string &condition) {
