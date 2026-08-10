@@ -12,7 +12,10 @@ namespace ui_engine {
 namespace {
 
 static constexpr uint32_t CACHE_MAGIC = 0x55494531;  // "UIE1"
-static constexpr uint16_t CACHE_SCHEMA_VERSION = 1;
+// Version 2 invalidates configurations cached by firmware releases that did
+// not yet support the media template. Wi-Fi and touchscreen preferences use
+// independent keys and remain untouched.
+static constexpr uint16_t CACHE_SCHEMA_VERSION = 2;
 static constexpr uint32_t CACHE_PREFERENCE_KEY = 0xC7D00101;
 struct CacheRecord {
   uint32_t magic;
