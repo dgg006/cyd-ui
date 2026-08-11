@@ -24,6 +24,7 @@ PREVIEW_NOTIFICATION_SERVICE = "cyd_ui_preview_notification_sound"
 START_TOUCH_CALIBRATION_SERVICE = "cyd_ui_start_touch_calibration"
 RELOAD_UI_SERVICE = "cyd_ui_reload_ui"
 SHOW_REMINDER_SERVICE = "cyd_ui_show_reminder"
+SHOW_ALARM_REMINDER_SERVICE = "cyd_ui_show_alarm_reminder"
 DISMISS_REMINDER_SERVICE = "cyd_ui_dismiss_reminder"
 
 
@@ -259,6 +260,40 @@ async def _async_call_panel_service(
     await hass.services.async_call(ESPHOME_DOMAIN, service, data, blocking=True)
 
 
+async def async_send_reminder(hass: HomeAssistant, data: dict[str, Any]) -> None:
+    """Deliver a normal reminder or a bounded repeating alarm."""
+    sound_mode = data.get("sound_mode")
+    if sound_mode is None:
+        sound_mode = "once" if data.get("sound", True) else "silent"
+    common = {
+        "reminder_id": data["reminder_id"],
+        "title": data.get("title", ""),
+        "message": data["message"],
+        "level": data.get("level", "reminder"),
+    }
+    if sound_mode == "alarm":
+        await _async_call_panel_service(
+            hass,
+            SHOW_ALARM_REMINDER_SERVICE,
+            {
+                **common,
+                "alarm_duration": max(10, min(int(data.get("alarm_duration", 120)), 120)),
+                "snooze_minutes": max(0, min(int(data.get("snooze_minutes", 0)), 60)),
+            },
+        )
+        return
+    await _async_call_panel_service(
+        hass, SHOW_REMINDER_SERVICE, {**common, "sound": sound_mode == "once"}
+    )
+
+
+async def async_dismiss_reminder(hass: HomeAssistant, reminder_id: str = "") -> None:
+    """Dismiss the matching visible reminder."""
+    await _async_call_panel_service(
+        hass, DISMISS_REMINDER_SERVICE, {"reminder_id": reminder_id}
+    )
+
+
 @websocket_api.websocket_command(
     {vol.Required("type"): "cyd_ui/sound/preview", vol.Required("volume"): vol.All(vol.Coerce(int), vol.Range(min=0, max=10))}
 )
@@ -287,7 +322,10 @@ async def websocket_sound_preview(
         vol.Required("title"): vol.All(str, vol.Length(max=80)),
         vol.Required("message"): vol.All(str, vol.Length(min=1, max=280)),
         vol.Required("level"): vol.In(("info", "reminder", "warning", "urgent")),
-        vol.Required("sound"): bool,
+        vol.Optional("sound_mode", default="once"): vol.In(("silent", "once", "alarm")),
+        vol.Optional("sound"): bool,
+        vol.Optional("alarm_duration", default=120): vol.All(vol.Coerce(int), vol.Range(min=10, max=120)),
+        vol.Optional("snooze_minutes", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
     }
 )
 @websocket_api.require_admin
@@ -298,15 +336,8 @@ async def websocket_reminder_send(
     msg: dict[str, Any],
 ) -> None:
     """Show a persistent reminder using the native ESPHome action."""
-    data = {
-        "reminder_id": msg["reminder_id"],
-        "title": msg["title"],
-        "message": msg["message"],
-        "level": msg["level"],
-        "sound": msg["sound"],
-    }
     try:
-        await _async_call_panel_service(hass, SHOW_REMINDER_SERVICE, data)
+        await async_send_reminder(hass, msg)
     except RuntimeError as error:
         connection.send_error(msg["id"], "device_unavailable", str(error))
         return
@@ -328,9 +359,7 @@ async def websocket_reminder_dismiss(
 ) -> None:
     """Dismiss the matching reminder, or the visible one when the ID is empty."""
     try:
-        await _async_call_panel_service(
-            hass, DISMISS_REMINDER_SERVICE, {"reminder_id": msg["reminder_id"]}
-        )
+        await async_dismiss_reminder(hass, msg["reminder_id"])
     except RuntimeError as error:
         connection.send_error(msg["id"], "device_unavailable", str(error))
         return

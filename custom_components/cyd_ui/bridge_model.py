@@ -6,6 +6,13 @@ from typing import Any
 
 
 UNRELIABLE_STATES = {"unknown", "unavailable"}
+MEDIA_METADATA_ATTRIBUTES = {
+    "media_title",
+    "media_artist",
+    "media_album_name",
+    "media_channel",
+}
+MEDIA_EMPTY_STATES = {"idle", "off", "standby"}
 ALLOWED_SERVICES: dict[str, set[str]] = {
     "light": {"toggle", "turn_on", "turn_off"},
     "switch": {"toggle", "turn_on", "turn_off"},
@@ -20,6 +27,15 @@ ALLOWED_SERVICES: dict[str, set[str]] = {
         "volume_down", "volume_up", "volume_mute",
     },
 }
+
+
+def fallback_metadata_is_fresh(primary_updated: Any, fallback_updated: Any) -> bool:
+    """Return whether alternative metadata belongs to the current playback update."""
+    return (
+        primary_updated is None
+        or fallback_updated is None
+        or fallback_updated >= primary_updated
+    )
 
 
 def command_for_action(
@@ -83,13 +99,24 @@ def update_for_state(
     """Translate a HA state into the generic update expected by the CYD."""
     attributes = attributes or {}
     source: Any = None
-    if attribute := mapping.get("attribute"):
+    attribute = mapping.get("attribute")
+    clear_media_metadata = (
+        mapping.get("domain") == "media_player"
+        and attribute in MEDIA_METADATA_ATTRIBUTES
+        and entity_state in MEDIA_EMPTY_STATES
+    )
+    if clear_media_metadata:
+        # Home Assistant media players often retain the previous title and
+        # artist after playback stops. An empty but reliable value tells the
+        # CYD to clear those labels instead of displaying stale information.
+        source = ""
+    elif attribute:
         source = attributes.get(attribute)
     elif mapping.get("value_only"):
         source = entity_state
 
     unreliable = entity_state is None or entity_state in UNRELIABLE_STATES
-    if mapping.get("attribute") and source is None:
+    if attribute and source is None:
         unreliable = True
 
     if value_map := mapping.get("value_map"):

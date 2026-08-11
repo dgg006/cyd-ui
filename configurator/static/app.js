@@ -1,4 +1,4 @@
-const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound:true},collapsed:new Set()};
+const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound_mode:"once",alarm_duration:120,snooze_minutes:0},collapsed:new Set()};
 const $=s=>document.querySelector(s), pageList=$("#pageList"),pageForm=$("#pageForm"),controlList=$("#controlList"),preview=$("#devicePreview"),validationBox=$("#validationBox"),saveButton=$("#saveButton");
 const clone=v=>JSON.parse(JSON.stringify(v));
 const slug=t=>String(t||"control").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,38)||"control";
@@ -255,7 +255,11 @@ function renderReminderComposer(){
     inputField("Título",draft.title,v=>{draft.title=v;renderReminderPreview()},{wide:true}),
     inputField("Mensaje",draft.message,v=>{draft.message=v;renderReminderPreview()},{placeholder:"Escribí el recordatorio…",wide:true}),
     inputField("Prioridad",draft.level,v=>{draft.level=v;renderReminderPreview()},{choices:[{value:"info",label:"Información · azul"},{value:"reminder",label:"Recordatorio · verde"},{value:"warning",label:"Advertencia · amarillo"},{value:"urgent",label:"Urgente · rojo"}],event:"change"}),
-    inputField("Sonido",draft.sound?"yes":"no",v=>draft.sound=v==="yes",{choices:yesNoChoices,event:"change"})
+    inputField("Sonido",draft.sound_mode,v=>{draft.sound_mode=v;renderReminderComposer();renderReminderPreview()},{choices:[{value:"silent",label:"Sin sonido"},{value:"once",label:"Un aviso"},{value:"alarm",label:"Alarma repetida"}],event:"change"}),
+    ...(draft.sound_mode==="alarm"?[
+      inputField("Duración máxima",draft.alarm_duration,v=>draft.alarm_duration=v,{choices:[{value:30,label:"30 segundos"},{value:60,label:"1 minuto"},{value:120,label:"2 minutos"}],event:"change"}),
+      inputField("Botón Aplazar",draft.snooze_minutes,v=>{draft.snooze_minutes=v;renderReminderPreview()},{choices:[{value:0,label:"Sin Aplazar"},{value:5,label:"5 minutos"},{value:10,label:"10 minutos"},{value:15,label:"15 minutos"}],event:"change"})
+    ]:[])
   ]);
   const actions=document.createElement("div");actions.className="inline-actions reminder-actions";
   const send=document.createElement("button");send.className="button primary";send.textContent="Enviar ahora";
@@ -268,9 +272,10 @@ function renderReminderComposer(){
 function renderReminderPreview(){
   const draft=state.reminderDraft,screen=document.createElement("div");
   screen.className=`screen reminder-preview reminder-${draft.level}`;
-  screen.innerHTML='<div class="reminder-preview-card"><h3></h3><p></p><button>ACEPTAR</button></div>';
+  screen.innerHTML='<div class="reminder-preview-card"><h3></h3><p></p><div class="reminder-preview-actions"><button class="snooze hidden">APLAZAR</button><button>ACEPTAR</button></div></div>';
   screen.querySelector("h3").textContent=draft.title||"Recordatorio";
   screen.querySelector("p").textContent=draft.message||"Tu mensaje aparecerá aquí.";
+  screen.querySelector(".snooze").classList.toggle("hidden",draft.sound_mode!=="alarm"||Number(draft.snooze_minutes)===0);
   preview.replaceChildren(screen);
 }
 const baseRenderControls=renderControls;

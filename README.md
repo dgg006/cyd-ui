@@ -44,6 +44,13 @@ bloqueado en modo laboratorio.
 - Puente nativo temporal instalado en Home Assistant para que los controles y estados actuales funcionen sin la PC de desarrollo.
 - Selección automática entre las redes autorizadas y datos del portal de emergencia visibles en la propia CYD.
 
+### Novedades de v0.5.0
+
+- Recordatorios persistentes con sonido único, alarma repetitiva y aplazado opcional.
+- Acción visual `cyd_ui.show_reminder` para automatizaciones sin llamadas ESPHome de bajo nivel.
+- LED RGB protegido contra la restauración inmediata del indicador de conexión.
+- Metadatos multimedia limpiados al detener el reproductor para no mostrar información antigua.
+
 ## Configurador visual
 
 ```powershell

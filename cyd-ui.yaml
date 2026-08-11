@@ -9,6 +9,14 @@ esp32:
 
 logger:
 
+globals:
+  # Prevent the two-second connectivity watchdog from overwriting a temporary
+  # notification color before the user can see it.
+  - id: notification_led_override
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
 time:
   - platform: sntp
     id: system_time
@@ -80,7 +88,9 @@ interval:
                   - lambda: id(ui_engine_main).set_connection_state(0);
             - if:
                 condition:
-                  lambda: return !id(ui_engine_main).backend_connected();
+                  lambda: |-
+                    return !id(ui_engine_main).backend_connected() &&
+                           !id(notification_led_override);
                 then:
                   - script.execute: restore_status_led
 
@@ -147,6 +157,20 @@ api:
               - lambda: |-
                   id(ui_engine_main).play_notification_sound(
                     level == "urgent" ? "warning" : "notification");
+    - action: show_alarm_reminder
+      variables:
+        reminder_id: string
+        title: string
+        message: string
+        level: string
+        alarm_duration: int
+        snooze_minutes: int
+      then:
+        - lambda: |-
+            id(ui_engine_main).show_alarm_reminder(
+              reminder_id, title, message, level,
+              static_cast<uint16_t>(alarm_duration),
+              static_cast<uint16_t>(snooze_minutes));
     - action: dismiss_reminder
       variables:
         reminder_id: string
@@ -156,6 +180,7 @@ api:
       variables:
         color: string
       then:
+        - lambda: id(notification_led_override) = true;
         - lambda: |-
             auto call = id(status_led).turn_on();
             call.set_transition_length(0);
@@ -165,7 +190,8 @@ api:
             else if (color == "violet") call.set_rgb(0.65f, 0.0f, 1.0f);
             else call.set_rgb(1.0f, 0.35f, 0.0f);  // amber, the safe default
             call.perform();
-        - delay: 450ms
+        - delay: 2s
+        - lambda: id(notification_led_override) = false;
         - script.execute: restore_status_led
     - action: start_touch_calibration
       then:

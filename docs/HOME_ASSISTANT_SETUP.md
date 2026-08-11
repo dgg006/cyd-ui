@@ -83,13 +83,15 @@ Los nombres de servicios pueden incluir el nombre del dispositivo cuando Home As
 Ejemplo de una automatización o script:
 
 ```yaml
-action: esphome.cyd_ui_show_reminder
+action: cyd_ui.show_reminder
 data:
   reminder_id: medicacion_noche
   title: Recordatorio
   message: Tomar la medicación de la noche
   level: reminder
-  sound: true
+  sound_mode: alarm
+  alarm_duration: 120
+  snooze_minutes: 10
 ```
 
 El aviso enciende la pantalla, queda por encima de cualquier página y no se

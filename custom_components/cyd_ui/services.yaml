@@ -1,0 +1,93 @@
+show_reminder:
+  name: Mostrar recordatorio
+  description: Muestra un aviso persistente en la CYD con sonido normal o modo alarma.
+  fields:
+    reminder_id:
+      name: Identificador
+      description: Nombre interno para reconocer o retirar este recordatorio.
+      default: recordatorio
+      required: false
+      selector:
+        text:
+    title:
+      name: Título
+      default: Recordatorio
+      required: false
+      selector:
+        text:
+    message:
+      name: Mensaje
+      required: true
+      selector:
+        text:
+          multiline: true
+    level:
+      name: Prioridad
+      default: reminder
+      required: false
+      selector:
+        select:
+          options:
+            - label: Información
+              value: info
+            - label: Recordatorio
+              value: reminder
+            - label: Advertencia
+              value: warning
+            - label: Urgente
+              value: urgent
+          mode: dropdown
+    sound_mode:
+      name: Sonido
+      description: La alarma se repite hasta aceptar o alcanzar el límite configurado.
+      default: once
+      required: false
+      selector:
+        select:
+          options:
+            - label: Sin sonido
+              value: silent
+            - label: Un aviso
+              value: once
+            - label: Alarma repetida
+              value: alarm
+          mode: dropdown
+    alarm_duration:
+      name: Duración máxima de alarma
+      description: Solo se usa con Alarma repetida.
+      default: 120
+      required: false
+      selector:
+        number:
+          min: 10
+          max: 120
+          step: 10
+          unit_of_measurement: s
+          mode: slider
+    snooze_minutes:
+      name: Aplazar
+      description: Agrega el botón APLAZAR; cero lo oculta.
+      default: 0
+      required: false
+      selector:
+        select:
+          options:
+            - label: Sin botón Aplazar
+              value: "0"
+            - label: 5 minutos
+              value: "5"
+            - label: 10 minutos
+              value: "10"
+            - label: 15 minutos
+              value: "15"
+          mode: dropdown
+
+dismiss_reminder:
+  name: Retirar recordatorio
+  description: Retira el aviso visible. Si no se indica ID, retira cualquiera.
+  fields:
+    reminder_id:
+      name: Identificador
+      required: false
+      selector:
+        text:

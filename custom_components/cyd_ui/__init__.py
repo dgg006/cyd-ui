@@ -5,8 +5,11 @@ from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.core import ServiceCall
+from homeassistant.exceptions import HomeAssistantError
+import voluptuous as vol
 
-from .api import async_register_commands
+from .api import async_dismiss_reminder, async_register_commands, async_send_reminder
 from .const import (
     DOMAIN,
     PANEL_COMPONENT,
@@ -14,6 +17,8 @@ from .const import (
     PANEL_PATH,
     PANEL_TITLE,
     STATIC_URL,
+    SERVICE_DISMISS_REMINDER,
+    SERVICE_SHOW_REMINDER,
     VERSION,
 )
 from .storage import CydUiStorage
@@ -40,6 +45,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         async_register_commands(hass)
         data["websocket_registered"] = True
 
+    if not data.get("services_registered"):
+        async def handle_show_reminder(call: ServiceCall) -> None:
+            try:
+                await async_send_reminder(hass, dict(call.data))
+            except RuntimeError as error:
+                raise HomeAssistantError(str(error)) from error
+
+        async def handle_dismiss_reminder(call: ServiceCall) -> None:
+            try:
+                await async_dismiss_reminder(hass, str(call.data.get("reminder_id", "")))
+            except RuntimeError as error:
+                raise HomeAssistantError(str(error)) from error
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_SHOW_REMINDER,
+            handle_show_reminder,
+            schema=vol.Schema(
+                {
+                    vol.Optional("reminder_id", default="recordatorio"): vol.All(str, vol.Length(min=1, max=64)),
+                    vol.Optional("title", default="Recordatorio"): vol.All(str, vol.Length(max=80)),
+                    vol.Required("message"): vol.All(str, vol.Length(min=1, max=280)),
+                    vol.Optional("level", default="reminder"): vol.In(("info", "reminder", "warning", "urgent")),
+                    vol.Optional("sound_mode", default="once"): vol.In(("silent", "once", "alarm")),
+                    vol.Optional("alarm_duration", default=120): vol.All(vol.Coerce(int), vol.Range(min=10, max=120)),
+                    vol.Optional("snooze_minutes", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
+                }
+            ),
+        )
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_DISMISS_REMINDER,
+            handle_dismiss_reminder,
+            schema=vol.Schema({vol.Optional("reminder_id", default=""): str}),
+        )
+        data["services_registered"] = True
+
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_PATH,
@@ -63,6 +105,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data.pop("module_url", None)
     if bridge := data.pop("bridge", None):
         await bridge.async_stop()
+    if data.pop("services_registered", False):
+        hass.services.async_remove(DOMAIN, SERVICE_SHOW_REMINDER)
+        hass.services.async_remove(DOMAIN, SERVICE_DISMISS_REMINDER)
     return True
 
 

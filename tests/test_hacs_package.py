@@ -51,6 +51,7 @@ class HacsPackageTests(unittest.TestCase):
             "manifest.json",
             "model.py",
             "storage.py",
+            "services.yaml",
             "frontend/cyd-ui-panel.js",
             "frontend/editor-app.js",
             "frontend/editor.css",
@@ -127,6 +128,11 @@ class HacsPackageTests(unittest.TestCase):
         self.assertIn('id="reminderCenterButton"', panel_source)
         self.assertIn('"/api/reminder/send"', editor_source)
         self.assertIn('"/api/reminder/dismiss"', editor_source)
+        self.assertIn("SHOW_ALARM_REMINDER_SERVICE", api_source)
+        services = (INTEGRATION_ROOT / "services.yaml").read_text(encoding="utf-8")
+        self.assertIn("show_reminder:", services)
+        self.assertIn("sound_mode:", services)
+        self.assertIn("snooze_minutes:", services)
 
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))

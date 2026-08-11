@@ -11,7 +11,7 @@ from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from .bridge_model import command_for_action, update_for_state
+from .bridge_model import command_for_action, fallback_metadata_is_fresh, update_for_state
 from .storage import CydUiStorage
 
 
@@ -199,6 +199,16 @@ class CydUiBridge:
         fallback_allowed = not fallback_for or fallback_for == entity_id
         if update["reliability"] != "valid" and isinstance(fallback_id, str) and fallback_allowed:
             fallback_state = self._hass.states.get(fallback_id)
+            # Alternative Jarvis text entities are useful for online radio,
+            # but they can keep the previous station metadata when a local MP3
+            # starts. Only trust them when they were refreshed at least as
+            # recently as the selected media player.
+            fallback_is_fresh = fallback_metadata_is_fresh(
+                state.last_updated if state else None,
+                fallback_state.last_updated if fallback_state else None,
+            )
+            if not fallback_is_fresh:
+                fallback_state = None
             fallback_mapping = dict(mapping)
             fallback_mapping.pop("attribute", None)
             if mapping.get("fallback_attribute"):

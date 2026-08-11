@@ -1,5 +1,22 @@
 # Estado del proyecto
 
+## Actualización 2026-08-11 — alarmas, LED y multimedia confiable
+
+- CYD UI v0.5.0 incorpora la acción visual `cyd_ui.show_reminder`, con un
+  formulario apto para usuarios comunes y automatizaciones de Home Assistant.
+- Los recordatorios admiten sonido único, modo silencioso o alarma repetitiva
+  durante 10 a 120 segundos. La alarma se detiene al aceptar y puede ofrecer
+  **APLAZAR** por 5, 10 o 15 minutos.
+- El LED de notificaciones conserva durante dos segundos el color solicitado y
+  después recupera automáticamente el estado de conexión; el supervisor ya no
+  pisa inmediatamente una notificación.
+- La pantalla Multimedia limpia título, artista, emisora y carátula cuando el
+  reproductor queda detenido o inactivo. Los textos auxiliares antiguos ya no
+  se reutilizan si son anteriores al último cambio del reproductor.
+- Firmware compilado y cargado por USB en COM57. Verificación: 48 pruebas
+  automáticas, DRAM estática 53.812 bytes (29,8 %) y firmware 1.526.995 bytes
+  (83,2 % de la partición de aplicación).
+
 ## Actualización 2026-08-10 — recordatorios y controles multimedia
 
 - La integración CYD UI v0.4.0 incorpora un centro de recordatorios en su panel:

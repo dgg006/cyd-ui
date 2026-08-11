@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import types
 import unittest
+from datetime import UTC, datetime, timedelta
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -140,6 +141,26 @@ class NativeBridgeModelTests(unittest.TestCase):
         mapping = {"value_only": True, "active_states": ["playing", "buffering"]}
         self.assertTrue(MODEL.update_for_state("play", mapping, "playing", {})["active"])
         self.assertFalse(MODEL.update_for_state("play", mapping, "paused", {})["active"])
+
+    def test_stopped_media_clears_retained_metadata(self):
+        mapping = {
+            "domain": "media_player",
+            "attribute": "media_title",
+        }
+        update = MODEL.update_for_state(
+            "media_title", mapping, "idle", {"media_title": "Radio anterior"}
+        )
+        self.assertEqual("", update["value"])
+        self.assertEqual("valid", update["reliability"])
+
+    def test_old_fallback_metadata_is_rejected_for_new_playback(self):
+        current = datetime.now(UTC)
+        self.assertFalse(
+            MODEL.fallback_metadata_is_fresh(current, current - timedelta(seconds=1))
+        )
+        self.assertTrue(
+            MODEL.fallback_metadata_is_fresh(current, current + timedelta(seconds=1))
+        )
 
 
 if __name__ == "__main__":

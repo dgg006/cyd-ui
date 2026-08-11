@@ -58,6 +58,9 @@ class UiEngineComponent : public Component {
   void preview_notification_sound(uint8_t volume);
   void show_reminder(const std::string &reminder_id, const std::string &title,
                      const std::string &message, const std::string &level);
+  void show_alarm_reminder(const std::string &reminder_id, const std::string &title,
+                           const std::string &message, const std::string &level,
+                           uint16_t alarm_duration_seconds, uint16_t snooze_minutes);
   bool dismiss_reminder(const std::string &reminder_id = "");
   float ambient_light_percent() const;
   void set_wifi_setup_visible(bool visible, const std::string &ssid, const std::string &password);
@@ -101,6 +104,11 @@ class UiEngineComponent : public Component {
   float base_brightness_percent() const;
   void show_startup_overlay_();
   void update_connection_indicator_();
+  void show_reminder_(const std::string &reminder_id, const std::string &title,
+                      const std::string &message, const std::string &level,
+                      bool alarm, uint16_t alarm_duration_seconds, uint16_t snooze_minutes);
+  void stop_reminder_alarm_();
+  void snooze_reminder_();
 
   struct RuntimeControlState {
     bool active{false};
@@ -166,6 +174,15 @@ class UiEngineComponent : public Component {
   lv_obj_t *connection_status_label_{nullptr};
   lv_obj_t *reminder_overlay_{nullptr};
   std::string reminder_id_;
+  std::string reminder_title_;
+  std::string reminder_message_;
+  std::string reminder_level_;
+  bool reminder_alarm_active_{false};
+  uint32_t reminder_alarm_until_ms_{0};
+  uint32_t reminder_alarm_next_ms_{0};
+  uint32_t reminder_snooze_until_ms_{0};
+  uint16_t reminder_alarm_duration_seconds_{120};
+  uint16_t reminder_snooze_minutes_{0};
   uint8_t connection_state_{0};
   bool backend_connected_{false};
   uint32_t calibration_timeout_at_ms_{0};

@@ -85,6 +85,24 @@ void UiEngineComponent::loop() {
     this->apply_sound_settings();
   }
 
+  if (this->reminder_alarm_active_) {
+    const uint32_t now = millis();
+    if (static_cast<int32_t>(now - this->reminder_alarm_until_ms_) >= 0) {
+      this->stop_reminder_alarm_();
+    } else if (static_cast<int32_t>(now - this->reminder_alarm_next_ms_) >= 0) {
+      this->play_notification_sound("warning");
+      this->reminder_alarm_next_ms_ = now + 4000U;
+    }
+  }
+
+  if (this->reminder_snooze_until_ms_ != 0 &&
+      static_cast<int32_t>(millis() - this->reminder_snooze_until_ms_) >= 0) {
+    this->reminder_snooze_until_ms_ = 0;
+    this->show_alarm_reminder(this->reminder_id_, this->reminder_title_, this->reminder_message_,
+                              this->reminder_level_, this->reminder_alarm_duration_seconds_,
+                              this->reminder_snooze_minutes_);
+  }
+
   if (this->wake_pending_) {
     this->wake_pending_ = false;
     const bool was_screensaver = this->screensaver_active_;
@@ -541,6 +559,20 @@ void UiEngineComponent::preview_notification_sound(uint8_t volume) {
 
 void UiEngineComponent::show_reminder(const std::string &reminder_id, const std::string &title,
                                       const std::string &message, const std::string &level) {
+  this->show_reminder_(reminder_id, title, message, level, false, 0, 0);
+}
+
+void UiEngineComponent::show_alarm_reminder(const std::string &reminder_id, const std::string &title,
+                                            const std::string &message, const std::string &level,
+                                            uint16_t alarm_duration_seconds, uint16_t snooze_minutes) {
+  this->show_reminder_(reminder_id, title, message, level, true, alarm_duration_seconds, snooze_minutes);
+}
+
+void UiEngineComponent::show_reminder_(const std::string &reminder_id, const std::string &title,
+                                       const std::string &message, const std::string &level, bool alarm,
+                                       uint16_t alarm_duration_seconds, uint16_t snooze_minutes) {
+  this->stop_reminder_alarm_();
+  this->reminder_snooze_until_ms_ = 0;
   if (this->reminder_overlay_ != nullptr) {
     lv_obj_delete(this->reminder_overlay_);
     this->reminder_overlay_ = nullptr;
@@ -566,6 +598,11 @@ void UiEngineComponent::show_reminder(const std::string &reminder_id, const std:
   else if (level == "urgent") accent = 0xEF5350;
 
   this->reminder_id_ = reminder_id.empty() ? "reminder" : reminder_id;
+  this->reminder_title_ = title;
+  this->reminder_message_ = message;
+  this->reminder_level_ = level;
+  this->reminder_alarm_duration_seconds_ = std::max<uint16_t>(10, std::min<uint16_t>(alarm_duration_seconds, 120));
+  this->reminder_snooze_minutes_ = std::min<uint16_t>(snooze_minutes, 60);
   this->reminder_overlay_ = lv_obj_create(lv_layer_top());
   lv_obj_set_size(this->reminder_overlay_, 320, 240);
   lv_obj_set_pos(this->reminder_overlay_, 0, 0);
@@ -616,8 +653,8 @@ void UiEngineComponent::show_reminder(const std::string &reminder_id, const std:
   lv_obj_set_pos(message_label, 28, 53);
 
   lv_obj_t *accept = lv_button_create(card);
-  lv_obj_set_size(accept, 164, 46);
-  lv_obj_align(accept, LV_ALIGN_BOTTOM_MID, 0, -12);
+  lv_obj_set_size(accept, this->reminder_snooze_minutes_ > 0 ? 112 : 164, 46);
+  lv_obj_align(accept, LV_ALIGN_BOTTOM_MID, this->reminder_snooze_minutes_ > 0 ? 62 : 0, -12);
   lv_obj_set_style_radius(accept, 10, 0);
   lv_obj_set_style_bg_color(accept, lv_color_hex(accent), 0);
   lv_obj_set_style_bg_color(accept, lv_color_hex(0xFFFFFF), LV_STATE_PRESSED);
@@ -634,18 +671,71 @@ void UiEngineComponent::show_reminder(const std::string &reminder_id, const std:
   lv_obj_set_style_text_color(accept_label, lv_color_hex(0x071015), 0);
   lv_obj_center(accept_label);
 
+  if (this->reminder_snooze_minutes_ > 0) {
+    lv_obj_t *snooze = lv_button_create(card);
+    lv_obj_set_size(snooze, 112, 46);
+    lv_obj_align(snooze, LV_ALIGN_BOTTOM_MID, -62, -12);
+    lv_obj_set_style_radius(snooze, 10, 0);
+    lv_obj_set_style_bg_color(snooze, lv_color_hex(0x32434D), 0);
+    lv_obj_set_style_bg_color(snooze, lv_color_hex(0xFFFFFF), LV_STATE_PRESSED);
+    lv_obj_add_event_cb(
+        snooze,
+        [](lv_event_t *event) {
+          auto *engine = static_cast<UiEngineComponent *>(lv_event_get_user_data(event));
+          if (engine != nullptr) engine->snooze_reminder_();
+        },
+        LV_EVENT_CLICKED, this);
+    lv_obj_t *snooze_label = lv_label_create(snooze);
+    lv_label_set_text(snooze_label, "APLAZAR");
+    lv_obj_set_style_text_color(snooze_label, lv_color_hex(0xE8F0F4), 0);
+    lv_obj_center(snooze_label);
+  }
+
   lv_obj_move_foreground(this->reminder_overlay_);
+  if (alarm) {
+    const uint32_t now = millis();
+    this->reminder_alarm_active_ = true;
+    this->reminder_alarm_until_ms_ = now + static_cast<uint32_t>(this->reminder_alarm_duration_seconds_) * 1000U;
+    this->reminder_alarm_next_ms_ = now;
+  }
   ESP_LOGI(TAG, "Recordatorio mostrado: id=%s level=%s", this->reminder_id_.c_str(), level.c_str());
 }
 
+void UiEngineComponent::stop_reminder_alarm_() {
+  this->reminder_alarm_active_ = false;
+  this->reminder_alarm_until_ms_ = 0;
+  this->reminder_alarm_next_ms_ = 0;
+  if (this->sound_player_ != nullptr && this->sound_player_->is_playing()) this->sound_player_->stop();
+  this->apply_sound_settings();
+}
+
+void UiEngineComponent::snooze_reminder_() {
+  if (this->reminder_overlay_ == nullptr || this->reminder_snooze_minutes_ == 0) return;
+  this->stop_reminder_alarm_();
+  lv_obj_delete_async(this->reminder_overlay_);
+  this->reminder_overlay_ = nullptr;
+  this->reminder_snooze_until_ms_ = millis() + static_cast<uint32_t>(this->reminder_snooze_minutes_) * 60000U;
+  this->last_activity_ms_ = millis();
+  this->action_trigger_.trigger(this->reminder_id_, "snooze");
+  ESP_LOGI(TAG, "Recordatorio aplazado %u minutos: id=%s", this->reminder_snooze_minutes_,
+           this->reminder_id_.c_str());
+}
+
 bool UiEngineComponent::dismiss_reminder(const std::string &reminder_id) {
-  if (this->reminder_overlay_ == nullptr) return false;
+  if (this->reminder_overlay_ == nullptr && this->reminder_snooze_until_ms_ == 0) return false;
   if (!reminder_id.empty() && reminder_id != this->reminder_id_) return false;
 
   const std::string acknowledged_id = this->reminder_id_;
-  lv_obj_delete_async(this->reminder_overlay_);
-  this->reminder_overlay_ = nullptr;
+  this->stop_reminder_alarm_();
+  this->reminder_snooze_until_ms_ = 0;
+  if (this->reminder_overlay_ != nullptr) {
+    lv_obj_delete_async(this->reminder_overlay_);
+    this->reminder_overlay_ = nullptr;
+  }
   this->reminder_id_.clear();
+  this->reminder_title_.clear();
+  this->reminder_message_.clear();
+  this->reminder_level_.clear();
   this->last_activity_ms_ = millis();
   this->action_trigger_.trigger(acknowledged_id, "acknowledge");
   ESP_LOGI(TAG, "Recordatorio aceptado: id=%s", acknowledged_id.c_str());
