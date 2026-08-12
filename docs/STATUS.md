@@ -1,5 +1,14 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — carátulas circulares procesadas
+
+- CYD UI v0.7.2 genera la ilusión circular antes de enviar la imagen a la CYD.
+- El recorte centrado y el antialiasing se calculan a 4× en Home Assistant o
+  en el puente de laboratorio y se reducen a un JPEG final de 72 × 72.
+- Las esquinas coinciden con `BACKGROUND` de los temas oscuro y claro, sin
+  máscaras LVGL ni consumo adicional de RAM en la placa.
+- Validación: 55 pruebas automáticas superadas.
+
 ## Actualización 2026-08-12 — recuperación de versiones
 
 - CYD UI v0.7.1 muestra las diez configuraciones anteriores en el panel de

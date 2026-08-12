@@ -71,6 +71,14 @@ bloqueado en modo laboratorio.
 - Restaurar nunca destruye la configuración actual: la conserva como una revisión nueva.
 - Guardar páginas ya no puede borrar recordatorios ni otros datos auxiliares de la integración.
 
+### Novedades de v0.7.2
+
+- Las carátulas se recortan al centro y se presentan como círculos suavizados.
+- Las esquinas usan exactamente el fondo general del tema oscuro o claro para simular
+  transparencia sin exigir máscaras ni memoria adicional a la CYD.
+- El procesamiento se realiza en Home Assistant o en el puente de laboratorio;
+  el firmware continúa descargando un JPEG compacto de 72 × 72.
+
 ## Configurador visual
 
 ```powershell

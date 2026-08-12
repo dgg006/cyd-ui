@@ -6,18 +6,17 @@ import json
 import logging
 import asyncio
 import hashlib
-import io
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from PIL import Image, ImageOps
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .bridge_model import command_for_action, fallback_metadata_is_fresh, update_for_state
+from .artwork import artwork_background, circular_artwork_jpeg
 from .storage import CydUiStorage
 
 
@@ -38,7 +37,7 @@ class CydUiBridge:
         self._unsubscribers: list[Any] = []
         self._ready_generation = 0
         self._media_selection: dict[str, int] = {}
-        self._artwork_cache: dict[str, str] = {}
+        self._artwork_cache: dict[tuple[str, str], str] = {}
 
     async def async_start(self) -> None:
         """Start listeners only after the migration disables old automations."""
@@ -236,7 +235,10 @@ class CydUiBridge:
                 and isinstance(source_url, str)
                 and source_url.startswith(("http://", "https://"))
             ):
-                prepared = await self._async_prepare_artwork(source_url)
+                prepared = await self._async_prepare_artwork(
+                    source_url,
+                    artwork_background(self._storage.data.get("ui")),
+                )
                 if prepared:
                     update["value"] = prepared
                 else:
@@ -249,14 +251,17 @@ class CydUiBridge:
         except HomeAssistantError as error:
             _LOGGER.debug("CYD unavailable for state update: %s", error)
 
-    async def _async_prepare_artwork(self, source_url: str) -> str | None:
+    async def _async_prepare_artwork(
+        self, source_url: str, background: str
+    ) -> str | None:
         """Download and shrink artwork so a non-PSRAM ESP32 can decode it."""
-        if cached := self._artwork_cache.get(source_url):
+        cache_key = (source_url, background)
+        if cached := self._artwork_cache.get(cache_key):
             return cached
         parsed = urlsplit(source_url)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:
             return None
-        digest = hashlib.sha256(source_url.encode()).hexdigest()[:16]
+        digest = hashlib.sha256(f"{source_url}|{background}".encode()).hexdigest()[:16]
         filename = f"artwork-{digest}.jpg"
         target_dir = Path(self._hass.config.path("www", "cyd_ui"))
         target = target_dir / filename
@@ -270,11 +275,9 @@ class CydUiBridge:
 
             def resize_and_store() -> None:
                 target_dir.mkdir(parents=True, exist_ok=True)
-                with Image.open(io.BytesIO(raw)) as image:
-                    image = ImageOps.fit(
-                        image.convert("RGB"), (72, 72), Image.Resampling.LANCZOS
-                    )
-                    image.save(target, "JPEG", quality=82, optimize=True)
+                target.write_bytes(
+                    circular_artwork_jpeg(raw, size=72, background=background)
+                )
                 old_files = sorted(
                     target_dir.glob("artwork-*.jpg"),
                     key=lambda item: item.stat().st_mtime,
@@ -290,5 +293,5 @@ class CydUiBridge:
         result = urlunsplit(
             (parsed.scheme, parsed.netloc, f"/local/cyd_ui/{filename}", f"v={digest}", "")
         )
-        self._artwork_cache[source_url] = result
+        self._artwork_cache[cache_key] = result
         return result

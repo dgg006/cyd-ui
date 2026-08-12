@@ -6,7 +6,6 @@ import argparse
 import asyncio
 import copy
 import importlib.util
-import io
 import json
 import os
 import re
@@ -24,7 +23,24 @@ from urllib.parse import urlparse
 import websocket
 import yaml
 from aioesphomeapi import APIClient, HomeassistantServiceCall, UserService
-from PIL import Image, ImageOps
+
+
+def _load_artwork_processor():
+    path = (
+        Path(__file__).resolve().parent.parent
+        / "custom_components"
+        / "cyd_ui"
+        / "artwork.py"
+    )
+    spec = importlib.util.spec_from_file_location("cyd_ui_artwork", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("No se pudo cargar artwork.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ARTWORK_PROCESSOR = _load_artwork_processor()
 
 
 class ArtworkProxy:
@@ -39,6 +55,7 @@ class ArtworkProxy:
             probe.close()
         self.port = port
         self.source_url = ""
+        self.background = ARTWORK_PROCESSOR.DARK_ARTWORK_BACKGROUND
         proxy = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -56,13 +73,9 @@ class ArtworkProxy:
                         content_type = response.headers.get_content_type()
                     if len(content) > 256 * 1024 or content_type not in {"image/jpeg", "image/png"}:
                         raise ValueError("carátula no admitida")
-                    with Image.open(io.BytesIO(content)) as image:
-                        image = ImageOps.fit(
-                            image.convert("RGB"), (72, 72), Image.Resampling.LANCZOS
-                        )
-                        encoded = io.BytesIO()
-                        image.save(encoded, "JPEG", quality=82, optimize=True)
-                        content = encoded.getvalue()
+                    content = ARTWORK_PROCESSOR.circular_artwork_jpeg(
+                        content, size=72, background=proxy.background
+                    )
                     content_type = "image/jpeg"
                     self.send_response(200)
                     self.send_header("Content-Type", content_type)
@@ -80,9 +93,10 @@ class ArtworkProxy:
         self.server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
-    def publish(self, source_url: str) -> str:
+    def publish(self, source_url: str, background: str) -> str:
         self.source_url = source_url
-        version = abs(hash(source_url)) & 0xFFFFFFFF
+        self.background = background
+        version = abs(hash((source_url, background))) & 0xFFFFFFFF
         return f"http://{self.local_host}:{self.port}/artwork.jpg?v={version}"
 
 
@@ -494,7 +508,9 @@ class LabGateway:
             and isinstance(update["value"], str)
             and update["value"].startswith(("http://", "https://"))
         ):
-            update["value"] = self.artwork_proxy.publish(update["value"])
+            update["value"] = self.artwork_proxy.publish(
+                update["value"], ARTWORK_PROCESSOR.artwork_background(self.project.ui)
+            )
         await self._execute("update_control", {
             "control_id": update["control_id"],
             "active": update["active"],

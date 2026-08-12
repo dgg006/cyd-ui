@@ -55,12 +55,11 @@ void MediaPage::create(lv_obj_t *parent) {
   lv_obj_set_pos(this->next_player_, 281, 37);
 
   this->artwork_frame_ = lv_obj_create(parent);
-  lv_obj_set_size(this->artwork_frame_, 76, 76);
-  lv_obj_set_pos(this->artwork_frame_, 12, 44);
-  lv_obj_set_style_radius(this->artwork_frame_, 12, LV_PART_MAIN);
-  lv_obj_set_style_bg_color(this->artwork_frame_, lv_color_hex(visual_theme::SURFACE_MUTED), LV_PART_MAIN);
-  lv_obj_set_style_border_color(this->artwork_frame_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
-  lv_obj_set_style_border_width(this->artwork_frame_, 2, LV_PART_MAIN);
+  lv_obj_set_size(this->artwork_frame_, 72, 72);
+  lv_obj_set_pos(this->artwork_frame_, 14, 44);
+  lv_obj_set_style_radius(this->artwork_frame_, 0, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->artwork_frame_, lv_color_hex(visual_theme::BACKGROUND), LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->artwork_frame_, 0, LV_PART_MAIN);
   lv_obj_set_style_pad_all(this->artwork_frame_, 0, LV_PART_MAIN);
   lv_obj_remove_flag(this->artwork_frame_, LV_OBJ_FLAG_SCROLLABLE);
 

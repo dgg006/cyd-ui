@@ -45,6 +45,7 @@ class HacsPackageTests(unittest.TestCase):
             "config_flow.py",
             "const.py",
             "api.py",
+            "artwork.py",
             "bridge.py",
             "bridge_model.py",
             "migration.py",
