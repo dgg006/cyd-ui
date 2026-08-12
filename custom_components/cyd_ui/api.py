@@ -173,6 +173,61 @@ async def websocket_config_save(
     )
 
 
+@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/history/list"})
+@websocket_api.require_admin
+@callback
+def websocket_history_list(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """List recoverable project revisions without returning their full JSON."""
+    storage: CydUiStorage = _domain_data(hass)["storage"]
+    connection.send_result(
+        msg["id"],
+        {
+            "current_revision": storage.data.get("revision", 0),
+            "history": storage.history_summary(),
+        },
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/history/restore",
+        vol.Required("revision"): vol.Coerce(int),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_history_restore(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Restore a previous project and apply it through the active bridge."""
+    storage: CydUiStorage = _domain_data(hass)["storage"]
+    if not await storage.async_restore(msg["revision"]):
+        connection.send_error(
+            msg["id"], "revision_not_found", "La version elegida ya no esta disponible."
+        )
+        return
+    bridge = _domain_data(hass).get("bridge")
+    device_applied = False
+    if bridge is not None:
+        device_applied = await bridge.async_apply_config()
+        if device_applied:
+            await bridge.async_sync_all()
+    connection.send_result(
+        msg["id"],
+        {
+            "restored": True,
+            "revision": storage.data["revision"],
+            "device_applied": device_applied,
+        },
+    )
+
+
 @websocket_api.websocket_command(
     {
         vol.Required("type"): "cyd_ui/config/validate",
@@ -492,6 +547,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_config_get)
     websocket_api.async_register_command(hass, websocket_config_validate)
     websocket_api.async_register_command(hass, websocket_config_save)
+    websocket_api.async_register_command(hass, websocket_history_list)
+    websocket_api.async_register_command(hass, websocket_history_restore)
     websocket_api.async_register_command(hass, websocket_entities_list)
     websocket_api.async_register_command(hass, websocket_device_status)
     websocket_api.async_register_command(hass, websocket_sound_preview)

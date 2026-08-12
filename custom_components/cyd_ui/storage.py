@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import STORAGE_KEY, STORAGE_VERSION
-from .model import create_revision, migrate_media_artwork, validate_document
+from .model import create_revision, migrate_media_artwork, restore_revision, validate_document
 
 
 class CydUiStorage:
@@ -56,13 +56,40 @@ class CydUiStorage:
         """Validate and persist an all-or-nothing project revision."""
         if errors := validate_document(ui, backend_map):
             return errors
-        next_data = create_revision(
-            self.data, ui, backend_map, dt_util.utcnow().isoformat()
-        )
         async with self._lock:
+            next_data = create_revision(
+                self.data, ui, backend_map, dt_util.utcnow().isoformat()
+            )
             await self._store.async_save(next_data)
             self.data = next_data
         return []
+
+    def history_summary(self) -> list[dict[str, Any]]:
+        """Return lightweight revision metadata for the editor."""
+        summaries = []
+        for item in reversed(self.data.get("history", [])):
+            if not isinstance(item, dict) or not isinstance(item.get("ui"), dict):
+                continue
+            summaries.append(
+                {
+                    "revision": item.get("revision"),
+                    "updated_at": item.get("updated_at"),
+                    "page_count": len(item["ui"].get("pages", [])),
+                }
+            )
+        return summaries
+
+    async def async_restore(self, revision: int) -> bool:
+        """Restore an old project as a new, non-destructive revision."""
+        async with self._lock:
+            next_data = restore_revision(
+                self.data, revision, dt_util.utcnow().isoformat()
+            )
+            if next_data is None:
+                return False
+            await self._store.async_save(next_data)
+            self.data = next_data
+        return True
 
     async def async_set_bridge_enabled(
         self, enabled: bool, automation_states: dict[str, str] | None = None

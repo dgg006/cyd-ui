@@ -65,6 +65,12 @@ bloqueado en modo laboratorio.
 - Los proyectos multimedia anteriores se migran automáticamente sin perder páginas ni asociaciones.
 - El puente de laboratorio retransmite la carátula cuando Home Assistant y la CYD están en redes distintas.
 
+### Novedades de v0.7.1
+
+- El configurador permite consultar y restaurar las diez versiones anteriores.
+- Restaurar nunca destruye la configuración actual: la conserva como una revisión nueva.
+- Guardar páginas ya no puede borrar recordatorios ni otros datos auxiliares de la integración.
+
 ## Configurador visual
 
 ```powershell

@@ -1,5 +1,5 @@
 const STATIC_ROOT = "/cyd_ui_static";
-const ASSET_VERSION = "0.7.0";
+const ASSET_VERSION = "0.7.1";
 
 function describeError(error) {
   if (typeof error === "string") return error;
@@ -28,6 +28,7 @@ const EDITOR_MARKUP = `
       <div id="pageList" class="page-list"></div><p class="hint">Arrastrá para ordenar. Máximo 8 páginas.</p>
       <button id="deviceSettingsButton" class="settings-card"><span class="settings-icon">⚙</span><span><strong>Configuración</strong><small>Pantalla, reposo y sonido</small></span></button>
       <button id="reminderCenterButton" class="settings-card"><span class="settings-icon">🔔</span><span><strong>Recordatorios</strong><small>Enviar un aviso a la pantalla</small></span></button>
+      <button id="historyButton" class="settings-card"><span class="settings-icon">↶</span><span><strong>Versiones anteriores</strong><small>Recuperar una configuración guardada</small></span></button>
     </aside>
     <section class="editor-panel panel">
       <div class="panel-heading"><div><span class="section-kicker">CONTENIDO</span><h2 id="editorTitle">Página</h2></div><div class="inline-actions"><button id="duplicateButton" class="text-button">Duplicar</button><button id="deleteButton" class="text-button danger">Eliminar</button></div></div>

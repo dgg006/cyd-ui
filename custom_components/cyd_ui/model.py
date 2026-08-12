@@ -308,14 +308,36 @@ def create_revision(
                 "backend_map": deepcopy(current.get("backend_map", {"controls": {}})),
             }
         )
-    return {
-        "revision": revision,
-        "updated_at": updated_at,
-        "ui": deepcopy(ui),
-        "backend_map": deepcopy(backend_map),
-        "history": history[-MAX_HISTORY:],
-        "native_bridge_enabled": bool(current.get("native_bridge_enabled", False)),
-        "temporary_automation_states": deepcopy(
-            current.get("temporary_automation_states", {})
+    # Preserve data owned by other parts of the integration. A UI save must
+    # never erase reminders, bridge state, or future additions.
+    next_data = deepcopy(current)
+    next_data.update(
+        {
+            "revision": revision,
+            "updated_at": updated_at,
+            "ui": deepcopy(ui),
+            "backend_map": deepcopy(backend_map),
+            "history": history[-MAX_HISTORY:],
+        }
+    )
+    return next_data
+
+
+def restore_revision(
+    current: dict[str, Any], revision: int, updated_at: str
+) -> dict[str, Any] | None:
+    """Restore a snapshot as a new revision, preserving the current one."""
+    snapshot = next(
+        (
+            item
+            for item in current.get("history", [])
+            if isinstance(item, dict) and item.get("revision") == revision
         ),
-    }
+        None,
+    )
+    if not snapshot or not isinstance(snapshot.get("ui"), dict):
+        return None
+    backend_map = snapshot.get("backend_map", {"controls": {}})
+    if validate_document(snapshot["ui"], backend_map):
+        return None
+    return create_revision(current, snapshot["ui"], backend_map, updated_at)

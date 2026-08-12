@@ -83,6 +83,8 @@ class IntegrationModelTests(unittest.TestCase):
             "history": [{"revision": number} for number in range(10)],
             "native_bridge_enabled": True,
             "temporary_automation_states": {"automation.old": "on"},
+            "scheduled_reminders": [{"id": "mate"}],
+            "reminder_history": [{"id": "hecho"}],
         }
         result = MODEL.create_revision(current, self.ui, self.backend_map, "new")
         self.assertEqual(11, result["revision"])
@@ -92,8 +94,31 @@ class IntegrationModelTests(unittest.TestCase):
         self.assertEqual(
             {"automation.old": "on"}, result["temporary_automation_states"]
         )
+        self.assertEqual([{"id": "mate"}], result["scheduled_reminders"])
+        self.assertEqual([{"id": "hecho"}], result["reminder_history"])
         self.ui["pages"][0]["title"] = "modificado después"
         self.assertNotEqual("modificado después", result["ui"]["pages"][0]["title"])
+
+    def test_restore_is_non_destructive_and_creates_a_new_revision(self):
+        old_ui = json.loads(json.dumps(self.ui))
+        old_ui["pages"][0]["title"] = "Version anterior"
+        current = {
+            "revision": 5,
+            "updated_at": "actual",
+            "ui": self.ui,
+            "backend_map": self.backend_map,
+            "history": [{"revision": 3, "updated_at": "vieja", "ui": old_ui, "backend_map": self.backend_map}],
+            "scheduled_reminders": [{"id": "no_perder"}],
+        }
+        result = MODEL.restore_revision(current, 3, "restaurada")
+        self.assertIsNotNone(result)
+        self.assertEqual(6, result["revision"])
+        self.assertEqual("Version anterior", result["ui"]["pages"][0]["title"])
+        self.assertEqual(5, result["history"][-1]["revision"])
+        self.assertEqual([{"id": "no_perder"}], result["scheduled_reminders"])
+
+    def test_unknown_revision_is_not_restored(self):
+        self.assertIsNone(MODEL.restore_revision({"history": []}, 99, "now"))
 
 
 if __name__ == "__main__":

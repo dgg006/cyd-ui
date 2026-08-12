@@ -1,5 +1,15 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — recuperación de versiones
+
+- CYD UI v0.7.1 muestra las diez configuraciones anteriores en el panel de
+  Home Assistant y permite restaurarlas sin editar JSON.
+- La restauración es no destructiva: la configuración actual pasa al historial
+  y la elegida se guarda como una revisión nueva.
+- El almacenamiento conserva recordatorios, estado del puente y datos
+  auxiliares al guardar o recuperar páginas.
+- Validación: 53 pruebas automáticas, sintaxis JavaScript y Python correctas.
+
 ## Actualización 2026-08-12 — carátula multimedia compacta
 
 - CYD UI v0.7.0 implementa la opción visual B: carátula compacta de 72 × 72,

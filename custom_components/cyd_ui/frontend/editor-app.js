@@ -4,7 +4,7 @@ const document={
   createElement:(tag)=>window.document.createElement(tag),
   get visibilityState(){return window.document.visibilityState;}
 };
-const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,scheduledReminders:[],reminderScheduleAt:"",reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound_mode:"once",alarm_duration:120,snooze_minutes:0},collapsed:new Set()};
+const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,editingHistory:false,history:[],currentRevision:0,scheduledReminders:[],reminderScheduleAt:"",reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound_mode:"once",alarm_duration:120,snooze_minutes:0},collapsed:new Set()};
 const $=s=>document.querySelector(s), pageList=$("#pageList"),pageForm=$("#pageForm"),controlList=$("#controlList"),preview=$("#devicePreview"),validationBox=$("#validationBox"),saveButton=$("#saveButton");
 const clone=v=>JSON.parse(JSON.stringify(v));
 const slug=t=>String(t||"control").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,38)||"control";
@@ -95,6 +95,8 @@ async function api(path,options={}){
     return {ui:project.ui,backend_map:project.backend_map};
   }
   if(path==="/api/entities")return hass.callWS({type:"cyd_ui/entities/list"});
+  if(path==="/api/history")return hass.callWS({type:"cyd_ui/history/list"});
+  if(path==="/api/history/restore")return hass.callWS({type:"cyd_ui/history/restore",revision:Number(body.revision)});
   if(path==="/api/validate")return hass.callWS({type:"cyd_ui/config/validate",ui:body.ui,backend_map:body.backend_map});
   if(path==="/api/save"){
     const result=await hass.callWS({type:"cyd_ui/config/save",ui:body.ui,backend_map:body.backend_map});
@@ -151,18 +153,19 @@ function renderPages(){
   pageList.replaceChildren();
   state.ui.pages.forEach((page,index)=>{
     const card=document.createElement("div");
-    card.className=`page-card${!state.editingSettings&&!state.editingReminder&&index===state.selectedPage?" active":""}`;
+    card.className=`page-card${!state.editingSettings&&!state.editingReminder&&!state.editingHistory&&index===state.selectedPage?" active":""}`;
     card.draggable=true;card.dataset.index=index;
     card.innerHTML=`<span class="page-number">${page.screensaver?"◐":index+1}</span><div class="page-name"><strong></strong><span></span></div>`;
     card.querySelector("strong").textContent=page.title||(page.screensaver?"Protector de pantalla":"Sin título");
     card.querySelector(".page-name span").textContent=state.catalog[page.template]?.label||page.template;
-    card.onclick=()=>{state.editingSettings=false;state.editingReminder=false;state.selectedPage=index;renderAll()};
+    card.onclick=()=>{state.editingSettings=false;state.editingReminder=false;state.editingHistory=false;state.selectedPage=index;renderAll()};
     card.ondragstart=()=>card.classList.add("dragging");card.ondragend=()=>card.classList.remove("dragging");card.ondragover=e=>e.preventDefault();
     card.ondrop=e=>{e.preventDefault();const from=Number(pageList.querySelector(".dragging")?.dataset.index);if(!Number.isInteger(from)||from===index)return;const[moved]=state.ui.pages.splice(from,1);state.ui.pages.splice(index,0,moved);state.selectedPage=index;renderAll()};
     pageList.append(card)
   });
   $("#deviceSettingsButton").classList.toggle("active",state.editingSettings);
   $("#reminderCenterButton").classList.toggle("active",state.editingReminder);
+  $("#historyButton").classList.toggle("active",state.editingHistory);
 }
 function renderPageForm(){const page=state.ui.pages[state.selectedPage],screensaver=page.template==="clock_weather"&&page.variant==="screensaver";$("#editorTitle").textContent=screensaver?"Protector de pantalla":page.title;pageForm.replaceChildren();const fields=[];if(!screensaver)fields.push(inputField("Título",page.title,v=>{page.title=v;renderPages();renderPreview();validate()},{wide:true}));fields.push(inputField("Template",page.template,v=>{resetControlsForTemplate(page,v);renderAll()},{choices:Object.entries(state.catalog).map(([value,item])=>({value,label:item.label})),event:"change"}),inputField("Variante",page.variant,v=>{page.variant=v;resizeRepeatedControls(page);renderAll()},{choices:Object.keys(state.catalog[page.template].variants).map(value=>({value,label:value.replaceAll("_"," ")})),event:"change"}));if(screensaver)fields.push(inputField("Activar protector después de",state.ui.settings.inactivity.timeout,v=>{state.ui.settings.inactivity.timeout=v;state.ui.screensaver_timeout=v;validate()},{choices:timeoutChoices,event:"change",type:"number",wide:true}));pageForm.append(...fields);if(page.template==="media")renderMediaPlayerFields(page);$("#addControlButton").classList.toggle("hidden",state.catalog[page.template].controls.kind!=="variable"||page.controls.length>=4)}
 
@@ -344,14 +347,23 @@ function renderPreview(){if(state.editingSettings)return renderSettingsPreview()
 async function validate(){try{const result=await api("/api/validate",{method:"POST",body:JSON.stringify({ui:state.ui,backend_map:state.backendMap})});validationBox.className=`validation-box ${result.valid?"valid":"invalid"}`;validationBox.innerHTML=result.valid?"✓ Configuración lista para guardar.":result.errors.slice(0,5).map(e=>`• ${e}`).join("<br>");saveButton.disabled=!result.valid;return result.valid}catch(error){validationBox.className="validation-box invalid";validationBox.textContent=error.message;saveButton.disabled=true;return false}}
 function renderAll(){
   state.selectedPage=Math.max(0,Math.min(state.selectedPage,state.ui.pages.length-1));ensureSettings();renderPages();
-  const auxiliary=state.editingSettings||state.editingReminder;
+  const auxiliary=state.editingSettings||state.editingReminder||state.editingHistory;
   $("#duplicateButton").classList.toggle("hidden",auxiliary);$("#deleteButton").classList.toggle("hidden",auxiliary);
   $("#controlsHeading").classList.toggle("hidden",auxiliary);controlList.classList.toggle("hidden",auxiliary);
-  saveButton.classList.toggle("hidden",state.editingReminder);
+  saveButton.classList.toggle("hidden",state.editingReminder||state.editingHistory);
   if(state.editingReminder){stopLdrPolling();renderReminderComposer()}
+  else if(state.editingHistory){stopLdrPolling();renderHistory();return}
   else if(state.editingSettings){renderSettings()}
   else{stopLdrPolling();pageForm.classList.remove("settings-form");renderPageForm();renderControls()}
   renderPreview();validate()
+}
+async function loadHistory(){const result=await api("/api/history");state.history=result.history||[];state.currentRevision=result.current_revision||0}
+function renderHistory(){
+  $("#editorTitle").textContent="Versiones anteriores";pageForm.className="page-form history-form";pageForm.replaceChildren();
+  const intro=document.createElement("p");intro.className="history-intro";intro.textContent=`Versión actual: ${state.currentRevision}. Restaurar crea una versión nueva y conserva la configuración de hoy.`;pageForm.append(intro);
+  const list=document.createElement("div");list.className="history-list";
+  if(!state.history.length){const empty=document.createElement("p");empty.className="history-empty";empty.textContent="Todavía no hay versiones anteriores.";list.append(empty)}
+  state.history.forEach(item=>{const row=document.createElement("div");row.className="history-item";const info=document.createElement("div"),title=document.createElement("strong"),detail=document.createElement("small"),button=document.createElement("button");title.textContent=`Versión ${item.revision}`;const date=item.updated_at?new Date(item.updated_at).toLocaleString():"Fecha no disponible";detail.textContent=`${date} · ${item.page_count} página${item.page_count===1?"":"s"}`;info.append(title,detail);button.className="button secondary";button.textContent="Restaurar";button.onclick=async()=>{if(!confirm(`¿Restaurar la versión ${item.revision}? La configuración actual quedará guardada como respaldo.`))return;button.disabled=true;button.textContent="Restaurando…";try{const result=await api("/api/history/restore",{method:"POST",body:JSON.stringify({revision:item.revision})}),project=await api("/api/project");state.ui=project.ui;state.backendMap=project.backend_map;state.selectedPage=0;state.editingHistory=false;await loadHistory();renderAll();showToast(result.device_applied?"Versión restaurada y enviada a la pantalla.":"Versión restaurada. La pantalla la recibirá al conectarse.")}catch(error){button.disabled=false;button.textContent="Restaurar";showToast(error.message,true)}};row.append(info,button);list.append(row)});pageForm.append(list);preview.replaceChildren();validationBox.className="validation-box valid";validationBox.textContent="Las restauraciones son reversibles.";
 }
 async function loadEntities(){$("#entityCount").textContent="Consultando Home Assistant…";try{const result=await api("/api/entities");state.entities=result.entities;normalizeEntityMappings();$("#entityCount").textContent=`${state.entities.length} entidades totales`;renderControls();renderPreview();validate()}catch(error){$("#entityCount").textContent="Home Assistant no disponible";showToast(error.message,true)}}
 async function initialize(){try{const[catalog,icons,project]=await Promise.all([api("/api/catalog"),api("/api/icons"),api("/api/project")]);state.catalog=catalog;state.icons=icons.icons;state.ui=project.ui;state.backendMap=project.backend_map;ensureSettings();$("#connectionState").textContent="Proyecto cargado";$("#connectionState").className="status ok";renderAll();loadEntities()}catch(error){$("#connectionState").textContent="Error de carga";$("#connectionState").className="status bad";showToast(error.message,true)}}
@@ -427,9 +439,10 @@ function inputField(label,value,onChange,options={}){
   return field;
 }
 
-$("#addPageButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);state.ui.pages.push(makePage());state.selectedPage=state.ui.pages.length-1;state.editingSettings=false;state.editingReminder=false;renderAll()};
-$("#deviceSettingsButton").onclick=()=>{state.editingSettings=true;state.editingReminder=false;renderAll()};
-$("#reminderCenterButton").onclick=async()=>{state.editingSettings=false;state.editingReminder=true;await loadScheduledReminders();renderAll()};
+$("#addPageButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);state.ui.pages.push(makePage());state.selectedPage=state.ui.pages.length-1;state.editingSettings=false;state.editingReminder=false;state.editingHistory=false;renderAll()};
+$("#deviceSettingsButton").onclick=()=>{state.editingSettings=true;state.editingReminder=false;state.editingHistory=false;renderAll()};
+$("#reminderCenterButton").onclick=async()=>{state.editingSettings=false;state.editingReminder=true;state.editingHistory=false;await loadScheduledReminders();renderAll()};
+$("#historyButton").onclick=async()=>{state.editingSettings=false;state.editingReminder=false;state.editingHistory=true;try{await loadHistory();renderAll()}catch(error){showToast(error.message,true)}};
 $("#duplicateButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);const source=state.ui.pages[state.selectedPage],copy=clone(source);copy.title=`${copy.title} copia`;copy.controls.forEach(control=>{const oldId=control.id;control.id=uniqueId(`${control.id}_copia`);state.backendMap.controls[control.id]=clone(state.backendMap.controls[oldId]||defaultMapping(control))});state.ui.pages.splice(state.selectedPage+1,0,copy);state.selectedPage++;renderAll()};
 $("#deleteButton").onclick=()=>{if(state.ui.pages.length===1)return showToast("Debe quedar al menos una página.",true);const page=state.ui.pages[state.selectedPage];if(!confirm(`¿Eliminar “${page.title}”?`))return;removeMappings(page);state.ui.pages.splice(state.selectedPage,1);renderAll()};
 $("#addControlButton").onclick=()=>{const page=state.ui.pages[state.selectedPage];if(page.controls.length>=4)return;page.controls.push(makeControl(page.template,{type:"value",caption:`Valor ${page.controls.length+1}`},page.controls.length));renderAll()};
