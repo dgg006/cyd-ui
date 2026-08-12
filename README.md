@@ -86,6 +86,14 @@ bloqueado en modo laboratorio.
 - Una interrupción durante el guardado conserva la última copia completa y válida.
 - El puente de laboratorio evita aplicar repetidamente una misma revisión.
 
+### Novedades de v0.7.4
+
+- La página multimedia usa un selector compacto de reproductor y una única fila inferior de controles.
+- El volumen y su indicador visual quedan debajo de la carátula.
+- Canción, artista, emisora y reproductor se limitan a una línea con puntos suspensivos.
+- Las fuentes incluyen puntuación y caracteres latinos habituales en metadatos musicales.
+- La vista previa del editor reproduce la nueva distribución.
+
 ## Configurador visual
 
 ```powershell

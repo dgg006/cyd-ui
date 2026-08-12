@@ -1,5 +1,7 @@
 #include "media_page.h"
 
+#include <algorithm>
+#include <cstdlib>
 #include <set>
 
 #include "visual_theme.h"
@@ -49,11 +51,6 @@ void MediaPage::create(lv_obj_t *parent) {
   this->previous_page_ = make_nav(5, previous_page_callback, "<");
   this->next_page_ = make_nav(281, next_page_callback, ">");
 
-  this->previous_player_ = make_nav(48, previous_player_callback, "<");
-  lv_obj_set_pos(this->previous_player_, 116, 37);
-  this->next_player_ = make_nav(281, next_player_callback, ">");
-  lv_obj_set_pos(this->next_player_, 281, 37);
-
   this->artwork_frame_ = lv_obj_create(parent);
   lv_obj_set_size(this->artwork_frame_, 72, 72);
   lv_obj_set_pos(this->artwork_frame_, 14, 44);
@@ -73,34 +70,53 @@ void MediaPage::create(lv_obj_t *parent) {
   lv_obj_center(this->artwork_);
   lv_obj_add_flag(this->artwork_, LV_OBJ_FLAG_HIDDEN);
 
-  this->player_ = lv_label_create(parent);
-  lv_obj_set_width(this->player_, 149);
+  // Compact player selector. For now a tap advances to the next configured
+  // player; its visual contract already leaves room for a real option list.
+  this->player_selector_ = lv_button_create(parent);
+  lv_obj_set_size(this->player_selector_, 214, 31);
+  lv_obj_set_pos(this->player_selector_, 98, 41);
+  visual_theme::card(this->player_selector_);
+  lv_obj_set_style_pad_left(this->player_selector_, 9, LV_PART_MAIN);
+  lv_obj_set_style_pad_right(this->player_selector_, 25, LV_PART_MAIN);
+  lv_obj_add_event_cb(this->player_selector_, player_selector_callback, LV_EVENT_CLICKED, this);
+
+  this->player_ = lv_label_create(this->player_selector_);
+  lv_obj_set_width(this->player_, 178);
+  lv_obj_set_height(this->player_, 18);
   lv_obj_set_style_text_align(this->player_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->player_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
   lv_label_set_long_mode(this->player_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->player_, 131, 44);
+  lv_obj_align(this->player_, LV_ALIGN_LEFT_MID, 0, 0);
+
+  this->player_chevron_ = lv_label_create(this->player_selector_);
+  lv_label_set_text(this->player_chevron_, "v");
+  lv_obj_set_style_text_color(this->player_chevron_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
+  lv_obj_align(this->player_chevron_, LV_ALIGN_RIGHT_MID, 0, -1);
 
   this->media_title_ = lv_label_create(parent);
   lv_obj_set_width(this->media_title_, 214);
+  lv_obj_set_height(this->media_title_, 23);
   if (this->text_font_ != nullptr)
     lv_obj_set_style_text_font(this->media_title_, this->text_font_->get_lv_font(), LV_PART_MAIN);
   lv_obj_set_style_text_align(this->media_title_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_label_set_long_mode(this->media_title_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->media_title_, 98, 75);
+  lv_obj_set_pos(this->media_title_, 98, 80);
 
   this->artist_ = lv_label_create(parent);
   lv_obj_set_width(this->artist_, 214);
+  lv_obj_set_height(this->artist_, 18);
   lv_obj_set_style_text_align(this->artist_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->artist_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_label_set_long_mode(this->artist_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->artist_, 98, 103);
+  lv_obj_set_pos(this->artist_, 98, 108);
 
   this->station_ = lv_label_create(parent);
   lv_obj_set_width(this->station_, 214);
+  lv_obj_set_height(this->station_, 18);
   lv_obj_set_style_text_align(this->station_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->station_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_label_set_long_mode(this->station_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->station_, 98, 124);
+  lv_obj_set_pos(this->station_, 98, 131);
 
   auto make_button = [this, parent](const std::string &role, int x, int y, int width, int height) {
     lv_obj_t *button = lv_button_create(parent);
@@ -115,16 +131,35 @@ void MediaPage::create(lv_obj_t *parent) {
     this->buttons_[role] = button;
     this->button_labels_[role] = label;
   };
-  make_button("previous", 16, 153, 52, 42);
-  make_button("play_pause", 79, 153, 52, 42);
-  make_button("next", 142, 153, 52, 42);
-  make_button("volume_down", 205, 153, 46, 42);
-  make_button("volume_up", 262, 153, 46, 42);
+  make_button("previous", 8, 188, 56, 44);
+  make_button("play_pause", 70, 188, 56, 44);
+  make_button("next", 132, 188, 56, 44);
+  make_button("volume_down", 194, 188, 56, 44);
+  make_button("volume_up", 256, 188, 56, 44);
 
   this->volume_ = lv_label_create(parent);
-  lv_obj_set_width(this->volume_, 160);
+  lv_obj_set_width(this->volume_, 72);
   lv_obj_set_style_text_align(this->volume_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  lv_obj_set_pos(this->volume_, 80, 211);
+  lv_obj_set_style_text_color(this->volume_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
+  lv_obj_set_pos(this->volume_, 14, 122);
+
+  this->volume_bar_ = lv_obj_create(parent);
+  lv_obj_set_size(this->volume_bar_, 72, 7);
+  lv_obj_set_pos(this->volume_bar_, 14, 145);
+  lv_obj_set_style_radius(this->volume_bar_, 4, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->volume_bar_, lv_color_hex(visual_theme::SURFACE_MUTED), LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->volume_bar_, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(this->volume_bar_, 0, LV_PART_MAIN);
+  lv_obj_remove_flag(this->volume_bar_, LV_OBJ_FLAG_SCROLLABLE);
+
+  this->volume_bar_fill_ = lv_obj_create(this->volume_bar_);
+  lv_obj_set_size(this->volume_bar_fill_, 0, 7);
+  lv_obj_set_pos(this->volume_bar_fill_, 0, 0);
+  lv_obj_set_style_radius(this->volume_bar_fill_, 4, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->volume_bar_fill_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->volume_bar_fill_, 0, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(this->volume_bar_fill_, 0, LV_PART_MAIN);
+  lv_obj_remove_flag(this->volume_bar_fill_, LV_OBJ_FLAG_SCROLLABLE);
 }
 
 void MediaPage::apply(const PageConfig &config) {
@@ -214,11 +249,7 @@ void MediaPage::next_page_callback(lv_event_t *event) {
   auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
   if (page->navigation_callback_) page->navigation_callback_(1);
 }
-void MediaPage::previous_player_callback(lv_event_t *event) {
-  auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
-  page->emit(page->ids_["player"], "previous_player");
-}
-void MediaPage::next_player_callback(lv_event_t *event) {
+void MediaPage::player_selector_callback(lv_event_t *event) {
   auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
   page->emit(page->ids_["player"], "next_player");
 }
@@ -252,6 +283,10 @@ void MediaPage::refresh_value(const std::string &role) {
   lv_label_set_text(label, text.c_str());
   lv_obj_set_style_text_color(label, lv_color_hex(valid ?
       (role == "player" ? visual_theme::ACCENT : visual_theme::TEXT) : visual_theme::TEXT_MUTED), LV_PART_MAIN);
+  if (role == "volume" && this->volume_bar_fill_ != nullptr) {
+    const int value = valid ? std::max(0, std::min(100, std::atoi(this->values_[role].c_str()))) : 0;
+    lv_obj_set_width(this->volume_bar_fill_, value * 72 / 100);
+  }
 }
 
 void MediaPage::update_artwork_url_(const std::string &url, ControlState state) {

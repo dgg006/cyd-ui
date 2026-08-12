@@ -27,8 +27,7 @@ class MediaPage : public PageTemplate {
  private:
   static void previous_page_callback(lv_event_t *event);
   static void next_page_callback(lv_event_t *event);
-  static void previous_player_callback(lv_event_t *event);
-  static void next_player_callback(lv_event_t *event);
+  static void player_selector_callback(lv_event_t *event);
   static void action_callback(lv_event_t *event);
   void emit(const std::string &id, const std::string &action);
   void refresh_value(const std::string &role);
@@ -37,13 +36,15 @@ class MediaPage : public PageTemplate {
   lv_obj_t *title_{nullptr};
   lv_obj_t *previous_page_{nullptr};
   lv_obj_t *next_page_{nullptr};
-  lv_obj_t *previous_player_{nullptr};
-  lv_obj_t *next_player_{nullptr};
+  lv_obj_t *player_selector_{nullptr};
   lv_obj_t *player_{nullptr};
+  lv_obj_t *player_chevron_{nullptr};
   lv_obj_t *media_title_{nullptr};
   lv_obj_t *artist_{nullptr};
   lv_obj_t *station_{nullptr};
   lv_obj_t *volume_{nullptr};
+  lv_obj_t *volume_bar_{nullptr};
+  lv_obj_t *volume_bar_fill_{nullptr};
   lv_obj_t *artwork_frame_{nullptr};
   lv_obj_t *artwork_placeholder_{nullptr};
   lv_obj_t *artwork_{nullptr};

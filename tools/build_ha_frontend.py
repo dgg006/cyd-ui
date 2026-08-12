@@ -125,12 +125,13 @@ const document={
         },
         "media": {
             "label": "Multimedia",
-            "variants": {"full_controls": 10},
+            "variants": {"full_controls": 11},
             "controls": {"kind": "fixed", "roles": [
                 {"role": "player", "type": "value", "caption": "Reproductor"},
                 {"role": "title", "type": "value", "caption": "Canción"},
                 {"role": "artist", "type": "value", "caption": "Artista"},
                 {"role": "station", "type": "value", "caption": "Emisora"},
+                {"role": "artwork", "type": "value", "caption": "Carátula"},
                 {"role": "volume", "type": "value", "caption": "Volumen"},
                 {"role": "previous", "type": "button", "caption": "|<", "action": "previous"},
                 {"role": "play_pause", "type": "button", "caption": "Play", "action": "play_pause"},

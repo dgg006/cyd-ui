@@ -1,5 +1,15 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — distribución multimedia refinada
+
+- CYD UI v0.7.4 adopta la distribución multimedia aprobada en la placa real.
+- El selector de reproductor ya no invade nombres largos; por ahora, tocarlo
+  avanza al siguiente reproductor configurado.
+- Los textos dinámicos quedan en una sola línea con truncado y la fuente cubre
+  puntuación, acentos latinos, comillas y guiones frecuentes.
+- El volumen aparece debajo de la carátula y los cinco controles ocupan la fila inferior.
+- Validación: 56 pruebas automáticas superadas y firmware cargado por OTA.
+
 ## Actualización 2026-08-12 — guardado de configuración robusto
 
 - CYD UI v0.7.3 elimina el reinicio observado al cambiar de tema: la causa era
