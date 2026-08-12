@@ -421,6 +421,8 @@ class LabGateway:
         self.device_lost = asyncio.Event()
         self.ha_available = True
         self._last_config_poll = 0.0
+        self._applied_revision: int | None = None
+        self._apply_lock = asyncio.Lock()
 
     def _emit_from_thread(self, event: tuple[str, Any]) -> None:
         self.loop.call_soon_threadsafe(self.events.put_nowait, event)
@@ -450,16 +452,20 @@ class LabGateway:
     async def _apply_project(self) -> None:
         if self.project is None:
             return
-        payload = json.dumps(self.project.ui, ensure_ascii=False, separators=(",", ":"))
-        await self._execute("apply_config", {"config": payload})
-        await asyncio.sleep(0.35)
-        await self._sync_all()
-        print(
-            f"Proyecto aplicado: revisión {self.project.revision}, "
-            f"{len(self.project.ui.get('pages', []))} páginas, "
-            f"{len(self.project.mappings)} controles",
-            flush=True,
-        )
+        async with self._apply_lock:
+            if self._applied_revision == self.project.revision:
+                return
+            payload = json.dumps(self.project.ui, ensure_ascii=False, separators=(",", ":"))
+            await self._execute("apply_config", {"config": payload})
+            await asyncio.sleep(0.35)
+            await self._sync_all()
+            self._applied_revision = self.project.revision
+            print(
+                f"Proyecto aplicado: revisión {self.project.revision}, "
+                f"{len(self.project.ui.get('pages', []))} páginas, "
+                f"{len(self.project.mappings)} controles",
+                flush=True,
+            )
 
     async def _publish_control(self, control_id: str, mapping: dict[str, Any]) -> None:
         if mapping.get("publish_state") is False:
@@ -607,6 +613,7 @@ class LabGateway:
 
     async def _connect_device(self) -> None:
         self.device_lost.clear()
+        self._applied_revision = None
         self.client = APIClient(
             self.device_host,
             self.device_port,

@@ -1,5 +1,15 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — guardado de configuración robusto
+
+- CYD UI v0.7.3 elimina el reinicio observado al cambiar de tema: la causa era
+  una reserva contigua de memoria al copiar el JSON completo a flash.
+- La caché usa bloques de 1 KiB y dos bancos; el banco nuevo se confirma sólo
+  después de escribirse por completo.
+- Se alternó el tema ocho veces en la placa real sin reinicios y se restauró el
+  modo oscuro original.
+- Validación: 56 pruebas automáticas superadas y firmware compilado/cargado.
+
 ## Actualización 2026-08-12 — carátulas circulares procesadas
 
 - CYD UI v0.7.2 genera la ilusión circular antes de enviar la imagen a la CYD.

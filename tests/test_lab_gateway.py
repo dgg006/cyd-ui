@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import sys
 import unittest
@@ -45,6 +46,34 @@ class GatewayHelpersTests(unittest.TestCase):
 
     def test_device_state_callback_is_deliberately_empty(self):
         self.assertIsNone(gateway.LabGateway._on_device_state(object()))
+
+
+class GatewayApplyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_same_revision_is_applied_only_once(self):
+        bridge = gateway.LabGateway.__new__(gateway.LabGateway)
+        bridge.project = gateway.RuntimeProject(
+            revision=7,
+            ui={"schema_version": 1, "pages": []},
+            mappings={},
+        )
+        bridge._applied_revision = None
+        bridge._apply_lock = asyncio.Lock()
+        calls = []
+
+        async def execute(name, data):
+            calls.append((name, data))
+
+        async def sync_all():
+            return None
+
+        bridge._execute = execute
+        bridge._sync_all = sync_all
+
+        await bridge._apply_project()
+        await bridge._apply_project()
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(bridge._applied_revision, 7)
 
 
 if __name__ == "__main__":

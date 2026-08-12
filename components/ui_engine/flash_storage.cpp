@@ -1,9 +1,8 @@
 #include "flash_storage.h"
 
+#include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <cstring>
-#include <memory>
 
 #include "config_limits.h"
 
@@ -13,18 +12,9 @@ namespace ui_engine {
 namespace {
 
 static constexpr uint32_t CACHE_MAGIC = 0x55494531;  // "UIE1"
-// Version 2 invalidates configurations cached by firmware releases that did
-// not yet support the media template. Wi-Fi and touchscreen preferences use
-// independent keys and remain untouched.
-static constexpr uint16_t CACHE_SCHEMA_VERSION = 2;
-static constexpr uint32_t CACHE_PREFERENCE_KEY = 0xC7D00101;
-struct CacheRecord {
-  uint32_t magic;
-  uint16_t schema_version;
-  uint16_t length;
-  uint32_t checksum;
-  std::array<char, UI_CONFIG_MAX_SIZE> json;
-};
+static constexpr uint16_t CACHE_SCHEMA_VERSION = 3;
+static constexpr uint32_t CACHE_METADATA_KEY = 0xC7D00110;
+static constexpr uint32_t CACHE_CHUNK_KEY_BASE = 0xC7D00200;
 
 uint32_t fnv1a(const char *data, size_t length) {
   uint32_t hash = 2166136261UL;
@@ -38,36 +28,57 @@ uint32_t fnv1a(const char *data, size_t length) {
 }  // namespace
 
 void FlashStorage::begin() {
-  this->preference_ = global_preferences->make_preference<CacheRecord>(CACHE_PREFERENCE_KEY, true);
+  this->metadata_preference_ = global_preferences->make_preference<CacheMetadata>(CACHE_METADATA_KEY, true);
+  for (size_t bank = 0; bank < CACHE_BANK_COUNT; bank++) {
+    for (size_t chunk = 0; chunk < CACHE_CHUNK_COUNT; chunk++) {
+      const uint32_t key = CACHE_CHUNK_KEY_BASE + static_cast<uint32_t>(bank * CACHE_CHUNK_COUNT + chunk);
+      this->chunk_preferences_[bank][chunk] = global_preferences->make_preference<CacheChunk>(key, true);
+    }
+  }
 }
 
 bool FlashStorage::load(std::string *raw_json, std::string *error) {
-  std::unique_ptr<CacheRecord, decltype(&std::free)> record(
-      static_cast<CacheRecord *>(std::calloc(1, sizeof(CacheRecord))), &std::free);
-  if (record == nullptr) {
-    *error = "memoria insuficiente para leer cache flash";
-    return false;
-  }
-  if (!this->preference_.load(record.get())) {
+  CacheMetadata metadata{};
+  if (!this->metadata_preference_.load(&metadata)) {
     *error = "cache flash no disponible";
     return false;
   }
-  if (record->magic != CACHE_MAGIC || record->schema_version != CACHE_SCHEMA_VERSION) {
+  if (metadata.magic != CACHE_MAGIC || metadata.schema_version != CACHE_SCHEMA_VERSION ||
+      metadata.active_bank >= CACHE_BANK_COUNT) {
     *error = "cache flash incompatible";
     return false;
   }
-  if (record->length == 0 || record->length > UI_CONFIG_MAX_SIZE) {
+  if (metadata.length == 0 || metadata.length > UI_CONFIG_MAX_SIZE) {
     *error = "longitud de cache flash invalida";
     return false;
   }
-  if (fnv1a(record->json.data(), record->length) != record->checksum) {
+
+  raw_json->clear();
+  raw_json->reserve(metadata.length);
+  size_t remaining = metadata.length;
+  for (size_t chunk_index = 0; remaining > 0; chunk_index++) {
+    CacheChunk chunk{};
+    if (!this->chunk_preferences_[metadata.active_bank][chunk_index].load(&chunk)) {
+      raw_json->clear();
+      *error = "cache flash incompleta";
+      return false;
+    }
+    const size_t copy_length = std::min(remaining, CACHE_CHUNK_SIZE);
+    raw_json->append(reinterpret_cast<const char *>(chunk.data.data()), copy_length);
+    remaining -= copy_length;
+  }
+
+  if (fnv1a(raw_json->data(), raw_json->size()) != metadata.checksum) {
+    raw_json->clear();
     *error = "checksum de cache flash invalido";
     return false;
   }
 
-  raw_json->assign(record->json.data(), record->length);
-  this->saved_checksum_ = record->checksum;
-  this->saved_length_ = record->length;
+  this->active_bank_ = metadata.active_bank;
+  this->generation_ = metadata.generation;
+  this->saved_checksum_ = metadata.checksum;
+  this->saved_length_ = metadata.length;
+  this->metadata_valid_ = true;
   return true;
 }
 
@@ -82,27 +93,44 @@ bool FlashStorage::save(const std::string &raw_json, std::string *error) {
     return true;
   }
 
-  std::unique_ptr<CacheRecord, decltype(&std::free)> record(
-      static_cast<CacheRecord *>(std::calloc(1, sizeof(CacheRecord))), &std::free);
-  if (record == nullptr) {
-    *error = "memoria insuficiente para guardar cache flash";
-    return false;
+  // Write the complete configuration to the inactive bank in small blocks.
+  // ESPHome copies preference values before persisting them; keeping each copy
+  // at 1 KiB prevents the large contiguous allocation that used to reboot the
+  // ESP32 when a full 16 KiB CacheRecord was saved after rebuilding the UI.
+  const uint8_t target_bank = this->metadata_valid_ ? static_cast<uint8_t>(1U - this->active_bank_) : 0U;
+  size_t offset = 0;
+  size_t chunk_index = 0;
+  while (offset < raw_json.size()) {
+    CacheChunk chunk{};
+    const size_t copy_length = std::min(raw_json.size() - offset, CACHE_CHUNK_SIZE);
+    std::memcpy(chunk.data.data(), raw_json.data() + offset, copy_length);
+    if (!this->chunk_preferences_[target_bank][chunk_index].save(&chunk)) {
+      *error = "no se pudo guardar un bloque de cache flash";
+      return false;
+    }
+    offset += copy_length;
+    chunk_index++;
   }
-  record->magic = CACHE_MAGIC;
-  record->schema_version = CACHE_SCHEMA_VERSION;
-  record->length = static_cast<uint16_t>(raw_json.size());
-  record->checksum = checksum;
-  std::memcpy(record->json.data(), raw_json.data(), raw_json.size());
 
-  // ESPHome flushes pending preferences from its normal loop. Forcing a full
-  // NVS sync here causes extra temporary allocations exactly when a new UI
-  // and an online image can coexist in memory.
-  if (!this->preference_.save(record.get())) {
-    *error = "no se pudo guardar cache flash";
+  // Commit the new bank last. Until this small record is saved, an interrupted
+  // write leaves the previous bank selected and fully usable.
+  CacheMetadata metadata{};
+  metadata.magic = CACHE_MAGIC;
+  metadata.schema_version = CACHE_SCHEMA_VERSION;
+  metadata.active_bank = target_bank;
+  metadata.length = static_cast<uint16_t>(raw_json.size());
+  metadata.checksum = checksum;
+  metadata.generation = this->generation_ + 1;
+  if (!this->metadata_preference_.save(&metadata)) {
+    *error = "no se pudo confirmar cache flash";
     return false;
   }
+
+  this->active_bank_ = target_bank;
+  this->generation_ = metadata.generation;
   this->saved_checksum_ = checksum;
   this->saved_length_ = raw_json.size();
+  this->metadata_valid_ = true;
   return true;
 }
 

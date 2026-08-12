@@ -79,6 +79,13 @@ bloqueado en modo laboratorio.
 - El procesamiento se realiza en Home Assistant o en el puente de laboratorio;
   el firmware continúa descargando un JPEG compacto de 72 × 72.
 
+### Novedades de v0.7.3
+
+- La copia de la configuración en flash se guarda en bloques pequeños y en dos bancos alternados.
+- Cambiar entre los temas claro y oscuro ya no exige reservar un bloque contiguo grande de RAM.
+- Una interrupción durante el guardado conserva la última copia completa y válida.
+- El puente de laboratorio evita aplicar repetidamente una misma revisión.
+
 ## Configurador visual
 
 ```powershell
