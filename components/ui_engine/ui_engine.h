@@ -6,6 +6,7 @@
 
 #include "esphome/components/font/font.h"
 #include "esphome/components/output/float_output.h"
+#include "esphome/components/online_image/online_image.h"
 #include "esphome/components/rtttl/rtttl.h"
 #include "esphome/components/touchscreen/touchscreen.h"
 #include "esphome/core/automation.h"
@@ -49,6 +50,7 @@ class UiEngineComponent : public Component {
   void set_clock_date_font(font::Font *font) { this->clock_date_font_ = font; }
   void set_backlight_output(output::FloatOutput *output) { this->backlight_output_ = output; }
   void set_sound_player(rtttl::Rtttl *sound_player) { this->sound_player_ = sound_player; }
+  void set_media_artwork(online_image::OnlineImage *image) { this->media_artwork_ = image; }
   void set_touchscreen(touchscreen::Touchscreen *touchscreen) { this->touchscreen_ = touchscreen; }
   void set_ambient_light(float voltage) { this->ambient_light_voltage_ = voltage; }
   bool prepare_touch_sound();
@@ -149,6 +151,7 @@ class UiEngineComponent : public Component {
   IdleMode active_idle_mode_{IdleMode::NONE};
   output::FloatOutput *backlight_output_{nullptr};
   rtttl::Rtttl *sound_player_{nullptr};
+  online_image::OnlineImage *media_artwork_{nullptr};
   touchscreen::Touchscreen *touchscreen_{nullptr};
   bool sound_preview_active_{false};
   uint32_t sound_preview_restore_at_ms_{0};

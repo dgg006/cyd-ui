@@ -348,6 +348,15 @@
           },
           {
             "type": "value",
+            "id": "media_artwork",
+            "caption": "Carátula",
+            "role": "artwork",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": ""
+          },
+          {
+            "type": "value",
             "id": "media_volume",
             "caption": "Volumen",
             "role": "volume",
@@ -603,6 +612,14 @@
         "attribute": "media_album_name",
         "media_selector_id": "media_player",
         "fallback_entity_id": "text.jarvis_assist_pantalla_emisora",
+        "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
+      },
+      "media_artwork": {
+        "entity_id": "media_player.jarvis_assist_parlante",
+        "domain": "media_player",
+        "attribute": "media_image_url",
+        "media_selector_id": "media_player",
+        "fallback_entity_id": "text.jarvis_assist_pantalla_url_de_caratula",
         "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
       },
       "media_volume": {

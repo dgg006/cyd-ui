@@ -25,6 +25,8 @@ class PageTemplate {
   virtual void set_action_callback(ActionCallback callback) = 0;
   virtual void set_navigation_callback(NavigationCallback callback) = 0;
   virtual void set_navigation_enabled(bool enabled) = 0;
+  virtual void refresh_external_assets() {}
+  virtual void clear_external_assets() {}
   void set_icon_font(font::Font *font) { this->icon_font_ = font; }
   void set_text_font(font::Font *font) { this->text_font_ = font; }
 

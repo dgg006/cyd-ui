@@ -5,13 +5,14 @@ from pathlib import Path
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components import font, http_request, output, rtttl, time, touchscreen
+from esphome.components.online_image.image import OnlineImage
 from esphome.components.touchscreen import CONF_TOUCHSCREEN_ID
 import esphome.config_validation as cv
 from esphome.components.lvgl import defines as lvgl_defines
 from esphome.core import CORE
 from esphome.const import CONF_ID, CONF_TIME_ID
 
-DEPENDENCIES = ["lvgl", "http_request", "font", "output", "rtttl", "touchscreen"]
+DEPENDENCIES = ["lvgl", "http_request", "font", "image", "output", "rtttl", "touchscreen"]
 AUTO_LOAD = ["json"]
 
 ui_engine_ns = cg.esphome_ns.namespace("ui_engine")
@@ -29,6 +30,7 @@ CONF_CLOCK_TIME_FONT_ID = "clock_time_font_id"
 CONF_CLOCK_DATE_FONT_ID = "clock_date_font_id"
 CONF_BACKLIGHT_OUTPUT_ID = "backlight_output_id"
 CONF_SOUND_ID = "sound_id"
+CONF_MEDIA_ARTWORK_ID = "media_artwork_id"
 COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 ICON_NAMES = {
     item["name"]
@@ -129,7 +131,7 @@ def validate_device_settings(document):
 
 def validate_icon_font(value):
     font_id = cv.use_id(font.Font)(value)
-    lvgl_defines.add_lv_use("font")
+    lvgl_defines.add_lv_use("font", "image")
     lvgl_defines.get_esphome_fonts_used().add(font_id)
     return cv.requires_component("font")(font_id)
 
@@ -184,7 +186,7 @@ def validate_ui_document(document):
 
         controls = page.get("controls")
         maximum = capacities[variant] if template == "button_grid" else (
-            10 if template == "media" else (
+            11 if template == "media" else (
                 (6 if template == "cover" else 5) if template in ("climate", "cover") else (
                     3 if template == "clock_weather" else 4
                 )
@@ -247,7 +249,7 @@ def validate_ui_document(document):
                 roles.add(role)
             elif template == "media":
                 role = control.get("role")
-                value_roles = {"player", "title", "artist", "station", "volume"}
+                value_roles = {"player", "title", "artist", "station", "volume", "artwork"}
                 button_roles = {"previous", "play_pause", "next", "volume_down", "volume_up"}
                 if role not in value_roles | button_roles:
                     raise cv.Invalid(f"{prefix}.role no es valido para media")
@@ -264,7 +266,7 @@ def validate_ui_document(document):
         if template == "cover" and roles != {"position", "state", "open", "close", "close_step", "open_step"}:
             raise cv.Invalid(f"{page_prefix} requiere los seis roles de cover")
         if template == "media" and roles != {
-            "player", "title", "artist", "station", "volume",
+            "player", "title", "artist", "station", "volume", "artwork",
             "previous", "play_pause", "next", "volume_down", "volume_up",
         }:
             raise cv.Invalid(f"{page_prefix} requiere los diez roles de media")
@@ -301,6 +303,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_CLOCK_DATE_FONT_ID): validate_icon_font,
         cv.Required(CONF_BACKLIGHT_OUTPUT_ID): cv.use_id(output.FloatOutput),
         cv.Required(CONF_SOUND_ID): cv.use_id(rtttl.Rtttl),
+        cv.Required(CONF_MEDIA_ARTWORK_ID): cv.use_id(OnlineImage),
         cv.Required(CONF_TOUCHSCREEN_ID): cv.use_id(touchscreen.Touchscreen),
         cv.Optional(CONF_SCREENSAVER_TIMEOUT, default="2min"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_ON_ACTION): automation.validate_automation(single=True),
@@ -332,6 +335,7 @@ async def to_code(config):
     clock_date_font = await cg.get_variable(config[CONF_CLOCK_DATE_FONT_ID])
     backlight_output = await cg.get_variable(config[CONF_BACKLIGHT_OUTPUT_ID])
     sound_player = await cg.get_variable(config[CONF_SOUND_ID])
+    media_artwork = await cg.get_variable(config[CONF_MEDIA_ARTWORK_ID])
     touchscreen_component = await cg.get_variable(config[CONF_TOUCHSCREEN_ID])
     cg.add(var.set_clock(clock))
     cg.add(var.set_icon_font(icon_font))
@@ -339,6 +343,7 @@ async def to_code(config):
     cg.add(var.set_clock_date_font(clock_date_font))
     cg.add(var.set_backlight_output(backlight_output))
     cg.add(var.set_sound_player(sound_player))
+    cg.add(var.set_media_artwork(media_artwork))
     cg.add(var.set_touchscreen(touchscreen_component))
     cg.add(var.set_screensaver_timeout(config[CONF_SCREENSAVER_TIMEOUT].total_milliseconds))
     config_path = CORE.relative_config_path(config[CONF_CONFIG_FILE])

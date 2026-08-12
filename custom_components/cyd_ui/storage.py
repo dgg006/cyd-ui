@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import STORAGE_KEY, STORAGE_VERSION
-from .model import create_revision, validate_document
+from .model import create_revision, migrate_media_artwork, validate_document
 
 
 class CydUiStorage:
@@ -39,6 +39,16 @@ class CydUiStorage:
             self.data = stored
         self.data.setdefault("scheduled_reminders", [])
         self.data.setdefault("reminder_history", [])
+        if isinstance(self.data.get("ui"), dict):
+            ui, backend_map, changed = migrate_media_artwork(
+                self.data["ui"], self.data.get("backend_map", {"controls": {}})
+            )
+            if changed and not validate_document(ui, backend_map):
+                self.data["ui"] = ui
+                self.data["backend_map"] = backend_map
+                self.data["revision"] = int(self.data.get("revision", 0)) + 1
+                self.data["updated_at"] = dt_util.utcnow().isoformat()
+                await self._store.async_save(self.data)
 
     async def async_save(
         self, ui: dict[str, Any], backend_map: dict[str, Any]

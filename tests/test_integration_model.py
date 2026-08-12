@@ -39,6 +39,26 @@ class IntegrationModelTests(unittest.TestCase):
     def test_current_project_is_safe_to_import(self):
         self.assertEqual([], MODEL.validate_document(self.ui, self.backend_map))
 
+    def test_old_media_page_is_migrated_without_mutating_source(self):
+        media = next(page for page in self.ui["pages"] if page["template"] == "media")
+        artwork = next(control for control in media["controls"] if control["role"] == "artwork")
+        media["controls"].remove(artwork)
+        self.backend_map["controls"].pop(artwork["id"])
+        migrated_ui, migrated_map, changed = MODEL.migrate_media_artwork(
+            self.ui, self.backend_map
+        )
+        self.assertTrue(changed)
+        migrated_media = next(
+            page for page in migrated_ui["pages"] if page["template"] == "media"
+        )
+        migrated_artwork = next(
+            control for control in migrated_media["controls"]
+            if control["role"] == "artwork"
+        )
+        self.assertEqual("media_image_url", migrated_map["controls"][migrated_artwork["id"]]["attribute"])
+        self.assertFalse(any(control["role"] == "artwork" for control in media["controls"]))
+        self.assertEqual([], MODEL.validate_document(migrated_ui, migrated_map))
+
     def test_duplicate_control_is_rejected(self):
         self.ui["pages"][1]["controls"][0]["id"] = self.ui["pages"][0]["controls"][0]["id"]
         self.assertTrue(

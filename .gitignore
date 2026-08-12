@@ -8,3 +8,9 @@ config/history/
 dist/
 .lab-gateway*.log
 .lab-gateway.pid
+.compile-*.log
+.config-check.log
+.gateway-*.log
+.tests-*.log
+.upload-*.log
+.tmp-*

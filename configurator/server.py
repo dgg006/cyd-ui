@@ -95,12 +95,13 @@ TEMPLATE_CATALOG: dict[str, dict[str, Any]] = {
         ]},
     },
     "media": {
-        "label": "Multimedia", "variants": {"full_controls": 10},
+        "label": "Multimedia", "variants": {"full_controls": 11},
         "controls": {"kind": "fixed", "roles": [
             {"role": "player", "type": "value", "caption": "Reproductor"},
             {"role": "title", "type": "value", "caption": "Canción"},
             {"role": "artist", "type": "value", "caption": "Artista"},
             {"role": "station", "type": "value", "caption": "Emisora"},
+            {"role": "artwork", "type": "value", "caption": "Carátula"},
             {"role": "volume", "type": "value", "caption": "Volumen"},
             {"role": "previous", "type": "button", "caption": "|<", "action": "previous"},
             {"role": "play_pause", "type": "button", "caption": "Play", "action": "play_pause"},
@@ -273,8 +274,8 @@ def validate_project(ui: Any, backend_map: Any) -> list[str]:
             if template_name != "clock_weather":
                 errors.append(f"{prefix}: solo clock_weather puede ser protector de pantalla.")
         controls = page.get("controls")
-        if not isinstance(controls, list) or not 1 <= len(controls) <= 10:
-            errors.append(f"{prefix}: debe contener entre 1 y 10 controles.")
+        if not isinstance(controls, list) or not 1 <= len(controls) <= 12:
+            errors.append(f"{prefix}: debe contener entre 1 y 12 controles.")
             continue
         kind = catalog["controls"]["kind"]
         if kind in {"fixed", "repeated"} and expected_count is not None and len(controls) != expected_count:

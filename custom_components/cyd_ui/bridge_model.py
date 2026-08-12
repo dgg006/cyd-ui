@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
 
 
@@ -11,6 +12,7 @@ MEDIA_METADATA_ATTRIBUTES = {
     "media_artist",
     "media_album_name",
     "media_channel",
+    "media_image_url",
 }
 MEDIA_EMPTY_STATES = {"idle", "off", "standby"}
 ALLOWED_SERVICES: dict[str, set[str]] = {
@@ -29,12 +31,30 @@ ALLOWED_SERVICES: dict[str, set[str]] = {
 }
 
 
-def fallback_metadata_is_fresh(primary_updated: Any, fallback_updated: Any) -> bool:
-    """Return whether alternative metadata belongs to the current playback update."""
+def fallback_metadata_is_fresh(playback_started: Any, fallback_updated: Any) -> bool:
+    """Return whether alternative metadata belongs to the current playback session."""
+    if isinstance(playback_started, str):
+        try:
+            playback_started = datetime.fromisoformat(playback_started)
+        except ValueError:
+            pass
+    if isinstance(fallback_updated, str):
+        try:
+            fallback_updated = datetime.fromisoformat(fallback_updated)
+        except ValueError:
+            pass
+    if playback_started is not None and fallback_updated is not None:
+        try:
+            # Jarvis can publish text metadata just before the media player changes
+            # to ``playing``.  A small grace period accepts that normal ordering,
+            # while still rejecting metadata retained from a previous session.
+            return fallback_updated >= playback_started - timedelta(seconds=5)
+        except (TypeError, ValueError):
+            pass
     return (
-        primary_updated is None
+        playback_started is None
         or fallback_updated is None
-        or fallback_updated >= primary_updated
+        or fallback_updated >= playback_started
     )
 
 

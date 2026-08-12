@@ -5,8 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import asyncio
+import hashlib
+import io
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
+from PIL import Image, ImageOps
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -32,6 +38,7 @@ class CydUiBridge:
         self._unsubscribers: list[Any] = []
         self._ready_generation = 0
         self._media_selection: dict[str, int] = {}
+        self._artwork_cache: dict[str, str] = {}
 
     async def async_start(self) -> None:
         """Start listeners only after the migration disables old automations."""
@@ -204,7 +211,7 @@ class CydUiBridge:
             # starts. Only trust them when they were refreshed at least as
             # recently as the selected media player.
             fallback_is_fresh = fallback_metadata_is_fresh(
-                state.last_updated if state else None,
+                state.last_changed if state else None,
                 fallback_state.last_updated if fallback_state else None,
             )
             if not fallback_is_fresh:
@@ -222,9 +229,66 @@ class CydUiBridge:
                 fallback_state.state if fallback_state else None,
                 dict(fallback_state.attributes) if fallback_state else None,
             )
+        if mapping.get("attribute") == "media_image_url":
+            source_url = update.get("value")
+            if (
+                update.get("reliability") == "valid"
+                and isinstance(source_url, str)
+                and source_url.startswith(("http://", "https://"))
+            ):
+                prepared = await self._async_prepare_artwork(source_url)
+                if prepared:
+                    update["value"] = prepared
+                else:
+                    update["value"] = ""
+                    update["reliability"] = "unavailable"
         try:
             await self._hass.services.async_call(
                 ESPHOME_DOMAIN, UPDATE_SERVICE, update, blocking=False
             )
         except HomeAssistantError as error:
             _LOGGER.debug("CYD unavailable for state update: %s", error)
+
+    async def _async_prepare_artwork(self, source_url: str) -> str | None:
+        """Download and shrink artwork so a non-PSRAM ESP32 can decode it."""
+        if cached := self._artwork_cache.get(source_url):
+            return cached
+        parsed = urlsplit(source_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return None
+        digest = hashlib.sha256(source_url.encode()).hexdigest()[:16]
+        filename = f"artwork-{digest}.jpg"
+        target_dir = Path(self._hass.config.path("www", "cyd_ui"))
+        target = target_dir / filename
+        try:
+            session = async_get_clientsession(self._hass)
+            async with session.get(source_url, timeout=8) as response:
+                response.raise_for_status()
+                raw = await response.content.read(512 * 1024 + 1)
+            if len(raw) > 512 * 1024:
+                raise ValueError("artwork exceeds 512 KiB")
+
+            def resize_and_store() -> None:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                with Image.open(io.BytesIO(raw)) as image:
+                    image = ImageOps.fit(
+                        image.convert("RGB"), (72, 72), Image.Resampling.LANCZOS
+                    )
+                    image.save(target, "JPEG", quality=82, optimize=True)
+                old_files = sorted(
+                    target_dir.glob("artwork-*.jpg"),
+                    key=lambda item: item.stat().st_mtime,
+                    reverse=True,
+                )
+                for old_file in old_files[12:]:
+                    old_file.unlink(missing_ok=True)
+
+            await self._hass.async_add_executor_job(resize_and_store)
+        except Exception as error:  # artwork is optional; keep the UI responsive
+            _LOGGER.warning("Unable to prepare CYD artwork %s: %s", source_url, error)
+            return None
+        result = urlunsplit(
+            (parsed.scheme, parsed.netloc, f"/local/cyd_ui/{filename}", f"v={digest}", "")
+        )
+        self._artwork_cache[source_url] = result
+        return result

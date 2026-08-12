@@ -58,6 +58,13 @@ bloqueado en modo laboratorio.
 - Si la CYD no está disponible a la hora indicada, la entrega se reintenta automáticamente.
 - El puente de laboratorio admite recordatorios enviados desde Home Assistant hacia la CYD local.
 
+### Novedades de v0.7.0
+
+- Multimedia incorpora una carátula compacta de 72 × 72 píxeles descargada bajo demanda.
+- La imagen se redimensiona y decodifica en RGB565 sin reservar un framebuffer completo.
+- Los proyectos multimedia anteriores se migran automáticamente sin perder páginas ni asociaciones.
+- El puente de laboratorio retransmite la carátula cuando Home Assistant y la CYD están en redes distintas.
+
 ## Configurador visual
 
 ```powershell

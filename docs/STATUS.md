@@ -1,5 +1,19 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — carátula multimedia compacta
+
+- CYD UI v0.7.0 implementa la opción visual B: carátula compacta de 72 × 72,
+  metadatos a la derecha y cinco controles compactos en la fila inferior.
+- La CYD descarga JPEG bajo demanda, lo decodifica a RGB565 y conserva el
+  marcador neutro cuando la imagen falta o falla.
+- Los proyectos multimedia guardados con diez controles se migran a once de
+  forma automática y atómica, sin sobrescribir el resto de la configuración.
+- El puente de laboratorio puede retransmitir la imagen desde Home Assistant a
+  la red local de la pantalla para probarla fuera de casa.
+- Firmware compilado y cargado por OTA. Validación: 51 pruebas automáticas,
+  DRAM estática 54.068 bytes (29,9 %) y firmware 1.566.419 bytes (85,4 % de la
+  partición de aplicación).
+
 ## Actualización 2026-08-12 — agenda visual de recordatorios
 
 - CYD UI v0.6.0 permite elegir fecha y hora en el mismo centro de recordatorios,
@@ -49,7 +63,8 @@
 - Template `media/full_controls` implementado y compilado para la CYD.
 - Incluye selector de hasta tres reproductores, metadatos estándar, pista anterior/siguiente, play/pausa y volumen.
 - Admite una fuente alternativa para título, artista y emisora cuando un reproductor no publica atributos estándar.
-- La carátula está reservada para una segunda etapa: primero se medirá el coste real de descargar, decodificar y mostrar imágenes en una ESP32 sin PSRAM.
+- Carátula compacta implementada con descarga JPEG bajo demanda,
+  redimensionado a 72 × 72 y marcador neutro ante errores.
 
 Actualizado: 2026-08-08
 

@@ -8,7 +8,7 @@ namespace esphome {
 namespace ui_engine {
 
 namespace {
-constexpr const char *VALUE_ROLES[] = {"player", "title", "artist", "station", "volume"};
+constexpr const char *VALUE_ROLES[] = {"player", "title", "artist", "station", "volume", "artwork"};
 constexpr const char *BUTTON_ROLES[] = {"previous", "play_pause", "next", "volume_down", "volume_up"};
 constexpr const char *ICON_PREVIOUS = "\U000F04AE";
 constexpr const char *ICON_PLAY = "\U000F040A";
@@ -50,38 +50,58 @@ void MediaPage::create(lv_obj_t *parent) {
   this->next_page_ = make_nav(281, next_page_callback, ">");
 
   this->previous_player_ = make_nav(48, previous_player_callback, "<");
-  lv_obj_set_pos(this->previous_player_, 48, 36);
-  this->next_player_ = make_nav(238, next_player_callback, ">");
-  lv_obj_set_pos(this->next_player_, 238, 36);
+  lv_obj_set_pos(this->previous_player_, 116, 37);
+  this->next_player_ = make_nav(281, next_player_callback, ">");
+  lv_obj_set_pos(this->next_player_, 281, 37);
+
+  this->artwork_frame_ = lv_obj_create(parent);
+  lv_obj_set_size(this->artwork_frame_, 76, 76);
+  lv_obj_set_pos(this->artwork_frame_, 12, 44);
+  lv_obj_set_style_radius(this->artwork_frame_, 12, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->artwork_frame_, lv_color_hex(visual_theme::SURFACE_MUTED), LV_PART_MAIN);
+  lv_obj_set_style_border_color(this->artwork_frame_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->artwork_frame_, 2, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(this->artwork_frame_, 0, LV_PART_MAIN);
+  lv_obj_remove_flag(this->artwork_frame_, LV_OBJ_FLAG_SCROLLABLE);
+
+  this->artwork_placeholder_ = lv_label_create(this->artwork_frame_);
+  lv_label_set_text(this->artwork_placeholder_, "IMG");
+  lv_obj_set_style_text_color(this->artwork_placeholder_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
+  lv_obj_center(this->artwork_placeholder_);
+
+  this->artwork_ = lv_image_create(this->artwork_frame_);
+  lv_obj_set_size(this->artwork_, 72, 72);
+  lv_obj_center(this->artwork_);
+  lv_obj_add_flag(this->artwork_, LV_OBJ_FLAG_HIDDEN);
 
   this->player_ = lv_label_create(parent);
-  lv_obj_set_width(this->player_, 145);
-  lv_obj_set_style_text_align(this->player_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_width(this->player_, 149);
+  lv_obj_set_style_text_align(this->player_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->player_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
   lv_label_set_long_mode(this->player_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->player_, 87, 42);
+  lv_obj_set_pos(this->player_, 131, 44);
 
   this->media_title_ = lv_label_create(parent);
-  lv_obj_set_width(this->media_title_, 286);
+  lv_obj_set_width(this->media_title_, 214);
   if (this->text_font_ != nullptr)
     lv_obj_set_style_text_font(this->media_title_, this->text_font_->get_lv_font(), LV_PART_MAIN);
-  lv_obj_set_style_text_align(this->media_title_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_style_text_align(this->media_title_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_label_set_long_mode(this->media_title_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->media_title_, 17, 72);
+  lv_obj_set_pos(this->media_title_, 98, 75);
 
   this->artist_ = lv_label_create(parent);
-  lv_obj_set_width(this->artist_, 286);
-  lv_obj_set_style_text_align(this->artist_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_width(this->artist_, 214);
+  lv_obj_set_style_text_align(this->artist_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->artist_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_label_set_long_mode(this->artist_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->artist_, 17, 99);
+  lv_obj_set_pos(this->artist_, 98, 103);
 
   this->station_ = lv_label_create(parent);
-  lv_obj_set_width(this->station_, 286);
-  lv_obj_set_style_text_align(this->station_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+  lv_obj_set_width(this->station_, 214);
+  lv_obj_set_style_text_align(this->station_, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);
   lv_obj_set_style_text_color(this->station_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_label_set_long_mode(this->station_, LV_LABEL_LONG_DOT);
-  lv_obj_set_pos(this->station_, 17, 119);
+  lv_obj_set_pos(this->station_, 98, 124);
 
   auto make_button = [this, parent](const std::string &role, int x, int y, int width, int height) {
     lv_obj_t *button = lv_button_create(parent);
@@ -96,16 +116,16 @@ void MediaPage::create(lv_obj_t *parent) {
     this->buttons_[role] = button;
     this->button_labels_[role] = label;
   };
-  make_button("previous", 42, 140, 64, 43);
-  make_button("play_pause", 128, 140, 64, 43);
-  make_button("next", 214, 140, 64, 43);
-  make_button("volume_down", 54, 194, 52, 36);
-  make_button("volume_up", 214, 194, 52, 36);
+  make_button("previous", 16, 153, 52, 42);
+  make_button("play_pause", 79, 153, 52, 42);
+  make_button("next", 142, 153, 52, 42);
+  make_button("volume_down", 205, 153, 46, 42);
+  make_button("volume_up", 262, 153, 46, 42);
 
   this->volume_ = lv_label_create(parent);
-  lv_obj_set_width(this->volume_, 96);
+  lv_obj_set_width(this->volume_, 160);
   lv_obj_set_style_text_align(this->volume_, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-  lv_obj_set_pos(this->volume_, 112, 204);
+  lv_obj_set_pos(this->volume_, 80, 211);
 }
 
 void MediaPage::apply(const PageConfig &config) {
@@ -126,6 +146,7 @@ void MediaPage::apply(const PageConfig &config) {
     }
   }
   for (const char *role : VALUE_ROLES) this->refresh_value(role);
+  this->refresh_external_assets();
 }
 
 bool MediaPage::update_control(const std::string &id, bool active, const std::string &value, ControlState state) {
@@ -133,6 +154,10 @@ bool MediaPage::update_control(const std::string &id, bool active, const std::st
     if (item.second != id) continue;
     this->values_[item.first] = value;
     this->states_[item.first] = state;
+    if (item.first == "artwork") {
+      this->update_artwork_url_(value, state);
+      return true;
+    }
     this->refresh_value(item.first);
     if (item.first == "play_pause") {
       lv_label_set_text(this->button_labels_[item.first], active ? ICON_PAUSE : ICON_PLAY);
@@ -155,7 +180,7 @@ bool MediaPage::validate(const PageConfig &config, std::string *error) const {
     *error = "Media requiere template=media y variant=full_controls";
     return false;
   }
-  const std::set<std::string> value_roles = {"player", "title", "artist", "station", "volume"};
+  const std::set<std::string> value_roles = {"player", "title", "artist", "station", "volume", "artwork"};
   const std::set<std::string> button_roles = {"previous", "play_pause", "next", "volume_down", "volume_up"};
   std::set<std::string> found;
   for (const auto &control : config.controls) {
@@ -169,7 +194,7 @@ bool MediaPage::validate(const PageConfig &config, std::string *error) const {
   std::set<std::string> required = value_roles;
   required.insert(button_roles.begin(), button_roles.end());
   if (found != required) {
-    *error = "Media requiere sus diez roles completos";
+    *error = "Media requiere sus once roles completos";
     return false;
   }
   return true;
@@ -213,6 +238,7 @@ void MediaPage::emit(const std::string &id, const std::string &action) {
 }
 
 void MediaPage::refresh_value(const std::string &role) {
+  if (role == "artwork") return;
   lv_obj_t *label = nullptr;
   const char *fallback = "--";
   if (role == "player") { label = this->player_; fallback = "Sin reproductor"; }
@@ -227,6 +253,39 @@ void MediaPage::refresh_value(const std::string &role) {
   lv_label_set_text(label, text.c_str());
   lv_obj_set_style_text_color(label, lv_color_hex(valid ?
       (role == "player" ? visual_theme::ACCENT : visual_theme::TEXT) : visual_theme::TEXT_MUTED), LV_PART_MAIN);
+}
+
+void MediaPage::update_artwork_url_(const std::string &url, ControlState state) {
+  if (this->artwork_image_ == nullptr) return;
+  if (state != ControlState::VALID || url.empty() || url == "-") {
+    this->artwork_url_.clear();
+    this->artwork_image_->release();
+    this->clear_external_assets();
+    return;
+  }
+  if (url == this->artwork_url_ && this->artwork_image_->is_loaded()) {
+    this->refresh_external_assets();
+    return;
+  }
+  this->artwork_url_ = url;
+  this->clear_external_assets();
+  this->artwork_image_->set_url(url);
+  this->artwork_image_->update();
+}
+
+void MediaPage::refresh_external_assets() {
+  if (this->artwork_ == nullptr || this->artwork_image_ == nullptr || !this->artwork_image_->is_loaded()) return;
+  lv_image_set_src(this->artwork_, this->artwork_image_->get_lv_image_dsc());
+  lv_obj_remove_flag(this->artwork_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(this->artwork_placeholder_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_invalidate(this->artwork_frame_);
+}
+
+void MediaPage::clear_external_assets() {
+  if (this->artwork_ == nullptr) return;
+  lv_obj_add_flag(this->artwork_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(this->artwork_placeholder_, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_invalidate(this->artwork_frame_);
 }
 
 }  // namespace ui_engine

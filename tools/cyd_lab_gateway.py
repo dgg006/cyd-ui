@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import importlib.util
+import io
 import json
 import os
 import re
@@ -14,6 +16,7 @@ import threading
 import time
 import urllib.request
 from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -21,6 +24,66 @@ from urllib.parse import urlparse
 import websocket
 import yaml
 from aioesphomeapi import APIClient, HomeassistantServiceCall, UserService
+from PIL import Image, ImageOps
+
+
+class ArtworkProxy:
+    """Expose remote Home Assistant artwork to a CYD on the work LAN."""
+
+    def __init__(self, device_host: str, port: int = 45958) -> None:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            probe.connect((device_host, 9))
+            self.local_host = probe.getsockname()[0]
+        finally:
+            probe.close()
+        self.port = port
+        self.source_url = ""
+        proxy = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:  # noqa: N802 - stdlib callback name
+                if self.path.partition("?")[0] != "/artwork.jpg" or not proxy.source_url:
+                    self.send_error(404)
+                    return
+                try:
+                    request = urllib.request.Request(
+                        proxy.source_url,
+                        headers={"User-Agent": "CYD-UI-Lab-Gateway/1"},
+                    )
+                    with urllib.request.urlopen(request, timeout=8) as response:
+                        content = response.read(256 * 1024 + 1)
+                        content_type = response.headers.get_content_type()
+                    if len(content) > 256 * 1024 or content_type not in {"image/jpeg", "image/png"}:
+                        raise ValueError("carátula no admitida")
+                    with Image.open(io.BytesIO(content)) as image:
+                        image = ImageOps.fit(
+                            image.convert("RGB"), (72, 72), Image.Resampling.LANCZOS
+                        )
+                        encoded = io.BytesIO()
+                        image.save(encoded, "JPEG", quality=82, optimize=True)
+                        content = encoded.getvalue()
+                    content_type = "image/jpeg"
+                    self.send_response(200)
+                    self.send_header("Content-Type", content_type)
+                    self.send_header("Content-Length", str(len(content)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    self.wfile.write(content)
+                    print(f"Carátula servida a la CYD: {len(content)} bytes", flush=True)
+                except Exception as error:  # keep the firmware request bounded
+                    self.send_error(502, str(error))
+
+            def log_message(self, _format: str, *_args: Any) -> None:
+                return
+
+        self.server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def publish(self, source_url: str) -> str:
+        self.source_url = source_url
+        version = abs(hash(source_url)) & 0xFFFFFFFF
+        return f"http://{self.local_host}:{self.port}/artwork.jpg?v={version}"
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -266,11 +329,60 @@ class RuntimeProject:
 
     @classmethod
     def from_storage(cls, stored: dict[str, Any]) -> "RuntimeProject":
-        ui = stored.get("ui")
-        backend_map = stored.get("backend_map")
+        ui = copy.deepcopy(stored.get("ui"))
+        backend_map = copy.deepcopy(stored.get("backend_map"))
         mappings = backend_map.get("controls") if isinstance(backend_map, dict) else None
         if not isinstance(ui, dict) or not isinstance(mappings, dict):
             raise RuntimeError("El proyecto guardado en CYD UI está incompleto")
+        for page in ui.get("pages", []):
+            if not isinstance(page, dict) or page.get("template") != "media":
+                continue
+            controls = page.get("controls")
+            if not isinstance(controls, list) or any(
+                isinstance(item, dict) and item.get("role") == "artwork"
+                for item in controls
+            ):
+                continue
+            player = next(
+                (item for item in controls
+                 if isinstance(item, dict) and item.get("role") == "player"),
+                None,
+            )
+            if not isinstance(player, dict):
+                continue
+            player_id = str(player.get("id", "media_player"))
+            artwork_id = f"{player_id}_artwork"
+            existing_ids = {
+                item.get("id") for item in controls if isinstance(item, dict)
+            }
+            suffix = 2
+            while artwork_id in existing_ids:
+                artwork_id = f"{player_id}_artwork_{suffix}"
+                suffix += 1
+            artwork = {
+                "type": "value", "id": artwork_id, "caption": "Carátula",
+                "role": "artwork", "color": "#FFFFFF", "meta": {}, "unit": "",
+            }
+            volume_index = next(
+                (index for index, item in enumerate(controls)
+                 if isinstance(item, dict) and item.get("role") == "volume"),
+                len(controls),
+            )
+            controls.insert(volume_index, artwork)
+            player_mapping = mappings.get(player_id, {})
+            entity_id = player_mapping.get("entity_id", "")
+            artwork_mapping = {
+                "entity_id": entity_id,
+                "domain": "media_player",
+                "attribute": "media_image_url",
+                "media_selector_id": player_id,
+            }
+            if entity_id == "media_player.jarvis_assist_parlante":
+                artwork_mapping.update({
+                    "fallback_entity_id": "text.jarvis_assist_pantalla_url_de_caratula",
+                    "fallback_for_entity_id": entity_id,
+                })
+            mappings[artwork_id] = artwork_mapping
         return cls(int(stored.get("revision", 0)), ui, mappings)
 
 
@@ -283,6 +395,7 @@ class LabGateway:
         self.device_port = device_port
         self.api_key = api_key
         self.allow_climate_power = allow_climate_power
+        self.artwork_proxy = ArtworkProxy(device_host)
         self.loop = asyncio.get_running_loop()
         self.events: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
         self.ha = HomeAssistantLink(candidates, token, self._emit_from_thread)
@@ -347,6 +460,41 @@ class LabGateway:
             state.get("state") if state else None,
             state.get("attributes") if state else None,
         )
+        fallback_id = mapping.get("fallback_entity_id")
+        fallback_for = mapping.get("fallback_for_entity_id")
+        fallback_allowed = not fallback_for or fallback_for == entity_id
+        if (
+            update["reliability"] != "valid"
+            and isinstance(fallback_id, str)
+            and fallback_allowed
+        ):
+            fallback_state = self.states.get(fallback_id)
+            fallback_is_fresh = BRIDGE_MODEL.fallback_metadata_is_fresh(
+                state.get("last_changed") if state else None,
+                fallback_state.get("last_updated") if fallback_state else None,
+            )
+            if not fallback_is_fresh:
+                fallback_state = None
+            fallback_mapping = dict(mapping)
+            fallback_mapping.pop("attribute", None)
+            if mapping.get("fallback_attribute"):
+                fallback_mapping["attribute"] = mapping["fallback_attribute"]
+                fallback_mapping.pop("value_only", None)
+            else:
+                fallback_mapping["value_only"] = True
+            update = BRIDGE_MODEL.update_for_state(
+                control_id,
+                fallback_mapping,
+                fallback_state.get("state") if fallback_state else None,
+                fallback_state.get("attributes") if fallback_state else None,
+            )
+        if (
+            mapping.get("attribute") == "media_image_url"
+            and update["reliability"] == "valid"
+            and isinstance(update["value"], str)
+            and update["value"].startswith(("http://", "https://"))
+        ):
+            update["value"] = self.artwork_proxy.publish(update["value"])
         await self._execute("update_control", {
             "control_id": update["control_id"],
             "active": update["active"],
@@ -369,7 +517,10 @@ class LabGateway:
         if self.project is None:
             return
         for control_id, mapping in self.project.mappings.items():
-            if mapping.get("entity_id") == entity_id:
+            if (
+                mapping.get("entity_id") == entity_id
+                or mapping.get("fallback_entity_id") == entity_id
+            ):
                 await self._publish_control(control_id, mapping)
 
     @staticmethod

@@ -156,10 +156,16 @@ class NativeBridgeModelTests(unittest.TestCase):
     def test_old_fallback_metadata_is_rejected_for_new_playback(self):
         current = datetime.now(UTC)
         self.assertFalse(
-            MODEL.fallback_metadata_is_fresh(current, current - timedelta(seconds=1))
+            MODEL.fallback_metadata_is_fresh(current, current - timedelta(seconds=6))
         )
         self.assertTrue(
             MODEL.fallback_metadata_is_fresh(current, current + timedelta(seconds=1))
+        )
+
+    def test_fallback_metadata_allows_small_event_ordering_delay(self):
+        current = datetime.now(UTC)
+        self.assertTrue(
+            MODEL.fallback_metadata_is_fresh(current, current - timedelta(seconds=2))
         )
 
 

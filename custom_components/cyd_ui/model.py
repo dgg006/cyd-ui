@@ -23,10 +23,74 @@ TEMPLATE_VARIANTS: dict[str, dict[str, tuple[int, int]]] = {
     "clock_weather": {"screensaver": (3, 3)},
     "sensor_grid": {"four_values": (1, 4)},
     "cover": {"position_controls": (6, 6)},
-    "media": {"full_controls": (10, 10)},
+    "media": {"full_controls": (11, 11)},
 }
 IDLE_MODES = {"clock_weather", "screen_off", "dim", "none"}
 ACCENTS = {"mint", "blue", "violet", "amber", "rose"}
+
+
+def migrate_media_artwork(
+    ui: dict[str, Any], backend_map: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any], bool]:
+    """Add the optional artwork source to media pages saved before v0.7."""
+    next_ui = deepcopy(ui)
+    next_backend_map = deepcopy(backend_map)
+    mappings = next_backend_map.setdefault("controls", {})
+    changed = False
+    used_ids = {
+        control.get("id")
+        for page in next_ui.get("pages", [])
+        if isinstance(page, dict)
+        for control in page.get("controls", [])
+        if isinstance(control, dict)
+    }
+    for page in next_ui.get("pages", []):
+        if not isinstance(page, dict) or page.get("template") != "media":
+            continue
+        controls = page.get("controls")
+        if not isinstance(controls, list) or any(
+            isinstance(control, dict) and control.get("role") == "artwork"
+            for control in controls
+        ):
+            continue
+        player = next(
+            (control for control in controls
+             if isinstance(control, dict) and control.get("role") == "player"),
+            None,
+        )
+        if not isinstance(player, dict):
+            continue
+        player_id = str(player.get("id", "media_player"))
+        artwork_id = f"{player_id}_artwork"
+        suffix = 2
+        while artwork_id in used_ids:
+            artwork_id = f"{player_id}_artwork_{suffix}"
+            suffix += 1
+        used_ids.add(artwork_id)
+        artwork = {
+            "type": "value",
+            "id": artwork_id,
+            "caption": "Carátula",
+            "role": "artwork",
+            "color": "#FFFFFF",
+            "meta": {},
+            "unit": "",
+        }
+        insert_at = next(
+            (index for index, control in enumerate(controls)
+             if isinstance(control, dict) and control.get("role") == "volume"),
+            len(controls),
+        )
+        controls.insert(insert_at, artwork)
+        player_mapping = mappings.get(player_id, {})
+        mappings[artwork_id] = {
+            "entity_id": player_mapping.get("entity_id", ""),
+            "domain": "media_player",
+            "attribute": "media_image_url",
+            "media_selector_id": player_id,
+        }
+        changed = True
+    return next_ui, next_backend_map, changed
 
 
 def _is_int(value: Any) -> bool:
@@ -159,8 +223,8 @@ def validate_document(ui: Any, backend_map: Any) -> list[str]:
         elif template in TEMPLATE_VARIANTS and variant not in TEMPLATE_VARIANTS[template]:
             errors.append(f"Página {page_number}: variante desconocida.")
         controls = page.get("controls")
-        if not isinstance(controls, list) or not 1 <= len(controls) <= 10:
-            errors.append(f"Página {page_number}: debe tener entre 1 y 10 controles.")
+        if not isinstance(controls, list) or not 1 <= len(controls) <= 12:
+            errors.append(f"Página {page_number}: debe tener entre 1 y 12 controles.")
             continue
         if template in TEMPLATE_VARIANTS and variant in TEMPLATE_VARIANTS[template]:
             minimum, maximum = TEMPLATE_VARIANTS[template][variant]

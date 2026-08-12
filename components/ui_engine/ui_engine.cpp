@@ -19,7 +19,17 @@ void UiEngineComponent::setup() {
   });
   this->registry_.register_template("sensor_grid", []() { return std::make_unique<SensorGrid>(); });
   this->registry_.register_template("cover", []() { return std::make_unique<CoverPage>(); });
-  this->registry_.register_template("media", []() { return std::make_unique<MediaPage>(); });
+  this->registry_.register_template("media", [this]() { return std::make_unique<MediaPage>(this->media_artwork_); });
+  if (this->media_artwork_ != nullptr) {
+    this->media_artwork_->add_on_finished_callback([this](bool) {
+      ESP_LOGI(TAG, "Caratula multimedia descargada y decodificada");
+      if (this->active_page_ != nullptr) this->active_page_->refresh_external_assets();
+    });
+    this->media_artwork_->add_on_error_callback([this]() {
+      ESP_LOGW(TAG, "No se pudo descargar o decodificar la caratula multimedia");
+      if (this->active_page_ != nullptr) this->active_page_->clear_external_assets();
+    });
+  }
   this->last_activity_ms_ = millis();
   this->flash_storage_.begin();
   auto embedded_provider = std::make_unique<EmbeddedConfigProvider>(this->initial_config_);

@@ -15,6 +15,8 @@ class FlashStorage {
 
  private:
   ESPPreferenceObject preference_;
+  uint32_t saved_checksum_{0};
+  size_t saved_length_{0};
 };
 
 }  // namespace ui_engine

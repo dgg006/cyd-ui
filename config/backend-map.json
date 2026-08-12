@@ -152,6 +152,11 @@
       "media_selector_id": "media_player", "fallback_entity_id": "text.jarvis_assist_pantalla_emisora",
       "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
     },
+    "media_artwork": {
+      "entity_id": "media_player.jarvis_assist_parlante", "domain": "media_player", "attribute": "media_image_url",
+      "media_selector_id": "media_player", "fallback_entity_id": "text.jarvis_assist_pantalla_url_de_caratula",
+      "fallback_for_entity_id": "media_player.jarvis_assist_parlante"
+    },
     "media_volume": {
       "entity_id": "media_player.jarvis_assist_parlante", "domain": "media_player", "attribute": "volume_level",
       "media_selector_id": "media_player", "scale": 100, "decimals": 0

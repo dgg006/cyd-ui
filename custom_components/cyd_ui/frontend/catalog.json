@@ -137,7 +137,7 @@
   "media": {
     "label": "Multimedia",
     "variants": {
-      "full_controls": 10
+      "full_controls": 11
     },
     "controls": {
       "kind": "fixed",
@@ -161,6 +161,11 @@
           "role": "station",
           "type": "value",
           "caption": "Emisora"
+        },
+        {
+          "role": "artwork",
+          "type": "value",
+          "caption": "Carátula"
         },
         {
           "role": "volume",
