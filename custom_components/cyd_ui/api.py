@@ -256,16 +256,26 @@ def websocket_device_status(
 async def _async_call_panel_service(
     hass: HomeAssistant, service: str, data: dict[str, Any]
 ) -> None:
-    if not hass.services.has_service(ESPHOME_DOMAIN, service):
+    def dispatch_to_lab_gateway() -> bool:
         last_seen = _domain_data(hass).get("lab_gateway_seen")
-        if last_seen is not None and hass.loop.time() - last_seen < 45:
-            hass.bus.async_fire(
-                "cyd_ui_lab_command",
-                {"service": service.removeprefix("cyd_ui_"), "data": data},
-            )
+        if last_seen is None or hass.loop.time() - last_seen >= 45:
+            return False
+        hass.bus.async_fire(
+            "cyd_ui_lab_command",
+            {"service": service.removeprefix("cyd_ui_"), "data": data},
+        )
+        return True
+
+    if not hass.services.has_service(ESPHOME_DOMAIN, service):
+        if dispatch_to_lab_gateway():
             return
         raise RuntimeError("La pantalla no está conectada a Home Assistant.")
-    await hass.services.async_call(ESPHOME_DOMAIN, service, data, blocking=True)
+    try:
+        await hass.services.async_call(ESPHOME_DOMAIN, service, data, blocking=True)
+    except Exception as error:
+        if dispatch_to_lab_gateway():
+            return
+        raise RuntimeError(str(error)) from error
 
 
 async def async_send_reminder(hass: HomeAssistant, data: dict[str, Any]) -> None:
