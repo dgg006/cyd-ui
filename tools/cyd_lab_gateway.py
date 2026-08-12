@@ -176,6 +176,9 @@ class HomeAssistantLink:
         threading.Thread(
             target=self._event_worker, name="cyd-ha-events", daemon=True
         ).start()
+        threading.Thread(
+            target=self._heartbeat_worker, name="cyd-ha-heartbeat", daemon=True
+        ).start()
 
     def stop(self) -> None:
         self._stop.set()
@@ -198,6 +201,21 @@ class HomeAssistantLink:
             payload=payload,
         )
 
+    def _heartbeat_worker(self) -> None:
+        while not self._stop.is_set():
+            try:
+                _http_json(
+                    self.base_url,
+                    self._token,
+                    "/api/events/cyd_ui_lab_gateway_online",
+                    method="POST",
+                    payload={"device_id": "cyd-ui"},
+                    timeout=8,
+                )
+            except Exception:
+                pass
+            self._stop.wait(20)
+
     def _event_worker(self) -> None:
         while not self._stop.is_set():
             ws = None
@@ -209,8 +227,13 @@ class HomeAssistantLink:
                     "type": "subscribe_events",
                     "event_type": "state_changed",
                 }))
-                confirmation = json.loads(ws.recv())
-                if not confirmation.get("success"):
+                ws.send(json.dumps({
+                    "id": 2,
+                    "type": "subscribe_events",
+                    "event_type": "cyd_ui_lab_command",
+                }))
+                confirmations = [json.loads(ws.recv()), json.loads(ws.recv())]
+                if not all(item.get("success") for item in confirmations):
                     raise RuntimeError("No se pudo suscribir a state_changed")
                 self._emit(("ha_connected", self.base_url))
                 while not self._stop.is_set():
@@ -224,6 +247,8 @@ class HomeAssistantLink:
                     data = event.get("data", {})
                     if event.get("event_type") == "state_changed":
                         self._emit(("ha_state", data))
+                    elif event.get("event_type") == "cyd_ui_lab_command":
+                        self._emit(("ha_command", data))
             except Exception as error:
                 self._emit(("ha_disconnected", str(error)))
                 self._base_url = None
@@ -495,6 +520,11 @@ class LabGateway:
                         print("Home Assistant desconectado; reconectando…", flush=True)
                         self.ha_available = False
                         self.device_lost.set()
+                    elif event_type == "ha_command":
+                        service = str(payload.get("service", ""))
+                        data = payload.get("data", {})
+                        if service and isinstance(data, dict):
+                            await self._execute(service, data)
             except asyncio.CancelledError:
                 break
             except Exception as error:

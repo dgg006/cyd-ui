@@ -52,6 +52,7 @@ class HacsPackageTests(unittest.TestCase):
             "model.py",
             "storage.py",
             "services.yaml",
+            "reminders.py",
             "frontend/cyd-ui-panel.js",
             "frontend/editor-app.js",
             "frontend/editor.css",
@@ -133,6 +134,17 @@ class HacsPackageTests(unittest.TestCase):
         self.assertIn("show_reminder:", services)
         self.assertIn("sound_mode:", services)
         self.assertIn("snooze_minutes:", services)
+
+    def test_persistent_reminder_agenda_is_packaged(self):
+        api_source = (INTEGRATION_ROOT / "api.py").read_text(encoding="utf-8")
+        scheduler_source = (INTEGRATION_ROOT / "reminders.py").read_text(encoding="utf-8")
+        editor_source = (INTEGRATION_ROOT / "frontend" / "editor-app.js").read_text(encoding="utf-8")
+        self.assertIn('"cyd_ui/reminder/schedule/add"', api_source)
+        self.assertIn('"cyd_ui/reminder/schedule/list"', api_source)
+        self.assertIn('"cyd_ui/reminder/schedule/cancel"', api_source)
+        self.assertIn("scheduled_reminders", scheduler_source)
+        self.assertIn('"/api/reminder/schedule"', editor_source)
+        self.assertIn("Programar recordatorio", editor_source)
 
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))

@@ -1,5 +1,18 @@
 # Estado del proyecto
 
+## Actualización 2026-08-12 — agenda visual de recordatorios
+
+- CYD UI v0.6.0 permite elegir fecha y hora en el mismo centro de recordatorios,
+  consultar los avisos pendientes y cancelarlos sin escribir YAML.
+- La agenda se conserva en el almacenamiento administrado por Home Assistant y
+  reconstruye sus temporizadores después de cada reinicio.
+- Si la pantalla está desconectada al vencer el horario, la integración conserva
+  el aviso y reintenta la entrega cada minuto.
+- El puente de laboratorio incorpora un canal Home Assistant → CYD para probar
+  recordatorios programados desde el taller sin modificar el firmware.
+- Interfaz comprobada en escritorio y a 375 px de ancho. Validación: 49 pruebas
+  automáticas superadas.
+
 ## Actualización 2026-08-11 — alarmas, LED y multimedia confiable
 
 - CYD UI v0.5.0 incorpora la acción visual `cyd_ui.show_reminder`, con un

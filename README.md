@@ -51,6 +51,13 @@ bloqueado en modo laboratorio.
 - LED RGB protegido contra la restauración inmediata del indicador de conexión.
 - Metadatos multimedia limpiados al detener el reproductor para no mostrar información antigua.
 
+### Novedades de v0.6.0
+
+- Agenda visual para programar recordatorios con fecha y hora desde el panel.
+- Los pendientes sobreviven a reinicios de Home Assistant y pueden cancelarse.
+- Si la CYD no está disponible a la hora indicada, la entrega se reintenta automáticamente.
+- El puente de laboratorio admite recordatorios enviados desde Home Assistant hacia la CYD local.
+
 ## Configurador visual
 
 ```powershell

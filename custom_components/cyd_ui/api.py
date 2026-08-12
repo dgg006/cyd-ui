@@ -17,6 +17,7 @@ from .migration import (
     bridge_status,
 )
 from .storage import CydUiStorage
+from .reminders import ReminderScheduler
 
 
 ESPHOME_DOMAIN = "esphome"
@@ -256,6 +257,13 @@ async def _async_call_panel_service(
     hass: HomeAssistant, service: str, data: dict[str, Any]
 ) -> None:
     if not hass.services.has_service(ESPHOME_DOMAIN, service):
+        last_seen = _domain_data(hass).get("lab_gateway_seen")
+        if last_seen is not None and hass.loop.time() - last_seen < 45:
+            hass.bus.async_fire(
+                "cyd_ui_lab_command",
+                {"service": service.removeprefix("cyd_ui_"), "data": data},
+            )
+            return
         raise RuntimeError("La pantalla no está conectada a Home Assistant.")
     await hass.services.async_call(ESPHOME_DOMAIN, service, data, blocking=True)
 
@@ -366,6 +374,71 @@ async def websocket_reminder_dismiss(
     connection.send_result(msg["id"], {"dismissed": True})
 
 
+@websocket_api.websocket_command({vol.Required("type"): "cyd_ui/reminder/schedule/list"})
+@websocket_api.require_admin
+@callback
+def websocket_reminder_schedule_list(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the persistent reminder agenda."""
+    scheduler: ReminderScheduler = _domain_data(hass)["reminder_scheduler"]
+    connection.send_result(msg["id"], {"items": scheduler.list_items()})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/reminder/schedule/add",
+        vol.Required("scheduled_at"): str,
+        vol.Required("reminder_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("title"): vol.All(str, vol.Length(max=80)),
+        vol.Required("message"): vol.All(str, vol.Length(min=1, max=280)),
+        vol.Required("level"): vol.In(("info", "reminder", "warning", "urgent")),
+        vol.Optional("sound_mode", default="once"): vol.In(("silent", "once", "alarm")),
+        vol.Optional("alarm_duration", default=120): vol.All(vol.Coerce(int), vol.Range(min=10, max=120)),
+        vol.Optional("snooze_minutes", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_reminder_schedule_add(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create a persistent one-shot reminder."""
+    scheduler: ReminderScheduler = _domain_data(hass)["reminder_scheduler"]
+    try:
+        item = await scheduler.async_add(msg)
+    except (KeyError, TypeError, ValueError) as error:
+        connection.send_error(msg["id"], "invalid_schedule", str(error))
+        return
+    connection.send_result(msg["id"], {"scheduled": True, "item": item})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "cyd_ui/reminder/schedule/cancel",
+        vol.Required("schedule_id"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def websocket_reminder_schedule_cancel(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Cancel one pending scheduled reminder."""
+    scheduler: ReminderScheduler = _domain_data(hass)["reminder_scheduler"]
+    cancelled = await scheduler.async_cancel(msg["schedule_id"])
+    if not cancelled:
+        connection.send_error(msg["id"], "not_found", "El recordatorio ya no está pendiente.")
+        return
+    connection.send_result(msg["id"], {"cancelled": True})
+
+
 @websocket_api.websocket_command({vol.Required("type"): "cyd_ui/touch_calibration/start"})
 @websocket_api.require_admin
 @websocket_api.async_response
@@ -414,5 +487,8 @@ def async_register_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_sound_preview)
     websocket_api.async_register_command(hass, websocket_reminder_send)
     websocket_api.async_register_command(hass, websocket_reminder_dismiss)
+    websocket_api.async_register_command(hass, websocket_reminder_schedule_list)
+    websocket_api.async_register_command(hass, websocket_reminder_schedule_add)
+    websocket_api.async_register_command(hass, websocket_reminder_schedule_cancel)
     websocket_api.async_register_command(hass, websocket_touch_calibration_start)
     websocket_api.async_register_command(hass, websocket_device_reload)

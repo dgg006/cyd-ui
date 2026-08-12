@@ -4,7 +4,7 @@ const document={
   createElement:(tag)=>window.document.createElement(tag),
   get visibilityState(){return window.document.visibilityState;}
 };
-const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound_mode:"once",alarm_duration:120,snooze_minutes:0},collapsed:new Set()};
+const state={ui:null,backendMap:null,catalog:null,icons:[],entities:[],ldrVoltage:null,deviceBrightness:null,deviceMode:null,deviceNight:null,deviceTouchCalibration:null,touchCalibrationWaiting:false,touchCalibrationBaseline:null,selectedPage:0,editingSettings:false,editingReminder:false,scheduledReminders:[],reminderScheduleAt:"",reminderDraft:{reminder_id:"aviso_manual",title:"Recordatorio",message:"",level:"reminder",sound_mode:"once",alarm_duration:120,snooze_minutes:0},collapsed:new Set()};
 const $=s=>document.querySelector(s), pageList=$("#pageList"),pageForm=$("#pageForm"),controlList=$("#controlList"),preview=$("#devicePreview"),validationBox=$("#validationBox"),saveButton=$("#saveButton");
 const clone=v=>JSON.parse(JSON.stringify(v));
 const slug=t=>String(t||"control").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,38)||"control";
@@ -104,6 +104,9 @@ async function api(path,options={}){
   if(path==="/api/test-sound")return hass.callWS({type:"cyd_ui/sound/preview",volume:Number(body.volume)});
   if(path==="/api/reminder/send")return hass.callWS({type:"cyd_ui/reminder/send",reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound_mode:body.sound_mode||"once",alarm_duration:Number(body.alarm_duration||120),snooze_minutes:Number(body.snooze_minutes||0)});
   if(path==="/api/reminder/dismiss")return hass.callWS({type:"cyd_ui/reminder/dismiss",reminder_id:body.reminder_id||""});
+  if(path==="/api/reminder/schedules")return hass.callWS({type:"cyd_ui/reminder/schedule/list"});
+  if(path==="/api/reminder/schedule")return hass.callWS({type:"cyd_ui/reminder/schedule/add",scheduled_at:body.scheduled_at,reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound_mode:body.sound_mode||"once",alarm_duration:Number(body.alarm_duration||120),snooze_minutes:Number(body.snooze_minutes||0)});
+  if(path==="/api/reminder/schedule/cancel")return hass.callWS({type:"cyd_ui/reminder/schedule/cancel",schedule_id:body.schedule_id});
   if(path==="/api/touch-calibration/start")return hass.callWS({type:"cyd_ui/touch_calibration/start"});
   if(path==="/api/reload")return hass.callWS({type:"cyd_ui/device/reload"});
   throw new Error("Esta acción estará disponible al conectar el panel directamente con la CYD.");
@@ -295,6 +298,27 @@ function renderReminderComposer(){
   const dismiss=document.createElement("button");dismiss.className="button secondary";dismiss.textContent="Retirar aviso";
   dismiss.onclick=async()=>{try{await api("/api/reminder/dismiss",{method:"POST",body:JSON.stringify({reminder_id:draft.reminder_id})});showToast("Orden para retirar el aviso enviada.")}catch(error){showToast(error.message,true)}};
   actions.append(send,dismiss);section.querySelector(".settings-grid").append(actions);pageForm.append(section);
+
+  if(!state.reminderScheduleAt)state.reminderScheduleAt=defaultReminderSchedule();
+  const scheduleSection=settingsGroup("Programar para más tarde","La agenda queda guardada en Home Assistant y sobrevive a reinicios.",[
+    inputField("Fecha y hora",state.reminderScheduleAt,v=>state.reminderScheduleAt=v,{type:"datetime-local",wide:true})
+  ]);
+  const scheduleActions=document.createElement("div");scheduleActions.className="inline-actions reminder-actions";
+  const schedule=document.createElement("button");schedule.className="button primary";schedule.textContent="Programar recordatorio";
+  schedule.onclick=async()=>{if(!draft.message.trim())return showToast("Escribí un mensaje para el recordatorio.",true);const date=new Date(state.reminderScheduleAt);if(!Number.isFinite(date.getTime()))return showToast("Elegí una fecha y hora válidas.",true);schedule.disabled=true;try{await api("/api/reminder/schedule",{method:"POST",body:JSON.stringify({...draft,scheduled_at:date.toISOString()})});state.reminderScheduleAt=defaultReminderSchedule();await loadScheduledReminders();showToast("Recordatorio programado.");renderReminderComposer()}catch(error){showToast(error.message,true)}finally{schedule.disabled=false}};
+  scheduleActions.append(schedule);scheduleSection.querySelector(".settings-grid").append(scheduleActions);pageForm.append(scheduleSection);
+  renderReminderAgenda();
+}
+
+function defaultReminderSchedule(){const date=new Date(Date.now()+10*60000);date.setSeconds(0,0);const local=new Date(date.getTime()-date.getTimezoneOffset()*60000);return local.toISOString().slice(0,16)}
+async function loadScheduledReminders(){try{const result=await api("/api/reminder/schedules");state.scheduledReminders=result.items||[]}catch(error){state.scheduledReminders=[];showToast(error.message,true)}}
+function formatReminderDate(value){const date=new Date(value);return Number.isFinite(date.getTime())?new Intl.DateTimeFormat("es-UY",{dateStyle:"short",timeStyle:"short"}).format(date):value}
+function renderReminderAgenda(){
+  const section=document.createElement("section");section.className="settings-section reminder-agenda";
+  const heading=document.createElement("div");heading.className="settings-section-heading";heading.innerHTML="<h3>Próximos recordatorios</h3><p></p>";heading.querySelector("p").textContent=state.scheduledReminders.length?`${state.scheduledReminders.length} pendiente${state.scheduledReminders.length===1?"":"s"}.`:"No hay recordatorios programados.";section.append(heading);
+  const list=document.createElement("div");list.className="reminder-agenda-list";
+  state.scheduledReminders.forEach(item=>{const card=document.createElement("div");card.className="reminder-agenda-item";const content=document.createElement("div");content.innerHTML="<strong></strong><span></span><small></small>";content.querySelector("strong").textContent=item.payload?.title||"Recordatorio";content.querySelector("span").textContent=item.payload?.message||"";content.querySelector("small").textContent=`${formatReminderDate(item.scheduled_at)}${item.status==="retrying"?" · esperando conexión":""}`;const cancel=document.createElement("button");cancel.className="text-button danger";cancel.textContent="Cancelar";cancel.onclick=async()=>{cancel.disabled=true;try{await api("/api/reminder/schedule/cancel",{method:"POST",body:JSON.stringify({schedule_id:item.id})});await loadScheduledReminders();renderReminderComposer();showToast("Recordatorio cancelado.")}catch(error){showToast(error.message,true)}finally{cancel.disabled=false}};card.append(content,cancel);list.append(card)});
+  section.append(list);pageForm.append(section);
 }
 
 function renderReminderPreview(){
@@ -404,7 +428,7 @@ function inputField(label,value,onChange,options={}){
 
 $("#addPageButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);state.ui.pages.push(makePage());state.selectedPage=state.ui.pages.length-1;state.editingSettings=false;state.editingReminder=false;renderAll()};
 $("#deviceSettingsButton").onclick=()=>{state.editingSettings=true;state.editingReminder=false;renderAll()};
-$("#reminderCenterButton").onclick=()=>{state.editingSettings=false;state.editingReminder=true;renderAll()};
+$("#reminderCenterButton").onclick=async()=>{state.editingSettings=false;state.editingReminder=true;await loadScheduledReminders();renderAll()};
 $("#duplicateButton").onclick=()=>{if(state.ui.pages.length>=8)return showToast("El firmware admite un máximo de 8 páginas.",true);const source=state.ui.pages[state.selectedPage],copy=clone(source);copy.title=`${copy.title} copia`;copy.controls.forEach(control=>{const oldId=control.id;control.id=uniqueId(`${control.id}_copia`);state.backendMap.controls[control.id]=clone(state.backendMap.controls[oldId]||defaultMapping(control))});state.ui.pages.splice(state.selectedPage+1,0,copy);state.selectedPage++;renderAll()};
 $("#deleteButton").onclick=()=>{if(state.ui.pages.length===1)return showToast("Debe quedar al menos una página.",true);const page=state.ui.pages[state.selectedPage];if(!confirm(`¿Eliminar “${page.title}”?`))return;removeMappings(page);state.ui.pages.splice(state.selectedPage,1);renderAll()};
 $("#addControlButton").onclick=()=>{const page=state.ui.pages[state.selectedPage];if(page.controls.length>=4)return;page.controls.push(makeControl(page.template,{type:"value",caption:`Valor ${page.controls.length+1}`},page.controls.length));renderAll()};

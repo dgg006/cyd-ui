@@ -477,6 +477,9 @@ class ConfiguratorHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/device-status":
             self.json_response(current_device_status())
             return
+        if parsed.path == "/api/reminder/schedules":
+            self.json_response({"items": []})
+            return
         if parsed.path == "/config/ui.json":
             self.json_response(read_json(CONFIG_PATH))
             return

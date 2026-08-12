@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -27,12 +28,17 @@ class CydUiStorage:
             "history": [],
             "native_bridge_enabled": False,
             "temporary_automation_states": {},
+            "scheduled_reminders": [],
+            "reminder_history": [],
         }
+        self._lock = asyncio.Lock()
 
     async def async_load(self) -> None:
         """Load the last valid project, if one exists."""
         if stored := await self._store.async_load():
             self.data = stored
+        self.data.setdefault("scheduled_reminders", [])
+        self.data.setdefault("reminder_history", [])
 
     async def async_save(
         self, ui: dict[str, Any], backend_map: dict[str, Any]
@@ -43,8 +49,9 @@ class CydUiStorage:
         next_data = create_revision(
             self.data, ui, backend_map, dt_util.utcnow().isoformat()
         )
-        await self._store.async_save(next_data)
-        self.data = next_data
+        async with self._lock:
+            await self._store.async_save(next_data)
+            self.data = next_data
         return []
 
     async def async_set_bridge_enabled(
@@ -55,8 +62,20 @@ class CydUiStorage:
         next_data["native_bridge_enabled"] = enabled
         if automation_states is not None:
             next_data["temporary_automation_states"] = automation_states
-        await self._store.async_save(next_data)
-        self.data = next_data
+        async with self._lock:
+            await self._store.async_save(next_data)
+            self.data = next_data
+
+    async def async_update_reminders(
+        self, scheduled: list[dict[str, Any]], history: list[dict[str, Any]]
+    ) -> None:
+        """Persist the reminder agenda without creating a UI revision."""
+        async with self._lock:
+            next_data = dict(self.data)
+            next_data["scheduled_reminders"] = scheduled
+            next_data["reminder_history"] = history[-20:]
+            await self._store.async_save(next_data)
+            self.data = next_data
 
     async def async_remove(self) -> None:
         """Remove managed data when the integration is permanently deleted."""

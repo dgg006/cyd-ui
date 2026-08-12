@@ -5,7 +5,7 @@ from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.core import ServiceCall
+from homeassistant.core import ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 
@@ -22,6 +22,7 @@ from .const import (
     VERSION,
 )
 from .storage import CydUiStorage
+from .reminders import ReminderScheduler
 from .migration import async_rollback_to_automations, async_restore_enabled_bridge
 
 
@@ -34,6 +35,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     storage = CydUiStorage(hass)
     await storage.async_load()
     data["storage"] = storage
+
+    @callback
+    def mark_lab_gateway_online(_event) -> None:
+        data["lab_gateway_seen"] = hass.loop.time()
+
+    data["remove_lab_gateway_listener"] = hass.bus.async_listen(
+        "cyd_ui_lab_gateway_online", mark_lab_gateway_online
+    )
+    scheduler = ReminderScheduler(hass, storage)
+    await scheduler.async_start()
+    data["reminder_scheduler"] = scheduler
 
     if not data.get("static_registered"):
         await hass.http.async_register_static_paths(
@@ -105,6 +117,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data.pop("module_url", None)
     if bridge := data.pop("bridge", None):
         await bridge.async_stop()
+    if scheduler := data.pop("reminder_scheduler", None):
+        await scheduler.async_shutdown()
+    if remove_listener := data.pop("remove_lab_gateway_listener", None):
+        remove_listener()
     if data.pop("services_registered", False):
         hass.services.async_remove(DOMAIN, SERVICE_SHOW_REMINDER)
         hass.services.async_remove(DOMAIN, SERVICE_DISMISS_REMINDER)
