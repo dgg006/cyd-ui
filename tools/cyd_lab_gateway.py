@@ -524,7 +524,9 @@ class LabGateway:
                         service = str(payload.get("service", ""))
                         data = payload.get("data", {})
                         if service and isinstance(data, dict):
+                            print(f"Comando remoto recibido: {service}", flush=True)
                             await self._execute(service, data)
+                            print(f"Comando remoto ejecutado: {service}", flush=True)
             except asyncio.CancelledError:
                 break
             except Exception as error:
