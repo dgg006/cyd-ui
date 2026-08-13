@@ -101,6 +101,12 @@ bloqueado en modo laboratorio.
 - La sincronización inicial conserva los metadatos válidos recibidos antes de finalizar la conexión.
 - Los metadatos antiguos no reaparecen al iniciar una reproducción nueva sin información propia.
 
+### Novedades de v0.7.6
+
+- Jarvis vuelve a mostrar canción y artista aunque esos textos no hayan cambiado entre dos reproducciones.
+- Emisora y carátula validan el conjunto multimedia actual sin provocar recargas masivas.
+- El puente de laboratorio obtiene carátulas internas mediante el acceso remoto disponible.
+
 ## Configurador visual
 
 ```powershell

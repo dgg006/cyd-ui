@@ -210,6 +210,21 @@ class NativeBridgeModelTests(unittest.TestCase):
             MODEL.fallback_metadata_is_fresh(current, current - timedelta(seconds=2))
         )
 
+    def test_one_fresh_companion_validates_the_media_metadata_set(self):
+        current = datetime.now(UTC)
+        self.assertTrue(
+            MODEL.fallback_group_is_fresh(
+                current,
+                [current - timedelta(seconds=40), current + timedelta(seconds=1)],
+            )
+        )
+        self.assertFalse(
+            MODEL.fallback_group_is_fresh(
+                current,
+                [current - timedelta(seconds=40), current - timedelta(seconds=20)],
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

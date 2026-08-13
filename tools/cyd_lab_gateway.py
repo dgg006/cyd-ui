@@ -55,6 +55,7 @@ class ArtworkProxy:
             probe.close()
         self.port = port
         self.source_url = ""
+        self.source_token = ""
         self.background = ARTWORK_PROCESSOR.DARK_ARTWORK_BACKGROUND
         proxy = self
 
@@ -64,10 +65,10 @@ class ArtworkProxy:
                     self.send_error(404)
                     return
                 try:
-                    request = urllib.request.Request(
-                        proxy.source_url,
-                        headers={"User-Agent": "CYD-UI-Lab-Gateway/1"},
-                    )
+                    headers = {"User-Agent": "CYD-UI-Lab-Gateway/1"}
+                    if proxy.source_token:
+                        headers["Authorization"] = f"Bearer {proxy.source_token}"
+                    request = urllib.request.Request(proxy.source_url, headers=headers)
                     with urllib.request.urlopen(request, timeout=8) as response:
                         content = response.read(256 * 1024 + 1)
                         content_type = response.headers.get_content_type()
@@ -93,8 +94,17 @@ class ArtworkProxy:
         self.server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
-    def publish(self, source_url: str, background: str) -> str:
+    def publish(
+        self, source_url: str, background: str, remote_base: str = "", token: str = ""
+    ) -> str:
+        parsed = urlparse(source_url)
+        remote = urlparse(remote_base) if remote_base else None
+        if remote is not None and parsed.hostname and parsed.hostname.startswith(("192.168.", "10.", "172.")):
+            source_url = f"{remote.scheme}://{remote.netloc}{parsed.path}"
+            if parsed.query:
+                source_url += f"?{parsed.query}"
         self.source_url = source_url
+        self.source_token = token
         self.background = background
         version = abs(hash((source_url, background))) & 0xFFFFFFFF
         return f"http://{self.local_host}:{self.port}/artwork.jpg?v={version}"
@@ -238,6 +248,10 @@ class HomeAssistantLink:
             self._base_url = self._select_endpoint()
         return self._base_url
 
+    @property
+    def token(self) -> str:
+        return self._token
+
     def _select_endpoint(self) -> str:
         errors: list[str] = []
         for candidate in self._candidates:
@@ -298,7 +312,7 @@ class HomeAssistantLink:
             ws = None
             try:
                 ws = _authenticate_websocket(self.base_url, self._token)
-                ws.settimeout(30)
+                ws.settimeout(20)
                 ws.send(json.dumps({
                     "id": 1,
                     "type": "subscribe_events",
@@ -312,6 +326,7 @@ class HomeAssistantLink:
                 confirmations = [json.loads(ws.recv()), json.loads(ws.recv())]
                 if not all(item.get("success") for item in confirmations):
                     raise RuntimeError("No se pudo suscribir a state_changed")
+                ws.settimeout(0.2)
                 self._emit(("ha_connected", self.base_url))
                 while not self._stop.is_set():
                     try:
@@ -493,6 +508,19 @@ class LabGateway:
                 state.get("last_changed") if state else None,
                 fallback_state.get("last_updated") if fallback_state else None,
             )
+            if not fallback_is_fresh and state is not None and self.project is not None:
+                selector_id = mapping.get("media_selector_id")
+                companion_updates = []
+                for companion in self.project.mappings.values():
+                    if companion.get("media_selector_id") != selector_id:
+                        continue
+                    companion_id = companion.get("fallback_entity_id")
+                    companion_state = self.states.get(companion_id)
+                    if companion_state is not None:
+                        companion_updates.append(companion_state.get("last_updated"))
+                fallback_is_fresh = BRIDGE_MODEL.fallback_group_is_fresh(
+                    state.get("last_changed"), companion_updates
+                )
             if not fallback_is_fresh:
                 fallback_state = None
             fallback_mapping = dict(mapping)
@@ -515,7 +543,10 @@ class LabGateway:
             and update["value"].startswith(("http://", "https://"))
         ):
             update["value"] = self.artwork_proxy.publish(
-                update["value"], ARTWORK_PROCESSOR.artwork_background(self.project.ui)
+                update["value"],
+                ARTWORK_PROCESSOR.artwork_background(self.project.ui),
+                self.ha.base_url,
+                self.ha.token,
             )
         await self._execute("update_control", {
             "control_id": update["control_id"],
@@ -538,10 +569,24 @@ class LabGateway:
         self.states[entity_id] = new_state
         if self.project is None:
             return
+        affected_selectors = {
+            mapping.get("media_selector_id")
+            for mapping in self.project.mappings.values()
+            if mapping.get("fallback_entity_id") == entity_id
+            and mapping.get("media_selector_id")
+        }
+        companion_attributes = {
+            "media_title", "media_artist", "media_album_name", "media_channel"
+        }
         for control_id, mapping in self.project.mappings.items():
+            refreshes_text_group = (
+                mapping.get("media_selector_id") in affected_selectors
+                and mapping.get("attribute") in companion_attributes
+            )
             if (
                 mapping.get("entity_id") == entity_id
                 or mapping.get("fallback_entity_id") == entity_id
+                or refreshes_text_group
             ):
                 await self._publish_control(control_id, mapping)
 

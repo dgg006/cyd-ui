@@ -15,7 +15,12 @@ from homeassistant.const import EVENT_SERVICE_REGISTERED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from .bridge_model import command_for_action, fallback_metadata_is_fresh, update_for_state
+from .bridge_model import (
+    command_for_action,
+    fallback_group_is_fresh,
+    fallback_metadata_is_fresh,
+    update_for_state,
+)
 from .artwork import artwork_background, circular_artwork_jpeg
 from .storage import CydUiStorage
 
@@ -183,10 +188,24 @@ class CydUiBridge:
         entity_id = event.data.get("entity_id")
         if not isinstance(entity_id, str):
             return
-        for control_id, mapping in self._mappings().items():
+        mappings = self._mappings()
+        affected_selectors = {
+            mapping.get("media_selector_id")
+            for mapping in mappings.values()
+            if mapping.get("fallback_entity_id") == entity_id
+            and mapping.get("media_selector_id")
+        }
+        companion_attributes = {
+            "media_title", "media_artist", "media_album_name", "media_channel"
+        }
+        for control_id, mapping in mappings.items():
             watches_entity = self._effective_entity_id(control_id, mapping) == entity_id
             watches_fallback = mapping.get("fallback_entity_id") == entity_id
-            if (watches_entity or watches_fallback) and mapping.get("publish_state") is not False:
+            refreshes_text_group = (
+                mapping.get("media_selector_id") in affected_selectors
+                and mapping.get("attribute") in companion_attributes
+            )
+            if (watches_entity or watches_fallback or refreshes_text_group) and mapping.get("publish_state") is not False:
                 await self._async_publish_control(control_id, mapping)
 
     async def async_sync_all(self) -> None:
@@ -221,6 +240,23 @@ class CydUiBridge:
                 state.last_changed if state else None,
                 fallback_state.last_updated if fallback_state else None,
             )
+            if not fallback_is_fresh and state is not None:
+                companion_updates = []
+                selector_id = mapping.get("media_selector_id")
+                for companion in self._mappings().values():
+                    if companion.get("media_selector_id") != selector_id:
+                        continue
+                    companion_id = companion.get("fallback_entity_id")
+                    companion_state = (
+                        self._hass.states.get(companion_id)
+                        if isinstance(companion_id, str)
+                        else None
+                    )
+                    if companion_state is not None:
+                        companion_updates.append(companion_state.last_updated)
+                fallback_is_fresh = fallback_group_is_fresh(
+                    state.last_changed, companion_updates
+                )
             if not fallback_is_fresh:
                 fallback_state = None
             fallback_mapping = dict(mapping)

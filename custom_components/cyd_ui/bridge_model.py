@@ -62,6 +62,22 @@ def fallback_metadata_is_fresh(playback_started: Any, fallback_updated: Any) -> 
     )
 
 
+def fallback_group_is_fresh(
+    playback_started: Any, fallback_updates: list[Any]
+) -> bool:
+    """Accept a metadata set when any companion field proves it is current.
+
+    Jarvis only updates fields whose value changed. When the same song survives
+    a radio restart, title and artist can predate the media_player transition
+    while station or artwork correctly mark the new playback session.
+    """
+    return any(
+        fallback_metadata_is_fresh(playback_started, updated)
+        for updated in fallback_updates
+        if updated is not None
+    )
+
+
 def command_for_action(
     control_id: str,
     action: str,

@@ -1,5 +1,16 @@
 # Estado del proyecto
 
+## Actualización 2026-08-13 — resincronización multimedia selectiva
+
+- CYD UI v0.7.6 trata los metadatos alternativos de Jarvis como un conjunto:
+  una emisora o carátula recién publicada valida canción y artista aunque sus
+  textos coincidan con la reproducción anterior y no generen un evento propio.
+- La resincronización queda limitada a los textos multimedia; no vuelve a
+  procesar la carátula ni el resto de los controles repetidamente.
+- El puente de laboratorio traduce las URL internas de carátulas al acceso
+  remoto disponible cuando la red doméstica no es alcanzable directamente.
+- Validación: 59 pruebas automáticas superadas y prueba real correcta.
+
 ## Actualización 2026-08-13 — multimedia confiable
 
 - CYD UI v0.7.5 distingue las capacidades del reproductor: pausa para
