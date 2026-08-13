@@ -1,5 +1,14 @@
 # Estado del proyecto
 
+## Actualización 2026-08-13 — margen para crecer
+
+- CYD UI v0.7.8 reemplaza el separador de reproductores basado en streams por
+  un parser compacto y equivalente.
+- El firmware baja de 96,4 % a 86,1 % de la partición de aplicación y la RAM
+  estática de 32,5 % a 30,0 %, sin perder funciones ni modificar la interfaz.
+- Validación: 61 pruebas automáticas superadas, recompilación correcta y
+  firmware cargado por USB en COM57.
+
 ## Actualización 2026-08-13 — selector multimedia directo
 
 - CYD UI v0.7.7 reemplaza el avance cíclico por una lista desplegable de hasta

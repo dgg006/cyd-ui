@@ -113,6 +113,10 @@ bloqueado en modo laboratorio.
 - Al elegir un reproductor, todos los metadatos y controles cambian juntos a esa entidad.
 - La barra y el porcentaje de volumen responden inmediatamente al tacto mientras Home Assistant confirma el cambio.
 
+### Novedades de v0.7.8
+
+- El selector evita dependencias C++ pesadas para conservar margen de firmware para nuevas pantallas.
+
 ## Configurador visual
 
 ```powershell

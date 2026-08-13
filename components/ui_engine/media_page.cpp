@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <set>
-#include <sstream>
 
 #include "visual_theme.h"
 
@@ -342,10 +341,14 @@ void MediaPage::refresh_value(const std::string &role) {
 void MediaPage::update_player_options_(const std::string &value) {
   this->player_count_ = 0;
   this->selected_player_ = 0;
-  std::stringstream stream(value);
-  std::string part;
   std::vector<std::string> parts;
-  while (std::getline(stream, part, '\x1F')) parts.push_back(part);
+  size_t start = 0;
+  while (start <= value.size()) {
+    const size_t separator = value.find('\x1F', start);
+    parts.push_back(value.substr(start, separator == std::string::npos ? std::string::npos : separator - start));
+    if (separator == std::string::npos) break;
+    start = separator + 1;
+  }
   if (parts.size() >= 2) {
     this->selected_player_ = static_cast<uint8_t>(std::max(0, std::min(2, std::atoi(parts[0].c_str()))));
     for (size_t index = 1; index < parts.size() && this->player_count_ < 3; index++) {
