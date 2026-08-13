@@ -584,7 +584,18 @@ class LabGateway:
         if command_key in REMOTE_BLOCKED_COMMANDS and not self.allow_climate_power:
             print("Encendido/apagado del calefactor bloqueado en modo laboratorio", flush=True)
             return
-        await asyncio.to_thread(self.ha.call_service, command)
+        try:
+            await asyncio.to_thread(self.ha.call_service, command)
+        except Exception as error:
+            # A service rejected by one player is not a transport failure. Keep
+            # the API session and current page alive instead of reconnecting and
+            # reapplying the complete project.
+            print(
+                f"Acción rechazada por Home Assistant: {control_id} -> "
+                f"{command['domain']}.{command['service']} ({error})",
+                flush=True,
+            )
+            return
         print(
             f"Acción enviada: {control_id} -> {command['domain']}.{command['service']}",
             flush=True,

@@ -94,6 +94,13 @@ bloqueado en modo laboratorio.
 - Las fuentes incluyen puntuación y caracteres latinos habituales en metadatos musicales.
 - La vista previa del editor reproduce la nueva distribución.
 
+### Novedades de v0.7.5
+
+- El control central usa pausa en reproductores compatibles y stop en radios que no admiten pausa.
+- Una acción multimedia rechazada ya no reinicia el puente ni devuelve la pantalla a la primera página.
+- La sincronización inicial conserva los metadatos válidos recibidos antes de finalizar la conexión.
+- Los metadatos antiguos no reaparecen al iniciar una reproducción nueva sin información propia.
+
 ## Configurador visual
 
 ```powershell

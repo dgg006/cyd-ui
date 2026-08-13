@@ -1039,9 +1039,15 @@ void UiEngineComponent::set_backend_connected(bool connected) {
   if (this->active_page_ == nullptr) {
     return;
   }
-  this->active_page_->set_all_states(connected ? ControlState::UNKNOWN : ControlState::STALE_OR_DISCONNECTED);
-  for (auto &entry : this->control_states_) {
-    entry.second.reliability = connected ? ControlState::UNKNOWN : ControlState::STALE_OR_DISCONNECTED;
+  // A client can finish its initial state snapshot before ESPHome's delayed
+  // on_client_connected automation reaches this method. Never overwrite those
+  // fresh VALID values with UNKNOWN. A real disconnect still invalidates every
+  // cached value; the following snapshot will restore them individually.
+  if (!connected) {
+    this->active_page_->set_all_states(ControlState::STALE_OR_DISCONNECTED);
+    for (auto &entry : this->control_states_) {
+      entry.second.reliability = ControlState::STALE_OR_DISCONNECTED;
+    }
   }
   ESP_LOGI(TAG, "Backend %s", connected ? "conectado; esperando sincronizacion" : "desconectado");
 }

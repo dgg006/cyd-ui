@@ -1,5 +1,17 @@
 # Estado del proyecto
 
+## Actualización 2026-08-13 — multimedia confiable
+
+- CYD UI v0.7.5 distingue las capacidades del reproductor: pausa para
+  dispositivos compatibles y stop para radios que no pueden pausarse.
+- Un servicio rechazado por Home Assistant ya no reinicia el puente ni cambia
+  la página visible de la CYD.
+- La conexión tardía del backend conserva los estados y metadatos válidos que
+  hayan llegado durante la instantánea inicial.
+- La información auxiliar de Jarvis solo se reutiliza cuando pertenece a la
+  reproducción actual, evitando mostrar la radio anterior sobre un MP3.
+- Validación: 58 pruebas automáticas superadas.
+
 ## Actualización 2026-08-12 — distribución multimedia refinada
 
 - CYD UI v0.7.4 adopta la distribución multimedia aprobada en la placa real.

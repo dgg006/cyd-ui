@@ -162,14 +162,22 @@ class CydUiBridge:
         if command is None:
             _LOGGER.warning("Rejected CYD UI action %s/%s", control_id, action)
             return
-        await self._hass.services.async_call(
-            command["domain"],
-            command["service"],
-            command["data"],
-            target=command["target"],
-            blocking=True,
-            context=event.context,
-        )
+        try:
+            await self._hass.services.async_call(
+                command["domain"],
+                command["service"],
+                command["data"],
+                target=command["target"],
+                blocking=True,
+                context=event.context,
+            )
+        except HomeAssistantError as error:
+            _LOGGER.warning(
+                "CYD UI action %s/%s was rejected without resetting the panel: %s",
+                control_id,
+                action,
+                error,
+            )
 
     async def _async_handle_state(self, event: Event) -> None:
         entity_id = event.data.get("entity_id")

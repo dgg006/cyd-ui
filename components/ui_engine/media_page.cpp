@@ -15,6 +15,7 @@ constexpr const char *BUTTON_ROLES[] = {"previous", "play_pause", "next", "volum
 constexpr const char *ICON_PREVIOUS = "\U000F04AE";
 constexpr const char *ICON_PLAY = "\U000F040A";
 constexpr const char *ICON_PAUSE = "\U000F03E4";
+constexpr const char *ICON_STOP = "\U000F04DB";
 constexpr const char *ICON_NEXT = "\U000F04AD";
 constexpr const char *ICON_VOLUME_DOWN = "\U000F075E";
 constexpr const char *ICON_VOLUME_UP = "\U000F075D";
@@ -194,7 +195,7 @@ bool MediaPage::update_control(const std::string &id, bool active, const std::st
     }
     this->refresh_value(item.first);
     if (item.first == "play_pause") {
-      lv_label_set_text(this->button_labels_[item.first], active ? ICON_PAUSE : ICON_PLAY);
+      lv_label_set_text(this->button_labels_[item.first], active ? (value == "stop" ? ICON_STOP : ICON_PAUSE) : ICON_PLAY);
       lv_obj_set_style_border_color(this->buttons_[item.first],
                                     lv_color_hex(active ? visual_theme::ACCENT : visual_theme::BORDER), LV_PART_MAIN);
       lv_obj_set_style_border_width(this->buttons_[item.first], active ? 3 : 1, LV_PART_MAIN);

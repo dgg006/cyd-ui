@@ -15,6 +15,9 @@ MEDIA_METADATA_ATTRIBUTES = {
     "media_image_url",
 }
 MEDIA_EMPTY_STATES = {"idle", "off", "standby"}
+MEDIA_FEATURE_PAUSE = 1
+MEDIA_FEATURE_STOP = 4096
+MEDIA_FEATURE_PLAY = 16384
 ALLOWED_SERVICES: dict[str, set[str]] = {
     "light": {"toggle", "turn_on", "turn_off"},
     "switch": {"toggle", "turn_on", "turn_off"},
@@ -25,7 +28,8 @@ ALLOWED_SERVICES: dict[str, set[str]] = {
     "button": {"press"},
     "cover": {"open_cover", "close_cover"},
     "media_player": {
-        "media_play_pause", "media_previous_track", "media_next_track",
+        "media_play_pause", "media_play", "media_pause", "media_stop",
+        "media_previous_track", "media_next_track",
         "volume_down", "volume_up", "volume_mute",
     },
 }
@@ -98,6 +102,18 @@ def command_for_action(
             return None
         domain, service = "cover", "set_cover_position"
         data["position"] = round(max(0.0, min(100.0, float(current) + float(delta))))
+    elif domain == "media_player" and service == "media_play_pause":
+        try:
+            supported = int(attributes.get("supported_features", 0))
+        except (TypeError, ValueError):
+            supported = 0
+        if entity_state in {"playing", "buffering"}:
+            if supported & MEDIA_FEATURE_PAUSE:
+                service = "media_pause"
+            elif supported & MEDIA_FEATURE_STOP:
+                service = "media_stop"
+        elif entity_state == "paused" and supported & MEDIA_FEATURE_PLAY:
+            service = "media_play"
     elif service not in ALLOWED_SERVICES.get(str(domain), set()):
         return None
 
@@ -155,6 +171,17 @@ def update_for_state(
             value = str(source)
     else:
         value = str(source)
+
+    if (
+        mapping.get("domain") == "media_player"
+        and mapping.get("service") == "media_play_pause"
+        and entity_state in {"playing", "buffering"}
+    ):
+        try:
+            supported = int(attributes.get("supported_features", 0))
+        except (TypeError, ValueError):
+            supported = 0
+        value = "pause" if supported & MEDIA_FEATURE_PAUSE else "stop" if supported & MEDIA_FEATURE_STOP else "pause"
 
     # Binary sensors are value-only controls, but their icon still needs the
     # boolean state. Older saved projects did not carry state_active, so keep

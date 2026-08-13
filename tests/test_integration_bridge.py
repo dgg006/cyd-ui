@@ -137,6 +137,48 @@ class NativeBridgeModelTests(unittest.TestCase):
         )
         self.assertEqual("42", update["value"])
 
+    def test_play_pause_uses_player_capabilities(self):
+        mapping = {
+            "entity_id": "media_player.radio",
+            "domain": "media_player",
+            "action": "play_pause",
+            "service": "media_play_pause",
+            "allow_control": True,
+        }
+        radio = MODEL.command_for_action(
+            "media_play", "play_pause", mapping, "playing",
+            {"supported_features": MODEL.MEDIA_FEATURE_STOP},
+        )
+        speaker = MODEL.command_for_action(
+            "media_play", "play_pause", mapping, "playing",
+            {"supported_features": MODEL.MEDIA_FEATURE_PAUSE},
+        )
+        resumed = MODEL.command_for_action(
+            "media_play", "play_pause", mapping, "paused",
+            {"supported_features": MODEL.MEDIA_FEATURE_PLAY},
+        )
+        self.assertEqual("media_stop", radio["service"])
+        self.assertEqual("media_pause", speaker["service"])
+        self.assertEqual("media_play", resumed["service"])
+
+    def test_play_button_update_announces_stop_or_pause_icon(self):
+        mapping = {
+            "domain": "media_player",
+            "service": "media_play_pause",
+            "active_states": ["playing", "buffering"],
+        }
+        radio = MODEL.update_for_state(
+            "media_play", mapping, "playing",
+            {"supported_features": MODEL.MEDIA_FEATURE_STOP},
+        )
+        speaker = MODEL.update_for_state(
+            "media_play", mapping, "playing",
+            {"supported_features": MODEL.MEDIA_FEATURE_PAUSE},
+        )
+        self.assertEqual("stop", radio["value"])
+        self.assertEqual("pause", speaker["value"])
+        self.assertTrue(radio["active"])
+
     def test_media_play_state_uses_explicit_active_states(self):
         mapping = {"value_only": True, "active_states": ["playing", "buffering"]}
         self.assertTrue(MODEL.update_for_state("play", mapping, "playing", {})["active"])
