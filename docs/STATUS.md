@@ -1,5 +1,16 @@
 # Estado del proyecto
 
+## Actualización 2026-08-13 — selector multimedia directo
+
+- CYD UI v0.7.7 reemplaza el avance cíclico por una lista desplegable de hasta
+  tres reproductores, sin crear objetos LVGL durante el uso.
+- La selección se propaga a metadatos, carátula, volumen y comandos como una
+  sola unidad tanto en la integración nativa como en el puente de laboratorio.
+- El volumen muestra una respuesta visual optimista inmediata y conserva la
+  confirmación posterior de Home Assistant como estado definitivo.
+- Validación: 61 pruebas automáticas superadas, compilación correcta y firmware
+  cargado por USB en COM57.
+
 ## Actualización 2026-08-13 — resincronización multimedia selectiva
 
 - CYD UI v0.7.6 trata los metadatos alternativos de Jarvis como un conjunto:

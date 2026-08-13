@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <set>
+#include <sstream>
 
 #include "visual_theme.h"
 
@@ -94,6 +95,32 @@ void MediaPage::create(lv_obj_t *parent) {
   lv_obj_set_style_text_color(this->player_chevron_, lv_color_hex(visual_theme::TEXT_MUTED), LV_PART_MAIN);
   lv_obj_align(this->player_chevron_, LV_ALIGN_RIGHT_MID, 0, -1);
 
+  this->player_menu_ = lv_obj_create(parent);
+  lv_obj_set_size(this->player_menu_, 214, 112);
+  lv_obj_set_pos(this->player_menu_, 98, 73);
+  lv_obj_set_style_radius(this->player_menu_, 8, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(this->player_menu_, lv_color_hex(visual_theme::SURFACE), LV_PART_MAIN);
+  lv_obj_set_style_border_color(this->player_menu_, lv_color_hex(visual_theme::ACCENT), LV_PART_MAIN);
+  lv_obj_set_style_border_width(this->player_menu_, 1, LV_PART_MAIN);
+  lv_obj_set_style_pad_all(this->player_menu_, 4, LV_PART_MAIN);
+  lv_obj_remove_flag(this->player_menu_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(this->player_menu_, LV_OBJ_FLAG_HIDDEN);
+  for (uint8_t index = 0; index < this->player_option_buttons_.size(); index++) {
+    lv_obj_t *option = lv_button_create(this->player_menu_);
+    lv_obj_set_size(option, 204, 32);
+    lv_obj_set_pos(option, 0, index * 35);
+    visual_theme::card(option);
+    lv_obj_set_style_radius(option, 5, LV_PART_MAIN);
+    lv_obj_set_user_data(option, reinterpret_cast<void *>(static_cast<uintptr_t>(index + 1)));
+    lv_obj_add_event_cb(option, player_option_callback, LV_EVENT_CLICKED, this);
+    lv_obj_t *label = lv_label_create(option);
+    lv_obj_set_width(label, 184);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
+    lv_obj_align(label, LV_ALIGN_LEFT_MID, 2, 0);
+    this->player_option_buttons_[index] = option;
+    this->player_option_labels_[index] = label;
+  }
+
   this->media_title_ = lv_label_create(parent);
   lv_obj_set_width(this->media_title_, 214);
   lv_obj_set_height(this->media_title_, 23);
@@ -169,6 +196,7 @@ void MediaPage::apply(const PageConfig &config) {
   this->actions_.clear();
   this->values_.clear();
   this->states_.clear();
+  this->set_player_menu_visible_(false);
   for (const auto &control : config.controls) {
     this->ids_[control.role] = control.id;
     this->actions_[control.role] = control.action;
@@ -193,6 +221,7 @@ bool MediaPage::update_control(const std::string &id, bool active, const std::st
       this->update_artwork_url_(value, state);
       return true;
     }
+    if (item.first == "player") this->update_player_options_(value);
     this->refresh_value(item.first);
     if (item.first == "play_pause") {
       lv_label_set_text(this->button_labels_[item.first], active ? (value == "stop" ? ICON_STOP : ICON_PAUSE) : ICON_PLAY);
@@ -252,13 +281,33 @@ void MediaPage::next_page_callback(lv_event_t *event) {
 }
 void MediaPage::player_selector_callback(lv_event_t *event) {
   auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
-  page->emit(page->ids_["player"], "next_player");
+  page->set_player_menu_visible_(lv_obj_has_flag(page->player_menu_, LV_OBJ_FLAG_HIDDEN));
+}
+void MediaPage::player_option_callback(lv_event_t *event) {
+  auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
+  auto *target = static_cast<lv_obj_t *>(lv_event_get_target(event));
+  const auto raw = reinterpret_cast<uintptr_t>(lv_obj_get_user_data(target));
+  if (raw == 0 || raw > page->player_count_) return;
+  const uint8_t index = static_cast<uint8_t>(raw - 1);
+  page->selected_player_ = index;
+  page->values_["player"] = page->player_names_[index];
+  page->refresh_value("player");
+  page->set_player_menu_visible_(false);
+  page->emit(page->ids_["player"], "select_player:" + std::to_string(index));
 }
 void MediaPage::action_callback(lv_event_t *event) {
   auto *page = static_cast<MediaPage *>(lv_event_get_user_data(event));
   lv_obj_t *target = static_cast<lv_obj_t *>(lv_event_get_target(event));
   for (const auto &item : page->buttons_) {
     if (item.second == target) {
+      if (item.first == "volume_down" || item.first == "volume_up") {
+        int volume = std::atoi(page->values_["volume"].c_str());
+        volume += item.first == "volume_up" ? 10 : -10;
+        volume = std::max(0, std::min(100, volume));
+        page->values_["volume"] = std::to_string(volume);
+        page->states_["volume"] = ControlState::VALID;
+        page->refresh_value("volume");
+      }
       page->emit(page->ids_[item.first], page->actions_[item.first]);
       return;
     }
@@ -287,6 +336,49 @@ void MediaPage::refresh_value(const std::string &role) {
   if (role == "volume" && this->volume_bar_fill_ != nullptr) {
     const int value = valid ? std::max(0, std::min(100, std::atoi(this->values_[role].c_str()))) : 0;
     lv_obj_set_width(this->volume_bar_fill_, value * 72 / 100);
+  }
+}
+
+void MediaPage::update_player_options_(const std::string &value) {
+  this->player_count_ = 0;
+  this->selected_player_ = 0;
+  std::stringstream stream(value);
+  std::string part;
+  std::vector<std::string> parts;
+  while (std::getline(stream, part, '\x1F')) parts.push_back(part);
+  if (parts.size() >= 2) {
+    this->selected_player_ = static_cast<uint8_t>(std::max(0, std::min(2, std::atoi(parts[0].c_str()))));
+    for (size_t index = 1; index < parts.size() && this->player_count_ < 3; index++) {
+      this->player_names_[this->player_count_++] = parts[index];
+    }
+    if (this->selected_player_ >= this->player_count_) this->selected_player_ = 0;
+    this->values_["player"] = this->player_count_ ? this->player_names_[this->selected_player_] : "Sin reproductor";
+  } else if (!value.empty()) {
+    this->player_names_[0] = value;
+    this->player_count_ = 1;
+  }
+  for (uint8_t index = 0; index < this->player_option_buttons_.size(); index++) {
+    if (index < this->player_count_) {
+      lv_label_set_text(this->player_option_labels_[index], this->player_names_[index].c_str());
+      lv_obj_set_style_border_color(this->player_option_buttons_[index],
+                                    lv_color_hex(index == this->selected_player_ ? visual_theme::ACCENT : visual_theme::BORDER), LV_PART_MAIN);
+      lv_obj_set_style_border_width(this->player_option_buttons_[index], index == this->selected_player_ ? 2 : 1, LV_PART_MAIN);
+      lv_obj_remove_flag(this->player_option_buttons_[index], LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(this->player_option_buttons_[index], LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+}
+
+void MediaPage::set_player_menu_visible_(bool visible) {
+  if (this->player_menu_ == nullptr || this->player_count_ < 2) return;
+  if (visible) {
+    lv_obj_remove_flag(this->player_menu_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(this->player_menu_);
+    lv_label_set_text(this->player_chevron_, "^");
+  } else {
+    lv_obj_add_flag(this->player_menu_, LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(this->player_chevron_, "v");
   }
 }
 

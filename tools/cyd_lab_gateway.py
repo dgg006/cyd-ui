@@ -438,6 +438,7 @@ class LabGateway:
         self._last_config_poll = 0.0
         self._applied_revision: int | None = None
         self._apply_lock = asyncio.Lock()
+        self._media_selection: dict[str, int] = {}
 
     def _emit_from_thread(self, event: tuple[str, Any]) -> None:
         self.loop.call_soon_threadsafe(self.events.put_nowait, event)
@@ -485,7 +486,7 @@ class LabGateway:
     async def _publish_control(self, control_id: str, mapping: dict[str, Any]) -> None:
         if mapping.get("publish_state") is False:
             return
-        entity_id = mapping.get("entity_id")
+        entity_id = self._effective_entity_id(control_id, mapping)
         if not isinstance(entity_id, str):
             return
         state = self.states.get(entity_id)
@@ -495,6 +496,20 @@ class LabGateway:
             state.get("state") if state else None,
             state.get("attributes") if state else None,
         )
+        players = mapping.get("entity_ids")
+        if isinstance(players, list):
+            players = [item for item in players if isinstance(item, str) and "." in item][:3]
+            if players:
+                index = self._media_selection.get(control_id, 0) % len(players)
+                names = []
+                for player_id in players:
+                    player_state = self.states.get(player_id, {})
+                    names.append(str(
+                        player_state.get("attributes", {}).get("friendly_name")
+                        or player_id.partition(".")[2]
+                    ))
+                update["value"] = "\x1f".join([str(index), *names])
+                update["reliability"] = "valid"
         fallback_id = mapping.get("fallback_entity_id")
         fallback_for = mapping.get("fallback_for_entity_id")
         fallback_allowed = not fallback_for or fallback_for == entity_id
@@ -561,6 +576,35 @@ class LabGateway:
         for control_id, mapping in self.project.mappings.items():
             await self._publish_control(control_id, mapping)
 
+    def _effective_entity_id(self, control_id: str, mapping: dict[str, Any]) -> str | None:
+        selector_id = mapping.get("media_selector_id") or (
+            control_id if isinstance(mapping.get("entity_ids"), list) else None
+        )
+        selector = self.project.mappings.get(selector_id, {}) if self.project and selector_id else {}
+        players = selector.get("entity_ids")
+        if isinstance(players, list):
+            players = [item for item in players if isinstance(item, str) and "." in item]
+            if players:
+                return players[self._media_selection.get(str(selector_id), 0) % len(players)]
+        entity_id = mapping.get("entity_id")
+        return entity_id if isinstance(entity_id, str) and "." in entity_id else None
+
+    async def _select_player(self, selector_id: str, index: int) -> bool:
+        if self.project is None:
+            return False
+        selector = self.project.mappings.get(selector_id, {})
+        players = selector.get("entity_ids")
+        if not isinstance(players, list):
+            return False
+        players = [item for item in players if isinstance(item, str) and "." in item]
+        if index < 0 or index >= len(players):
+            return False
+        self._media_selection[selector_id] = index
+        for control_id, mapping in self.project.mappings.items():
+            if control_id == selector_id or mapping.get("media_selector_id") == selector_id:
+                await self._publish_control(control_id, mapping)
+        return True
+
     async def _handle_ha_state(self, data: dict[str, Any]) -> None:
         entity_id = data.get("entity_id")
         new_state = data.get("new_state")
@@ -584,7 +628,7 @@ class LabGateway:
                 and mapping.get("attribute") in companion_attributes
             )
             if (
-                mapping.get("entity_id") == entity_id
+                self._effective_entity_id(control_id, mapping) == entity_id
                 or mapping.get("fallback_entity_id") == entity_id
                 or refreshes_text_group
             ):
@@ -613,7 +657,17 @@ class LabGateway:
         if not control_id or not action:
             return
         mapping = self.project.mappings.get(control_id)
-        entity_id = mapping.get("entity_id") if isinstance(mapping, dict) else None
+        if action.startswith("select_player:") and isinstance(mapping, dict):
+            try:
+                index = int(action.partition(":")[2])
+            except ValueError:
+                return
+            if await self._select_player(control_id, index):
+                return
+        entity_id = self._effective_entity_id(control_id, mapping) if isinstance(mapping, dict) else None
+        if isinstance(mapping, dict) and entity_id:
+            mapping = dict(mapping)
+            mapping["entity_id"] = entity_id
         state = self.states.get(entity_id) if entity_id else None
         command = BRIDGE_MODEL.command_for_action(
             control_id,

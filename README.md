@@ -107,6 +107,12 @@ bloqueado en modo laboratorio.
 - Emisora y carátula validan el conjunto multimedia actual sin provocar recargas masivas.
 - El puente de laboratorio obtiene carátulas internas mediante el acceso remoto disponible.
 
+### Novedades de v0.7.7
+
+- El selector multimedia abre una lista real con hasta tres reproductores configurados.
+- Al elegir un reproductor, todos los metadatos y controles cambian juntos a esa entidad.
+- La barra y el porcentaje de volumen responden inmediatamente al tacto mientras Home Assistant confirma el cambio.
+
 ## Configurador visual
 
 ```powershell

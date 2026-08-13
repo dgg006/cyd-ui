@@ -75,6 +75,51 @@ class GatewayApplyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(bridge._applied_revision, 7)
 
+    async def test_media_player_can_be_selected_by_index(self):
+        bridge = gateway.LabGateway.__new__(gateway.LabGateway)
+        bridge.project = gateway.RuntimeProject(
+            revision=8,
+            ui={"schema_version": 1, "pages": []},
+            mappings={
+                "media_player": {
+                    "entity_ids": [
+                        "media_player.living",
+                        "media_player.kitchen",
+                    ]
+                },
+                "media_volume": {"media_selector_id": "media_player"},
+            },
+        )
+        bridge._media_selection = {}
+        published = []
+
+        async def publish(control_id, mapping):
+            published.append(control_id)
+
+        bridge._publish_control = publish
+
+        self.assertTrue(await bridge._select_player("media_player", 1))
+        self.assertEqual(
+            bridge._effective_entity_id(
+                "media_volume", bridge.project.mappings["media_volume"]
+            ),
+            "media_player.kitchen",
+        )
+        self.assertEqual(published, ["media_player", "media_volume"])
+
+    async def test_media_player_rejects_out_of_range_index(self):
+        bridge = gateway.LabGateway.__new__(gateway.LabGateway)
+        bridge.project = gateway.RuntimeProject(
+            revision=8,
+            ui={"schema_version": 1, "pages": []},
+            mappings={
+                "media_player": {"entity_ids": ["media_player.living"]}
+            },
+        )
+        bridge._media_selection = {}
+
+        self.assertFalse(await bridge._select_player("media_player", 2))
+
 
 if __name__ == "__main__":
     unittest.main()

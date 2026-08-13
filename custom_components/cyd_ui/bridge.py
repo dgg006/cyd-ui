@@ -114,6 +114,20 @@ class CydUiBridge:
                 await self._async_publish_control(control_id, mapping)
         return True
 
+    async def _async_set_player(self, selector_id: str, index: int) -> bool:
+        selector = self._mappings().get(selector_id)
+        players = selector.get("entity_ids") if isinstance(selector, dict) else None
+        if not isinstance(players, list):
+            return False
+        players = [item for item in players if isinstance(item, str) and "." in item]
+        if index < 0 or index >= len(players):
+            return False
+        self._media_selection[selector_id] = index
+        for control_id, mapping in self._mappings().items():
+            if control_id == selector_id or mapping.get("media_selector_id") == selector_id:
+                await self._async_publish_control(control_id, mapping)
+        return True
+
     async def _async_handle_service_registered(self, event: Event) -> None:
         """Apply the stored project when the CYD reconnects to ESPHome API."""
         if (
@@ -154,6 +168,13 @@ class CydUiBridge:
         mapping = self._mappings().get(control_id)
         if action in {"previous_player", "next_player"} and isinstance(mapping, dict):
             if await self._async_select_player(control_id, -1 if action == "previous_player" else 1):
+                return
+        if action.startswith("select_player:") and isinstance(mapping, dict):
+            try:
+                index = int(action.partition(":")[2])
+            except ValueError:
+                return
+            if await self._async_set_player(control_id, index):
                 return
         entity_id = self._effective_entity_id(control_id, mapping) if isinstance(mapping, dict) else None
         state = self._hass.states.get(entity_id) if entity_id else None
@@ -227,6 +248,22 @@ class CydUiBridge:
             state.state if state else None,
             dict(state.attributes) if state else None,
         )
+        players = mapping.get("entity_ids")
+        if isinstance(players, list):
+            players = [item for item in players if isinstance(item, str) and "." in item][:3]
+            if players:
+                index = self._media_selection.get(control_id, 0) % len(players)
+                names = []
+                for player_id in players:
+                    player_state = self._hass.states.get(player_id)
+                    friendly_name = (
+                        player_state.attributes.get("friendly_name")
+                        if player_state is not None
+                        else None
+                    )
+                    names.append(str(friendly_name or player_id.partition(".")[2]))
+                update["value"] = "\x1f".join([str(index), *names])
+                update["reliability"] = "valid"
         fallback_id = mapping.get("fallback_entity_id")
         fallback_for = mapping.get("fallback_for_entity_id")
         fallback_allowed = not fallback_for or fallback_for == entity_id

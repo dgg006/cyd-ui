@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <array>
 #include <string>
 
 #include "esphome/components/online_image/online_image.h"
@@ -28,10 +29,13 @@ class MediaPage : public PageTemplate {
   static void previous_page_callback(lv_event_t *event);
   static void next_page_callback(lv_event_t *event);
   static void player_selector_callback(lv_event_t *event);
+  static void player_option_callback(lv_event_t *event);
   static void action_callback(lv_event_t *event);
   void emit(const std::string &id, const std::string &action);
   void refresh_value(const std::string &role);
   void update_artwork_url_(const std::string &url, ControlState state);
+  void update_player_options_(const std::string &value);
+  void set_player_menu_visible_(bool visible);
 
   lv_obj_t *title_{nullptr};
   lv_obj_t *previous_page_{nullptr};
@@ -39,6 +43,12 @@ class MediaPage : public PageTemplate {
   lv_obj_t *player_selector_{nullptr};
   lv_obj_t *player_{nullptr};
   lv_obj_t *player_chevron_{nullptr};
+  lv_obj_t *player_menu_{nullptr};
+  std::array<lv_obj_t *, 3> player_option_buttons_{};
+  std::array<lv_obj_t *, 3> player_option_labels_{};
+  std::array<std::string, 3> player_names_{};
+  uint8_t player_count_{0};
+  uint8_t selected_player_{0};
   lv_obj_t *media_title_{nullptr};
   lv_obj_t *artist_{nullptr};
   lv_obj_t *station_{nullptr};
