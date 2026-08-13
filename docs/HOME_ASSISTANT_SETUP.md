@@ -98,6 +98,11 @@ El aviso enciende la pantalla, queda por encima de cualquier página y no se
 retira hasta pulsar **ACEPTAR**. La confirmación emite `esphome.cyd_ui_action`
 con el identificador del recordatorio y `action: acknowledge`.
 
+El panel lateral **CYD UI → Recordatorios** permite realizar lo mismo sin YAML.
+Además de enviar un aviso inmediatamente, puede programarlo una vez, todos los
+días, de lunes a viernes, semanalmente o en días específicos. La agenda queda
+guardada en Home Assistant y cada entrada puede cancelarse desde el mismo panel.
+
 ## Recuperación
 
 - Si la CYD muestra `CONFIGURAR WI-FI`, conectarse a `CYD UI Setup` con `12345678` y abrir `http://192.168.4.1`.

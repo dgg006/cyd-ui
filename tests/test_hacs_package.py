@@ -54,6 +54,7 @@ class HacsPackageTests(unittest.TestCase):
             "storage.py",
             "services.yaml",
             "reminders.py",
+            "reminder_model.py",
             "frontend/cyd-ui-panel.js",
             "frontend/editor-app.js",
             "frontend/editor.css",
@@ -146,6 +147,8 @@ class HacsPackageTests(unittest.TestCase):
         self.assertIn("scheduled_reminders", scheduler_source)
         self.assertIn('"/api/reminder/schedule"', editor_source)
         self.assertIn("Programar recordatorio", editor_source)
+        self.assertIn('repeat:body.repeat||"once"', editor_source)
+        self.assertIn("reminderRepeatLabel", editor_source)
 
     def test_release_urls_point_to_the_published_repository(self):
         manifest = json.loads((INTEGRATION_ROOT / "manifest.json").read_text(encoding="utf-8"))

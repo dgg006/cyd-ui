@@ -1,5 +1,15 @@
 # Estado del proyecto
 
+## Actualización 2026-08-13 — recordatorios repetitivos visuales
+
+- CYD UI v0.8.0 amplía el centro de recordatorios con repeticiones diarias,
+  laborales, semanales y por días elegidos, sin YAML ni automatizaciones manuales.
+- La agenda persiste en Home Assistant, conserva la hora local, sobrevive a
+  reinicios y muestra tanto la próxima entrega como el patrón de repetición.
+- La vista móvil usa botones grandes para seleccionar los días y mantiene todas
+  las acciones accesibles en una sola columna.
+- Validación: 64 pruebas automáticas superadas y sintaxis del frontend validada.
+
 ## Actualización 2026-08-13 — margen para crecer
 
 - CYD UI v0.7.8 reemplaza el separador de reproductores basado en streams por

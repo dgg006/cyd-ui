@@ -117,6 +117,13 @@ bloqueado en modo laboratorio.
 
 - El selector evita dependencias C++ pesadas para conservar margen de firmware para nuevas pantallas.
 
+### Novedades de v0.8.0
+
+- El centro visual permite programar recordatorios únicos o repetitivos sin escribir YAML.
+- Admite repetición diaria, de lunes a viernes, semanal o en días elegidos.
+- La agenda muestra la próxima entrega y su repetición; cada recordatorio puede cancelarse desde allí.
+- Las repeticiones conservan la hora local y vuelven a armarse después de reiniciar Home Assistant.
+
 ## Configurador visual
 
 ```powershell

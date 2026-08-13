@@ -463,6 +463,8 @@ def websocket_reminder_schedule_list(
         vol.Optional("sound_mode", default="once"): vol.In(("silent", "once", "alarm")),
         vol.Optional("alarm_duration", default=120): vol.All(vol.Coerce(int), vol.Range(min=10, max=120)),
         vol.Optional("snooze_minutes", default=0): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
+        vol.Optional("repeat", default="once"): vol.In(("once", "daily", "weekdays", "weekly", "custom")),
+        vol.Optional("weekdays", default=[]): [vol.All(vol.Coerce(int), vol.Range(min=0, max=6))],
     }
 )
 @websocket_api.require_admin
@@ -472,7 +474,7 @@ async def websocket_reminder_schedule_add(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Create a persistent one-shot reminder."""
+    """Create a persistent one-shot or recurring reminder."""
     scheduler: ReminderScheduler = _domain_data(hass)["reminder_scheduler"]
     try:
         item = await scheduler.async_add(msg)

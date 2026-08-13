@@ -32,7 +32,7 @@ API_IMPLEMENTATION = '''async function api(path,options={}){
   if(path==="/api/reminder/send")return hass.callWS({type:"cyd_ui/reminder/send",reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound_mode:body.sound_mode||"once",alarm_duration:Number(body.alarm_duration||120),snooze_minutes:Number(body.snooze_minutes||0)});
   if(path==="/api/reminder/dismiss")return hass.callWS({type:"cyd_ui/reminder/dismiss",reminder_id:body.reminder_id||""});
   if(path==="/api/reminder/schedules")return hass.callWS({type:"cyd_ui/reminder/schedule/list"});
-  if(path==="/api/reminder/schedule")return hass.callWS({type:"cyd_ui/reminder/schedule/add",scheduled_at:body.scheduled_at,reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound_mode:body.sound_mode||"once",alarm_duration:Number(body.alarm_duration||120),snooze_minutes:Number(body.snooze_minutes||0)});
+  if(path==="/api/reminder/schedule")return hass.callWS({type:"cyd_ui/reminder/schedule/add",scheduled_at:body.scheduled_at,reminder_id:body.reminder_id,title:body.title,message:body.message,level:body.level,sound_mode:body.sound_mode||"once",alarm_duration:Number(body.alarm_duration||120),snooze_minutes:Number(body.snooze_minutes||0),repeat:body.repeat||"once",weekdays:Array.isArray(body.weekdays)?body.weekdays:[]});
   if(path==="/api/reminder/schedule/cancel")return hass.callWS({type:"cyd_ui/reminder/schedule/cancel",schedule_id:body.schedule_id});
   if(path==="/api/touch-calibration/start")return hass.callWS({type:"cyd_ui/touch_calibration/start"});
   if(path==="/api/reload")return hass.callWS({type:"cyd_ui/device/reload"});

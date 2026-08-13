@@ -1,4 +1,4 @@
-"""Persistent one-shot reminder scheduler for CYD UI."""
+"""Persistent one-shot and recurring reminder scheduler for CYD UI."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from uuid import uuid4
 from homeassistant.core import HomeAssistant
 
 from .storage import CydUiStorage
+from .reminder_model import REPEAT_MODES, next_occurrence, parse_utc, timezone_for
 
 
 RETRY_SECONDS = 60
@@ -21,10 +22,7 @@ def _utc_now() -> datetime:
 
 
 def _parse_utc(value: str) -> datetime:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    if parsed.tzinfo is None:
-        raise ValueError("La fecha debe incluir la zona horaria.")
-    return parsed.astimezone(timezone.utc)
+    return parse_utc(value)
 
 
 class ReminderScheduler:
@@ -46,6 +44,10 @@ class ReminderScheduler:
             except (KeyError, TypeError, ValueError):
                 continue
             if due < now - timedelta(hours=MAX_LATE_HOURS):
+                recurring = self._next_occurrence(item, now)
+                if recurring is not None:
+                    scheduled.append(recurring)
+                    continue
                 history.append({**item, "status": "expired", "completed_at": now.isoformat()})
                 continue
             scheduled.append(item)
@@ -67,10 +69,23 @@ class ReminderScheduler:
         )
 
     async def async_add(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Persist and arm a new one-shot reminder."""
+        """Persist and arm a new one-shot or recurring reminder."""
         due = _parse_utc(str(data["scheduled_at"]))
         if due <= _utc_now() + timedelta(seconds=5):
             raise ValueError("Elegí una fecha y hora futura.")
+        repeat = str(data.get("repeat", "once"))
+        if repeat not in REPEAT_MODES:
+            raise ValueError("La repetición elegida no es válida.")
+        weekdays = sorted({int(day) for day in data.get("weekdays", []) if 0 <= int(day) <= 6})
+        local_due = due.astimezone(self._timezone())
+        if repeat == "weekdays":
+            weekdays = [0, 1, 2, 3, 4]
+        elif repeat == "weekly":
+            weekdays = [local_due.weekday()]
+        elif repeat == "daily":
+            weekdays = list(range(7))
+        elif repeat == "custom" and not weekdays:
+            raise ValueError("Elegí al menos un día para repetir el recordatorio.")
         item = {
             "id": uuid4().hex,
             "scheduled_at": due.isoformat(),
@@ -78,6 +93,10 @@ class ReminderScheduler:
             "status": "pending",
             "attempts": 0,
             "last_error": None,
+            "repeat": repeat,
+            "weekdays": weekdays,
+            "local_time": local_due.strftime("%H:%M"),
+            "timezone": str(getattr(self.hass.config, "time_zone", "UTC") or "UTC"),
             "payload": {
                 "reminder_id": str(data["reminder_id"]),
                 "title": str(data.get("title", "Recordatorio")),
@@ -94,6 +113,19 @@ class ReminderScheduler:
         )
         self._arm(item)
         return item
+
+    def _timezone(self, name: str | None = None):
+        return timezone_for(name or str(getattr(self.hass.config, "time_zone", "UTC") or "UTC"))
+
+    def _next_occurrence(
+        self, item: dict[str, Any], after: datetime | None = None
+    ) -> dict[str, Any] | None:
+        """Return the next wall-clock occurrence, preserving local time across DST."""
+        return next_occurrence(
+            item,
+            after or _utc_now(),
+            str(getattr(self.hass.config, "time_zone", "UTC") or "UTC"),
+        )
 
     async def async_cancel(self, schedule_id: str) -> bool:
         """Cancel one pending reminder."""
@@ -147,4 +179,8 @@ class ReminderScheduler:
         remaining = [current for current in self.storage.data.get("scheduled_reminders", [])
                      if current.get("id") != schedule_id]
         history = [*self.storage.data.get("reminder_history", []), completed]
+        if next_item := self._next_occurrence(item):
+            remaining.append(next_item)
         await self.storage.async_update_reminders(remaining, history)
+        if next_item:
+            self._arm(next_item)

@@ -1,5 +1,5 @@
 const STATIC_ROOT = "/cyd_ui_static";
-const ASSET_VERSION = "0.7.8";
+const ASSET_VERSION = "0.8.0";
 
 function describeError(error) {
   if (typeof error === "string") return error;
